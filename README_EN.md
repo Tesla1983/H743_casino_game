@@ -40,6 +40,27 @@ During early development we researched and compared multiple entropy sources (ha
 
 In one sentence: **The H743 provides "real, healthy, independent" physical entropy, and the host-side DRBG expands it into a safely usable random stream** — this is the fundamental reason this architecture chose a hardware TRNG over a pure software solution.
 
+#### Horizontal Selection: The Lottery-Class-Device Perspective
+
+The core requirement of lottery-class devices such as lottery machines and slot machines is **unpredictable outcomes + uniform distribution** — so that every participant has equal odds and neither the player nor the operator can manipulate the result. This is fundamentally different from financial cryptography or key generation: such devices usually **do not need the "full entropy" bar** (every bit carrying 100% true randomness). A hardware RNG that passes standard statistical randomness tests and shows no obvious pattern or bias is sufficient (except in strictly regulated gambling equipment, which may carry mandatory certification).
+
+Against this backdrop, re-evaluating four common MCUs with a TRNG:
+
+| Chip | Random-number quality (key evidence) | Fit for lottery-class devices |
+| :--- | :--- | :--- |
+| **STM32H743** | NIST official "full entropy" certification (1 bit/bit) | **Quality ceiling, with performance to spare**. Its RNG quality far exceeds typical needs, providing the most solid fairness foundation; the official docs list "random-number lottery" among its applications. If budget and dev resources allow, choosing it means no randomness problems at all. |
+| **ESP32-S3** | Very high measured entropy (≈7.9998 bit/Byte), no official full-entropy cert. | **A strong candidate with excellent cost-performance**. Its physical entropy quality is more than enough for lottery use, and the integrated Wi-Fi/Bluetooth simplifies networking and remote management, sharply cutting system cost and complexity. |
+| **RA6E2** | Clearly quantified entropy (0.872315 bit/bit), with an internal evaluation report | **A balanced choice that fits the function**. The official material lists "lottery-class devices" as a typical TRNG application, with data-backed reliable randomness; as an entry-level MCU it may also have a cost edge. |
+| **RP2350** | Has a dedicated TRNG, but little public quantified-entropy data | **An option needing extra validation**. Community discussion notes its ROSC-based scheme may yield lower-quality randomness and needs careful configuration; for scenarios with explicit fairness requirements, choosing it means taking on more verification work yourself. |
+
+**Selection advice**: the logic should shift from "pursuing the absolute highest quality" to "finding the best balance of cost, integration, and development convenience while meeting the fairness bar."
+
+- **The most unassailable fairness endorsement** (commercial / regulated environments): **STM32H743VIT6** remains the safest — its NIST full-entropy certification is the ultimate answer to any challenge about randomness quality, and this project falls in this category.
+- **High cost-performance + system integration** (smart lottery machines needing networking / remote management): **ESP32-S3** is a strong contender — its measured randomness fully meets the need, and the built-in wireless greatly simplifies the design.
+- **Cost-sensitive + needing clear, data-backed reliability**: **RA6E2** fits well — officially recommended for lottery devices, with quantified entropy sufficient to prove fairness.
+
+> **Key reminder**: regardless of the chip, the industry best practice for formal lottery products is to **use the hardware TRNG as a seed to drive a software CSPRNG, and periodically reseed with fresh TRNG data** — guaranteeing randomness quality, uniformity, and generation speed at once. This project's ChaCha20 DRBG is exactly that approach (physical entropy → DRBG expansion → periodic reseeding).
+
 Two access methods: **Online** — send `$?RND` to the board in real time to fetch physical entropy; **Offline** — sample the physical entropy into a snapshot file during idle time, the offline bridge reads only the file, does not occupy the serial port, and can coexist with the online bridge. The repository ships `random_raw.bin` (1 MB, a true-random file sampled from the H743 hardware TRNG), so without a board the offline bridge can directly use this file for a demo, with no on-site entropy sampling needed. Both paths finally converge on the same unbiased mapping (`byte % 64`), making no difference to game probabilities.
 
 ---
