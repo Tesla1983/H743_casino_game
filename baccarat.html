@@ -1117,6 +1117,18 @@
 
   /* 右侧缩放面板：珠盘路 / 银行卡（非焦点，压暗 + 缩小） */
   body.arc .sidecard.roadcard.mini{width:200px;}
+  /* 珠盘路：等比例放大 1.25 倍，锚定右上角（transform-origin:100% 0，右上角固定，向左下扩展）。
+     transform 不占布局 ⇒ 视觉下沿会比布局盒多出约 25% 高度，故补 203px 下边距把银行卡
+     推到放大后的视觉底缘之下，避免被遮住。卡片高度由固定 8 行网格驱动、恒为 812px，25%≈203px。
+     仅桌面窄列布局生效，≤980px 流式布局不放大。 */
+  @media (min-width:981px){
+    /* 1.25 倍放大、锚定右上角（transform-origin:100% 0）：缩放后视觉框相对布局框
+       向左多出 0.25×200≈50px，会压到左侧台面边框。用 translateX(60px) 把整张缩放卡
+       右移 60px 抵消这段左溢（并多留约 10px 余量），既保留原尺寸与右上角锚定，又让其
+       完全位于台面右侧、与边框留出合理间距（不再遮挡桌面边框）。margin-bottom 仍补偿向下溢出。 */
+    body.arc .sidecard.roadcard.mini{transform:translateX(60px) scale(1.25);transform-origin:100% 0;
+      z-index:5;margin-bottom:203px;}
+  }
   body.arc .sidecard.roadcard.mini .rd{width:18px;height:18px;font-size:11px;}
   body.arc .sidecard.roadcard.mini .road-grid{gap:3px;min-height:158px;}
   body.arc .bankcard.mini{opacity:.92;}
@@ -1521,6 +1533,7 @@
     <ul>
       <li data-i18n="rules.comm.1"><b>有佣台</b>：庄赢一律按 <b>0.95 : 1</b> 派彩，抽 5% 佣金，不足 1 分向下取整。庄家优势 <b>1.06%</b>，是全桌最优注。</li>
       <li data-i18n="rules.comm.2"><b>免佣台（默认 · 澳门主流）</b>：庄赢<b>不抽水</b>，但庄以 <b>6 点</b>赢时只赔 <b>0.5 : 1</b>（押 100 净赢 50，本金照退；注额为奇数时利润向下取整，押 25 赢 12）。庄家优势升到 <b>1.46%</b>。</li>
+      <li data-i18n="rules.hedge"><b>两边押等额会「对冲」</b>：闲赢 / 庄满赔赢 / 和局都互相抵消，本手常净 0，看着像空转——真实赌场也如此。赌场只在<b>庄家那一侧被压低的派彩</b>（免佣台庄 6 点半赔、有佣台抽 5%）才真正抽走你的钱，其余都对冲掉了。</li>
     </ul>
     <p class="note" data-i18n="rules.comm.note">注意口径：0.5 : 1 是<b>净赢</b>的赔率，押 100 拿回 150（本金 100 + 利润 50），不是总共只赔 50。若某处写成「庄 6 点只返还一半本金」（净输 50），那是另一种对玩家极不利的规则，本机不采用。</p>
 
@@ -2035,7 +2048,7 @@
       "spot.pay.pp":"11:1","spot.pay.bp":"11:1","spot.pay.l6":"12/20",
       "btn.deal":"发牌","btn.space":"空格",
       "verdict.place":"请下注 · 按「发牌」开始","verdict.dealing":"发牌中…","verdict.p":"闲家胜","verdict.b":"庄家胜","verdict.t":"和局",
-      "verdict.win":"+{n}","verdict.lose":"−{n}","verdict.push":"退还 {n}",
+      "verdict.win":"+{n}","verdict.lose":"−{n}","verdict.push":"退还 {n}","verdict.hedge":"本手净 0（对冲）",
       "src.btn":{ trng:"随机源：H743 在线", offline:"随机源：H743 离线" },
       // 随机源状态行（#srcMsg）：文案与老虎机 slot_machine.html 逐字一致，端口 {p} 取自探测到的
       // HTTP 端口，{c} 是 /status.port 里的串口（如 " · 串口端口"），没有就留空
@@ -2063,7 +2076,7 @@
       "bc.title":"银行卡","bc.label":"卡内积分","bc.all":"全部","bc.amtPh":"自定义",
       "bc.dep":"存入 ▲","bc.wd":"取出 ▼",
       "tlog.p":"闲 {t}","tlog.b":"庄 {t}","tlog.hit":"补 {c} → {t}","tlog.stand":"停牌",
-      "brk.p":"闲","brk.b":"庄","brk.t":"和","brk.net":"净","brk.push":"退回",
+      "brk.p":"闲","brk.b":"庄","brk.t":"和","brk.net":"净","brk.push":"退回","brk.hedge":"本手净 0（对冲）",
       "brk.pp":"闲对","brk.bp":"庄对","brk.l6":"幸运六",
       /* 庄赢但没满赔时的括注：免佣台庄 6 点半赔 / 有佣台抽水 5%。
          括号写在词条里，中文用全角、英文用半角，别在代码里拼括号。 */
@@ -2092,6 +2105,7 @@
       "rules.comm.p":"下注区下方那排按钮里的「台面」在两种真实台型之间切换，按钮上直接显示当前台型（默认<b>免佣</b>）。切换只影响<b>下一手</b>——已经发出去的一手按发牌那一刻的台型结算；选择会随存档保留，刷新后不变：",
       "rules.comm.1":"<b>有佣台</b>：庄赢一律按 <b>0.95 : 1</b> 派彩，抽 5% 佣金，不足 1 分向下取整。庄家优势 <b>1.06%</b>，是全桌最优注。",
       "rules.comm.2":"<b>免佣台（默认 · 澳门主流）</b>：庄赢<b>不抽水</b>，但庄以 <b>6 点</b>赢时只赔 <b>0.5 : 1</b>（押 100 净赢 50，本金照退；注额为奇数时利润向下取整，押 25 赢 12）。庄家优势升到 <b>1.46%</b>。",
+      "rules.hedge":"<b>两边押等额会「对冲」</b>：闲赢 / 庄满赔赢 / 和局都互相抵消，本手常净 0，看着像空转——真实赌场也如此。赌场只在<b>庄家那一侧被压低的派彩</b>（免佣台庄 6 点半赔、有佣台抽 5%）才真正抽走你的钱，其余都对冲掉了。",
       "rules.comm.note":"注意口径：0.5 : 1 是<b>净赢</b>的赔率，押 100 拿回 150（本金 100 + 利润 50），不是总共只赔 50。若某处写成「庄 6 点只返还一半本金」（净输 50），那是另一种对玩家极不利的规则，本机不采用。",
       "rules.side":"附加注：对子 / 幸运六",
       "rules.side.1":"<b>闲对 / 庄对（11:1）</b>：只看该方<b>头两张牌</b>是否同点数（如 8♠ 8♦、K♣ K♥）。补的第三张不算，10 与 Q 也<b>不算</b>对子（点数同为 0，但牌面不同）。",
@@ -2157,7 +2171,7 @@
       "spot.pay.pp":"11:1","spot.pay.bp":"11:1","spot.pay.l6":"12/20",
       "btn.deal":"DEAL","btn.space":"Space",
       "verdict.place":"PLACE YOUR BETS","verdict.dealing":"DEALING…","verdict.p":"PLAYER WINS","verdict.b":"BANKER WINS","verdict.t":"TIE",
-      "verdict.win":"+{n}","verdict.lose":"-{n}","verdict.push":"PUSH {n}",
+      "verdict.win":"+{n}","verdict.lose":"-{n}","verdict.push":"PUSH {n}","verdict.hedge":"NET 0 (hedged)",
       "src.btn":{ trng:"Source: H743 live", offline:"Source: H743 offline" },
       "src.msg.connecting":"connecting…",
       "src.msg.trngReady":"H743 online · serial direct · port {p}{c}",
@@ -2183,7 +2197,7 @@
       "bc.title":"BANK CARD","bc.label":"CARD BALANCE","bc.all":"ALL","bc.amtPh":"amount",
       "bc.dep":"DEPOSIT ▲","bc.wd":"WITHDRAW ▼",
       "tlog.p":"P {t}","tlog.b":"B {t}","tlog.hit":"draw {c} → {t}","tlog.stand":"stand",
-      "brk.p":"Player","brk.b":"Banker","brk.t":"Tie","brk.net":"NET","brk.push":"push",
+      "brk.p":"Player","brk.b":"Banker","brk.t":"Tie","brk.net":"NET","brk.push":"push","brk.hedge":"Net 0 (hedged)",
       "brk.pp":"P pair","brk.bp":"B pair","brk.l6":"Lucky 6",
       "brk.b6":" (B6 pays 0.5:1)","brk.cm":" (5% commission)",
       "roads.stat":"B {b} · P {p} · T {t} (last {n})",
@@ -2211,6 +2225,7 @@
       "rules.comm.p":"The TABLE button in the row under the betting area switches between the two real-world variants and shows the current one (default: <b>commission-free</b>). It applies to the <b>next hand</b> - a hand already dealt settles under the table type it was dealt with. The choice is saved and survives a reload:",
       "rules.comm.1":"<b>Commission table</b>: every banker win pays <b>0.95:1</b> (5% rake, rounded down). House edge <b>1.06%</b> - the best bet on the table.",
       "rules.comm.2":"<b>Commission-free (default · standard in Macau)</b>: banker wins pay even money with <b>no rake</b>, but a banker win on <b>6</b> pays only <b>0.5:1</b> (bet 100, win 50, stake returned; odd stakes round the profit down - 25 wins 12). House edge rises to <b>1.46%</b>.",
+      "rules.hedge":"<b>Equal bets on both sides = a 'hedge'</b>: Player-win, full-pay Banker-win and Tie all cancel out, so most hands net 0 and look like nothing happened - exactly as in a real casino. The house only takes money on the <b>banker's artificially reduced payout</b> (commission-free: 0.5:1 on a banker 6; commission table: 5% rake). Everything else is hedged away.",
       "rules.comm.note":"Note the wording: 0.5:1 is the <b>profit</b> - a 100 bet returns 150 (100 stake + 50 profit), not 50 in total. A table that says 'banker 6 returns half the stake' (a 50 loss) is a far worse variant and is not used here.",
       "rules.side":"Side bets: pairs / Lucky Six",
       "rules.side.1":"<b>Player pair / Banker pair (11:1)</b>: the side's <b>first two cards</b> must share the same rank (8♠ 8♦, K♣ K♥). A third card never counts, and 10 with Q is <b>not</b> a pair (both worth 0 but different ranks).",
@@ -2290,7 +2305,7 @@
     // 补牌记录 + 结算拆解是「按当时语言拼好的一整行」，没有 data-i18n 可挂，
     // 切语言时必须用存档的牌面重拼一遍，否则中文拆解会一直挂在英文界面上
     if (_tlogState) setTlog(handLog(_tlogState.h), brkText(_tlogState.st, _tlogState.bs));
-    if (_vwinState) renderVwin(_vwinState);
+    if (_vwinState) renderVwin(_vwinState.st, _vwinState.bs);
     renderStats();
     renderCard();
     renderComm();
@@ -3058,7 +3073,12 @@
     if (bs.pp > 0) add(tt("brk.pp"), st.ppWin ? money(bs.pp * PAY_PAIR) : money(-bs.pp));
     if (bs.bp > 0) add(tt("brk.bp"), st.bpWin ? money(bs.bp * PAY_PAIR) : money(-bs.bp));
     if (bs.l6 > 0) add(tt("brk.l6"), st.l6Rate ? money(bs.l6 * st.l6Rate) : money(-bs.l6));
-    add(tt("brk.net"), money(st.net));
+    if (st.net === 0 && bs.p > 0 && bs.b > 0){
+      // 闲庄两边等额对冲：净 0 时明确标注「对冲」，避免玩家误以为卡住/空转
+      segs.push(tt("brk.hedge"));
+    } else {
+      add(tt("brk.net"), money(st.net));
+    }
     return segs.join("  ·  ");
   }
   /* 补牌记录 + 结算拆解：拆解单独包一层 span，可以比主体大一号、加粗、金色 */
@@ -3076,14 +3096,15 @@
     setTlog(handLog(h), brkText(st, bs));
   }
   /* 胜负金额行（+200 / 退还 400 / −400）同样是拼好的字符串，切语言必须重拼 */
-  function renderVwin(st){
-    _vwinState = st;
+  function renderVwin(st, bs){
+    _vwinState = { st: st, bs: bs };
     if (st.net > 0){
       vwinEl.className = "vwin show";
       vwinEl.textContent = tt("verdict.win", { n: fmtAmt(st.net) });
     } else if (st.net === 0){
       vwinEl.className = "vwin show push";
-      vwinEl.textContent = tt("verdict.push", { n: fmtAmt(st.total) });
+      if (bs && bs.p > 0 && bs.b > 0) vwinEl.textContent = tt("verdict.hedge");
+      else vwinEl.textContent = tt("verdict.push", { n: fmtAmt(st.total) });
     } else {
       vwinEl.className = "vwin show lose";
       vwinEl.textContent = tt("verdict.lose", { n: fmtAmt(-st.net) });
@@ -3118,7 +3139,7 @@
     pTotalEl.classList.remove("pop"); bTotalEl.classList.remove("pop");
     renderTlog(h, st, h.bet);
     renderVerdictText();
-    renderVwin(st);
+    renderVwin(st, h.bet);
     if (st.res !== "t"){
       (st.res === "p" ? sideP : sideB).classList.add("won");
       Array.prototype.forEach.call((st.res === "p" ? pCards : bCards).children, function(c){
