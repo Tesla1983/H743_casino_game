@@ -959,14 +959,17 @@
   body.arc .felt > .shoecard .sc-bar{height:8px;}
   body.arc .felt > .shoecard .sc-foot{font-size:9.5px;}
 
-  /* ---------- 闲 / 庄 两张手牌区：名字牌居中在上，牌居中、点数在右 ---------- */
+  /* ---------- 闲 / 庄 两张手牌区：名字牌居中在上，牌在台面正中、点数球平衡在右 ---------- */
   body.arc .side{
-    display:grid;grid-template-columns:1fr 56px;
-    grid-template-areas:"who who" "cards total";
+    display:grid;grid-template-columns:56px 1fr 56px;
+    grid-template-areas:"who who who" "spacer cards total";
     align-items:center;justify-items:center;gap:4px 10px;
     width:100%;max-width:512px;margin:0 auto;padding:8px 12px;min-height:0;
     background:none;border:0;border-radius:0;box-shadow:none;
   }
+  /* 左侧补一个与右侧点数球等宽的空列（spacer），让中间「牌」列在台面上真正居中，
+     不再被右侧 56px 点数球拉偏（原 1fr+56px 两列时，牌列中心相对台面中心左移约 33px）。 */
+  body.arc .side::before{content:"";grid-area:spacer;}
   /* 赢家不画框：只在牌后面铺一层很淡的金光，靠点数球高亮 + 牌面金边表达胜负 */
   body.arc .side.won{
     background:radial-gradient(58% 96% at 50% 52%, rgba(255,200,60,.11), rgba(255,200,60,0) 72%);
