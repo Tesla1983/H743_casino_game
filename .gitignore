@@ -29,6 +29,9 @@ h743_entropy.json.state.tmp
 # 渲染核对用的临时截图 / 中间 SVG（Edge 无头截图，随手删）
 _*.png
 _*.svg
+# 无头浏览器核对用的整页截图（baccarat_*.png 等，随手删，勿入库）
+baccarat_*.png
+shot.png
 
 # 一人一份发号用的快照目录与台账（等同密钥材料，绝不入库）
 snapshots/
