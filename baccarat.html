@@ -848,9 +848,8 @@
   /* ---------- 余牌：牌靴堆叠 + 进度条 ---------- */
   .shoecard{display:flex;flex-direction:column;align-items:stretch;gap:8px;
     padding:12px 12px 13px;border-radius:14px;text-align:center;
-    /* 去掉独立面板观感：背景用半透明绿呢色融入台面，无边框、无外投影 */
-    background:linear-gradient(180deg,rgba(12,58,44,.28),rgba(6,30,22,.42));
-    border:0;box-shadow:none;}
+    /* 完全融入台面：背景透明，直接露出下面绿呢，无边框、无外投影、无色块 */
+    background:transparent;border:0;box-shadow:none;}
   .shoecard .sc-top{display:flex;align-items:baseline;justify-content:center;gap:8px;}
   .shoecard .sc-lbl{font-size:11px;letter-spacing:1.4px;color:#a9c7bb;font-weight:600;}
   .shoecard .sc-val{font-size:24px;font-weight:900;line-height:1;color:#ffd76a;
@@ -862,7 +861,7 @@
     background:radial-gradient(62% 100% at 50% 0,rgba(0,0,0,.55),rgba(0,0,0,0) 72%);
     filter:blur(2.5px);pointer-events:none;}
   .shoecard .sc-card{position:absolute;width:46px;height:64px;border-radius:5px;
-    border:1px solid rgba(255,255,255,.2);
+    border:0;
     box-shadow:0 2px 5px rgba(0,0,0,.45);}
   .shoecard .sc-card:nth-child(1){top:9px;left:2px;}
   .shoecard .sc-card:nth-child(2){top:6px;left:6px;}
@@ -871,7 +870,7 @@
     box-shadow:0 3px 8px rgba(0,0,0,.5);}
   /* 进度条 */
   .shoecard .sc-bar{height:9px;border-radius:6px;overflow:hidden;
-    background:rgba(0,0,0,.42);border:1px solid rgba(255,255,255,.12);}
+    background:rgba(0,0,0,.42);border:0;}
   .shoecard .sc-bar > i{display:block;height:100%;border-radius:6px;width:100%;
     background:linear-gradient(90deg,#caa23a,#ffd76a);
     box-shadow:0 0 8px rgba(245,197,66,.4);transition:width .35s ease;}
@@ -947,9 +946,8 @@
   body.arc .felt > .shoecard{
     position:absolute;right:4px;top:50%;transform:translateY(-50%);z-index:4;
     width:148px;padding:9px 9px 10px;gap:6px;
-    /* 融入绿呢台面：半透明台面色 + 无边框 + 无外投影，牌堆像直接摆在桌上 */
-    background:linear-gradient(180deg,rgba(12,58,44,.30),rgba(6,30,22,.44));
-    border:0;box-shadow:none;border-radius:14px;
+    /* 完全融入台面：背景透明，直接露出下面绿呢，无边框、无外投影、无色块 */
+    background:transparent;border:0;box-shadow:none;border-radius:14px;
   }
   body.arc .felt > .shoecard .sc-val{font-size:20px;}
   body.arc .felt > .shoecard .sc-stack{height:62px;width:56px;}
