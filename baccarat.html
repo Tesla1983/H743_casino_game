@@ -1,0 +1,3435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Baccarat · 百家乐</title>
+<style>
+  /* =========================================================================
+   *  配色 / 版式与 slot_machine.html 完全同源：同一套 CSS 变量、同一套卡片语言
+   *  （深紫柜机 + 金边 + 跑马灯泡），新增部分只有「牌桌」和「路纸」两块。
+   * ========================================================================= */
+  :root{
+    --gold:#f5c542; --gold-d:#b8860b; --gold-l:#ffe680;
+    --red:#e23b3b; --green:#6ef08a;
+    --ink:#eae2f5; --muted:#9a8fb0;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+    min-height:100%;
+    background:
+      radial-gradient(1100px 760px at 50% -15%, #3a1d63 0%, transparent 58%),
+      radial-gradient(820px 760px at 112% 118%, #3f0f30 0%, transparent 55%),
+      #07040c;
+    font-family:"Segoe UI",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    color:var(--ink);overflow:auto;
+    /* 上边距压到 14px：桌面能再上移 12px（左右下仍是 26）。银行卡靠自己 top 让开工具栏 */
+    padding:14px 26px 26px;
+  }
+  /* 桌面 / 路纸 / 规则 三段的统一间距由 .stage 的 gap 管，别在各自身上再加 margin */
+  .stage{display:flex;flex-direction:column;align-items:center;gap:20px;width:100%;transform-origin:center center;}
+  /* 顶部不再留 44px：银行卡是 absolute，自己用 top 让开右上角工具栏，
+     整页就可以顶到 body 内边距（26px），桌面整体上移 53px，一屏能看见发牌键 */
+  .page{display:flex;flex-direction:column;align-items:center;gap:24px;width:fit-content;max-width:96vw;zoom:1.2;}
+
+  /* ---------- 左上角：回到老虎机（与右上角工具条同款按钮语言） ---------- */
+  .homelink{
+    position:fixed;top:14px;left:20px;z-index:70;
+    display:inline-flex;align-items:center;gap:8px;
+    padding:7px 14px;border-radius:11px;text-decoration:none;
+    font-size:12.5px;font-weight:800;letter-spacing:1px;
+    color:var(--gold);background:linear-gradient(#2b1a10,#190f08);
+    border:1px solid rgba(245,197,66,.32);
+    box-shadow:0 6px 16px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08);
+    transition:filter .15s ease, transform .08s ease, box-shadow .15s ease;
+  }
+  .homelink:hover{filter:brightness(1.18);
+    box-shadow:0 8px 22px rgba(245,197,66,.22), inset 0 1px 0 rgba(255,255,255,.10);}
+  .homelink:active{transform:translateY(1px);}
+  .homelink .hl-ico{width:15px;height:15px;display:block;}
+  .homelink .hl-arrow{opacity:.75;font-weight:900;}
+
+  /* file:// + Firefox 内核时提示"两页不同源"，见 warnFileOrigin() */
+  .filewarn{position:fixed;left:0;right:0;bottom:0;z-index:9999;display:flex;align-items:center;gap:12px;
+    padding:8px 14px;background:#3a1420;border-top:1px solid rgba(200,162,74,.55);color:#ffe9b8;
+    font-size:12.5px;line-height:1.45;box-shadow:0 -6px 18px rgba(0,0,0,.45);}
+  .filewarn span{flex:1;}
+  .filewarn b{color:#f5c542;}
+  .filewarn i{color:#e8c07a;font-style:normal;font-size:11.5px;opacity:.85;}
+  .filewarn button{flex:none;background:none;border:1px solid rgba(200,162,74,.45);color:#ffe9b8;
+    border-radius:6px;width:26px;height:26px;font-size:16px;line-height:1;cursor:pointer;}
+
+  /* ---------- rules card ---------- */
+  .rules{
+    width:100%;max-width:100%;
+    background:linear-gradient(160deg,#241638,#140d20);
+    border:1px solid rgba(245,197,66,.22);
+    border-radius:18px;padding:18px 22px 24px;
+    box-shadow:0 18px 50px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.06);
+    font-size:13px;line-height:1.7;color:#d9cdeb;
+  }
+  .rules h2{margin:0 0 10px;font-size:17px;letter-spacing:3px;color:var(--gold);
+    text-shadow:0 0 9px rgba(245,197,66,.35);}
+  .rules h3{margin:16px 0 6px;font-size:13.5px;color:#ffd76a;letter-spacing:1px;}
+  .rules p{margin:6px 0;}
+  .rules ul{margin:6px 0;padding-left:20px;}
+  .rules li{margin:3px 0;}
+  .rules b{color:#fff0c8;font-weight:700;}
+  .rules table{border-collapse:collapse;width:100%;table-layout:fixed;margin:8px 0;font-size:12.5px;}
+  .rules th,.rules td{border:1px solid rgba(255,255,255,.13);padding:5px 8px;text-align:center;}
+  .rules th{background:rgba(245,197,66,.12);color:#ffe680;font-weight:700;}
+  .rules .tag{display:inline-block;padding:1px 8px;border-radius:8px;font-size:11px;font-weight:700;}
+  .rules .tag.p{background:linear-gradient(#7fb2ff,#2b5fc4);color:#04122c;}
+  .rules .tag.b{background:linear-gradient(#ff9a9a,#c02020);color:#fff;}
+  .rules .tag.t{background:linear-gradient(#8ff0b8,#1f9a5a);color:#04220f;}
+  .rules .tag.pair{background:linear-gradient(#c9b6ff,#6b46c1);color:#0c0420;}
+  .rules .tag.six{background:linear-gradient(#ffe08a,#c98a00);color:#241000;}
+  .rules .note{color:#968bad;font-size:11.5px;}
+
+  /* ---------- 三卡布局：玩家档案 / 柜机 / 路纸（银行卡绝对定位在右侧） ---------- */
+  .machine{display:flex;flex-direction:column;align-items:center;gap:10px;zoom:1;
+    position:relative;width:100%;--bank-w:170px;}
+  /* 银行卡缩小后贴到桌面右上角的空档里（absolute 不占高度），三卡仍按整行居中。
+     空档宽度 = (页面宽 − 三卡宽)/2，170px 的卡在 ≥1630px 视口下都放得下；
+     更窄时退回「卡片独立一行」（见下方 max-width:1629px）。 */
+  .bankbar{display:flex;justify-content:flex-end;align-items:flex-start;width:auto;
+    /* right 留 14px：卡片放大后右上角「−」收起钮会按比例外扩（-11px × zoom），
+       贴死页右缘会顶出视口产生横向滚动条 */
+    position:absolute;bottom:0;right:14px;z-index:5;}
+  /* 三卡行：玩家档案 / 柜机 / 珠盘路 同一行底部对齐 */
+  .machrow{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;justify-content:center;width:100%;}
+  /* 右侧放不下时（视口 ≤1663px）银行卡回到独立一行，别压到珠盘路上。
+     判据是「右侧空档 (0.96W − 三卡宽)/2 ≥ 卡宽 170 + 间距 16 + 余量 10」：1 倍下三卡 1174 ⇒ W ≥ 1664 */
+  @media (max-width:1663px){
+    /* 退回独立一行时卡片回到文档流顶部，整页得重新让开右上角工具栏 */
+    .page{padding-top:46px;}
+    /* 居中对齐：右上角要留给音量浮层（展开后往下压 170px），右对齐会被它盖住 */
+    .bankbar{position:static;bottom:auto;width:100%;align-items:flex-end;justify-content:center;
+      margin-bottom:2px;}
+  }
+  .sidecard{
+    align-self:stretch;width:172px;flex:0 0 auto;position:relative;overflow:hidden;
+    display:flex;flex-direction:column;align-items:center;
+    padding:14px 12px 16px;border-radius:20px;
+    background:linear-gradient(165deg,#2b1a42 0%,#180f26 55%,#0c0714 100%);
+    border:1px solid rgba(245,197,66,.30);
+    box-shadow:0 18px 48px rgba(0,0,0,.55), 0 0 42px rgba(245,197,66,.10),
+      inset 0 1px 0 rgba(255,255,255,.07);
+  }
+  .sidecard::before{content:"";position:absolute;inset:5px;border-radius:15px;pointer-events:none;
+    border:1px solid rgba(245,197,66,.12);}
+  /* 路纸点径 15px→30px（2 倍）：6 行 × 8 列放不下，改为 8 行 × 6 列（仍是 48 手），
+     卡片同步加宽到 246px（内容区 220px = 6×30 + 5×6 间距），避免点被裁切。 */
+  .sidecard.roadcard{width:246px;}
+
+  .jp-bulbs{position:relative;width:100%;height:8px;display:flex;align-items:center;
+    justify-content:space-between;padding:0 2px;}
+  .bulb{width:6px;height:6px;border-radius:50%;background:#ffd76a;
+    box-shadow:0 0 7px 2px rgba(255,180,40,.85);animation:blink 1.15s infinite;}
+  .bulb:nth-child(2n){animation-delay:.28s;}
+  .bulb:nth-child(3n){animation-delay:.55s;}
+  .bulb:nth-child(4n){animation-delay:.8s;}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+
+  .jp-title{margin-top:12px;font-weight:900;font-size:14px;letter-spacing:3px;color:var(--gold-l);
+    text-shadow:0 0 8px rgba(245,197,66,.85),0 0 18px rgba(255,140,20,.5);}
+  .jp-sub{font-size:10.5px;letter-spacing:1px;color:#a896c4;margin-top:3px;}
+  .jp-body{flex:1;width:100%;display:flex;flex-direction:column;align-items:center;
+    justify-content:space-evenly;gap:6px;padding:8px 0;}
+  .jp-foot{font-size:10px;color:#8f80ab;letter-spacing:.4px;text-align:center;line-height:1.55;}
+  .jp-foot b{color:#ffd76a;}
+
+  /* ---------- 玩家档案 ---------- */
+  .pl-stat{text-align:center;}
+  /* .jp-body 是 align-items:center，若这里不给宽度，.pl-duo 会退化成「收缩到内容宽」：
+     两个 flex:1 1 0 的列各分到 ~45px，「99.99萬」的「萬」被 CJK 换行规则挤到第二行。
+     宽度撑满 + 数字禁止换行，才是两列各占 (148-8)/2 = 70px 的正常形态。 */
+  .pl-duo{display:flex;justify-content:space-between;gap:8px;width:100%;align-self:stretch;}
+  .pl-duo-item{flex:1 1 0;min-width:0;text-align:center;}
+  .pl-lbl{font-size:10px;letter-spacing:1px;color:#9a8fb0;}
+  /* nowrap：数字与「萬 / K / M」永远同一行（中文标点/汉字允许在任意字间断行，否则单位会掉行） */
+  .pl-num{font-size:22px;font-weight:900;color:#e9dcc0;font-variant-numeric:tabular-nums;
+    line-height:1.25;white-space:nowrap;text-shadow:0 0 5px rgba(245,197,66,.22);}
+  .pl-num.sm{font-size:15px;line-height:1.2;}
+  .pl-num.win{color:#9fe8b0;text-shadow:0 0 5px rgba(80,230,130,.28);}
+  .pl-num.lost{color:#efb0b0;text-shadow:0 0 5px rgba(255,90,90,.22);}
+  .pl-num.warn{color:#e79a9a;text-shadow:0 0 5px rgba(255,80,80,.25);}
+  .pl-reset{
+    position:relative;overflow:hidden;width:100%;padding:8px 10px;border-radius:12px;cursor:pointer;
+    font-weight:800;font-size:12px;letter-spacing:1px;font-family:inherit;
+    color:#1a0a2e;background:linear-gradient(#ffd76a,#e2a90f);
+    border:1px solid rgba(255,255,255,.35);
+    box-shadow:0 6px 16px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.5);
+    transition:filter .15s ease, transform .08s ease;
+  }
+  .pl-reset .rs-txt{display:inline-block;transition:transform .35s cubic-bezier(.35,.1,.25,1), opacity .35s;}
+  .pl-reset .rs-alt{position:absolute;left:0;top:0;width:100%;height:100%;z-index:2;
+    display:flex;align-items:center;justify-content:center;pointer-events:none;
+    transform:translateY(100%);transition:transform .4s cubic-bezier(.35,.1,.25,1);}
+  .pl-reset:hover .rs-txt{transform:translateY(-100%);opacity:0;}
+  .pl-reset:hover .rs-alt{transform:translateY(0);}
+  .pl-reset:hover{filter:brightness(1.08);}
+  .pl-reset:active{transform:translateY(1px);}
+
+  /* ---------- 路纸（珠盘路）：8 行，自上而下、满列换列 ---------- */
+  .roadcard .jp-body{justify-content:flex-start;gap:0;padding-top:12px;}
+  .road-grid{
+    display:grid;grid-template-rows:repeat(8,1fr);grid-auto-flow:column;
+    gap:6px;justify-content:center;width:100%;min-height:270px;
+  }
+  .rd{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:18px;font-weight:900;line-height:1;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.35), 0 2px 4px rgba(0,0,0,.55);}
+  .rd.p{background:radial-gradient(circle at 35% 30%,#8dbcff,#2b5fc4);color:#04122c;}
+  .rd.b{background:radial-gradient(circle at 35% 30%,#ffa8a8,#c02020);color:#2a0404;}
+  .rd.t{background:radial-gradient(circle at 35% 30%,#9bf4c0,#1f9a5a);color:#04220f;}
+  .rd.new{animation:rdIn .3s cubic-bezier(.2,1.5,.4,1);}
+  @keyframes rdIn{0%{transform:scale(.2);opacity:0}100%{transform:scale(1);opacity:1}}
+  .road-empty{width:100%;text-align:center;font-size:10.5px;color:#7d7196;letter-spacing:.5px;
+    padding:34px 0;}
+  .road-legend{display:flex;gap:10px;justify-content:center;margin-top:8px;font-size:11px;color:#8f84a8;}
+  .road-legend i{font-style:normal;display:inline-flex;align-items:center;gap:4px;}
+  .road-legend .rd{width:18px;height:18px;font-size:0;}
+
+  /* ---------- 路纸墙：大路 + 三条衍生路 ----------
+     纯渲染层，不参与任何概率/结算。大路按「同一结果往下叠、换边开新列」记录，
+     超过 6 行沿底行向右延伸（长龙）；和局不开新列，只在上一个格子上打绿斜线。
+     三条衍生路用「列长是否重复」判定：红圈=齐（与前两列同长）、蓝点=跳（不同长）。 */
+  /* 路纸墙：桌面下方、规则卡上方，独占一整条；四条路宽屏并排、窄屏自动折行 */
+  .roadbook{
+    width:100%;max-width:100%;flex:0 0 auto;overflow:hidden;
+    background:linear-gradient(160deg,#241638,#140d20);
+    border:1px solid rgba(245,197,66,.22);border-radius:18px;padding:13px 18px 12px;
+    box-shadow:0 18px 50px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.06);
+  }
+  /* 收起态：只藏四条路，标题栏留在原地（纵向手风琴，高度塌陷），箭头翻转 */
+  .roadbook.collapsed .rb-rows{display:none;}
+  .roadbook.collapsed .rb-head{margin-bottom:0;}
+  .rb-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;}
+  .rb-head h2{margin:0;font-size:15px;letter-spacing:3px;color:var(--gold);
+    text-shadow:0 0 9px rgba(245,197,66,.30);}
+  .rb-head span{font-size:10.5px;color:#8f80ab;letter-spacing:.3px;flex:1 1 auto;min-width:0;}
+  .rb-toggle{margin-left:auto;flex:0 0 auto;width:26px;height:26px;border-radius:8px;cursor:pointer;
+    font-size:14px;line-height:1;font-family:inherit;color:#1a0a2e;
+    background:linear-gradient(#ffd76a,#e2a90f);border:1px solid rgba(255,255,255,.35);
+    box-shadow:0 3px 8px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.5);
+    transition:filter .15s ease, transform .08s ease;}
+  .rb-toggle:hover{filter:brightness(1.08);}
+  .rb-toggle:active{transform:translateY(1px);}
+  /* 四条路：宽屏并排铺满整条（否则右边又是一大片空白），窄屏自动堆叠 */
+  .rb-rows{display:flex;flex-wrap:wrap;align-items:stretch;gap:10px 14px;}
+  .rb-row{flex:1 1 230px;min-width:0;display:flex;align-items:center;justify-content:center;gap:12px;
+    padding:9px 14px;border-radius:12px;background:rgba(255,255,255,.026);
+    border:1px solid rgba(255,255,255,.055);}
+  .rb-lbl{flex:0 0 56px;text-align:right;line-height:1.2;}
+  .rb-lbl b{display:block;font-size:12px;color:#ffd76a;letter-spacing:1px;}
+  .rb-lbl span{display:block;font-size:8px;color:#7d7196;letter-spacing:.4px;}
+  .rb-wrap{flex:1 1 auto;min-width:0;overflow-x:auto;overflow-y:hidden;}
+  .rb-grid{display:grid;gap:3px;grid-auto-rows:var(--cell);justify-content:start;}
+  .rb-grid.big{--cell:15px;}
+  .rb-grid.sm{--cell:10px;}
+  .rb-grid i{position:relative;display:block;width:var(--cell);height:var(--cell);border-radius:50%;}
+  /* 大路：空心圈，庄红 / 闲蓝；和局的绿斜线叠在同一格上 */
+  .rb-grid .bcell{border:2px solid #ff6b6b;}
+  .rb-grid .bcell.p{border-color:#6f9bff;}
+  .rb-grid .bcell.tie::after{content:"";position:absolute;left:-1px;top:50%;width:calc(var(--cell) - 4px);
+    height:2px;border-radius:2px;background:#6ef08a;transform:translateY(-50%) rotate(-45deg);}
+  .rb-grid.sm .bcell{border-width:1.4px;}
+  /* 衍生路：红圈=齐整（repeat），蓝实心=跳（break） */
+  .rb-grid .rcell.r{border:1.6px solid #ff6b6b;}
+  .rb-grid .rcell.b{background:radial-gradient(circle at 34% 30%,#9dbcff,#3f6fd8);
+    box-shadow:0 0 4px rgba(90,140,255,.45);}
+  .rb-empty{font-size:10.5px;color:#7d7196;letter-spacing:.4px;padding:10px 2px;}
+  .rb-grid .new{animation:rdIn .32s cubic-bezier(.2,1.5,.4,1);}
+
+  /* ---------- cabinet ---------- */
+  .cabinet{
+    position:relative;width:690px;padding:16px;border-radius:28px;
+    background:linear-gradient(160deg,#321d48 0%,#1a1128 42%,#0d0914 100%);
+    border:2px solid rgba(245,197,66,.34);
+    box-shadow:
+      0 34px 90px rgba(0,0,0,.72),
+      0 0 70px rgba(120,60,220,.20),
+      inset 0 1px 0 rgba(255,255,255,.09),
+      inset 0 -2px 8px rgba(0,0,0,.7);
+  }
+  .cabinet::before{content:"";position:absolute;inset:6px;border-radius:22px;pointer-events:none;
+    border:1px solid rgba(255,255,255,.05);}
+  .cab-col{display:flex;flex-direction:column;align-items:stretch;position:relative;}
+  .cab-col .btn.spin{flex:0 0 auto;width:100%;margin-top:14px;}
+
+  .marquee{
+    position:relative;height:54px;margin-bottom:14px;border-radius:14px;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(#40200f,#1b0c07);
+    border:1px solid rgba(245,197,66,.32);
+    box-shadow:inset 0 2px 12px rgba(0,0,0,.7), 0 0 22px rgba(255,140,20,.12);
+  }
+  .marquee .title{font-weight:900;font-size:23px;letter-spacing:5px;color:#fff8ec;
+    text-shadow:0 0 6px #ffb300,0 0 16px #ff6a00,0 0 26px #ff3d00,0 2px 2px #000;}
+  /* 中文标题只有三个字，方块字视觉上比全大写拉丁字母小一号 ⇒ 字号提一档、字距收一点，
+     并用 padding-left 抵消末字后多出的字距，保持绝对居中 */
+  html[lang="zh-CN"] .marquee .title{font-size:26px;letter-spacing:4px;padding-left:4px;}
+  .bulbs{position:absolute;left:12px;right:12px;height:8px;display:flex;align-items:center;
+    justify-content:space-between;pointer-events:none;}
+  .bulbs.top{top:4px;} .bulbs.bot{bottom:4px;}
+
+  /* ---------- 牌桌（screen） ---------- */
+  .screen{
+    position:relative;padding:14px;border-radius:16px;
+    background:linear-gradient(#0a0710,#130c1d);
+    border:1px solid rgba(255,255,255,.06);
+    box-shadow:inset 0 0 34px rgba(0,0,0,.92), inset 0 0 2px rgba(255,255,255,.18);
+  }
+  .screen::after{
+    content:"";position:absolute;inset:0;border-radius:16px;pointer-events:none;
+    background:linear-gradient(115deg,rgba(255,255,255,.09) 0%,rgba(255,255,255,0) 26%,
+      rgba(255,255,255,0) 74%,rgba(255,255,255,.035) 100%);
+  }
+  /* 深绿绒布：百家乐台面的经典底色，压得很暗以保持「金边 + 深紫柜机」的整体调性 */
+  .felt{
+    position:relative;border-radius:13px;padding:10px 12px 8px;
+    background:
+      radial-gradient(120% 90% at 50% 6%, rgba(28,92,66,.42) 0%, transparent 62%),
+      linear-gradient(#0c2018,#07130d 70%,#050d09);
+    border:1px solid rgba(245,197,66,.16);
+    box-shadow:inset 0 0 42px rgba(0,0,0,.88), inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  .felt::before{
+    content:"";position:absolute;inset:6px;border-radius:9px;pointer-events:none;
+    border:1px dashed rgba(245,197,66,.13);
+  }
+  .side{
+    position:relative;display:flex;align-items:center;gap:10px;
+    padding:8px 10px;border-radius:11px;min-height:122px;
+    background:linear-gradient(90deg,rgba(255,255,255,.035),rgba(255,255,255,.008));
+    border:1px solid rgba(255,255,255,.05);
+    transition:border-color .2s ease, box-shadow .2s ease;
+  }
+  .side.won{border-color:rgba(255,215,106,.6);
+    box-shadow:0 0 26px rgba(255,200,60,.22), inset 0 0 26px rgba(255,190,50,.10);}
+  .side .who{width:64px;flex:0 0 64px;text-align:center;}
+  .side .wname{font-size:13px;font-weight:900;letter-spacing:2px;line-height:1.3;}
+  .side .wen{font-size:8.5px;letter-spacing:1.5px;color:#8f84a8;margin-top:3px;}
+  .side.p .wname{color:#a8c8ff;text-shadow:0 0 10px rgba(90,140,255,.45);}
+  .side.b .wname{color:#ffa8a8;text-shadow:0 0 10px rgba(255,80,80,.45);}
+  .cards{flex:1;display:flex;align-items:center;min-width:0;padding-left:8px;min-height:106px;}
+  .bcard{position:relative;width:76px;height:106px;flex:0 0 76px;perspective:700px;}
+  .bcard + .bcard{margin-left:-20px;}
+  .bcard:nth-child(2){z-index:2;} .bcard:nth-child(3){z-index:3;}
+  .bcard-in{position:relative;width:100%;height:100%;transform-style:preserve-3d;
+    transform:rotateY(180deg);transition:transform .42s cubic-bezier(.3,.9,.25,1);}
+  .bcard.up .bcard-in{transform:rotateY(0deg);}
+  .bcard.deal{animation:cardIn .3s ease-out;}
+  @keyframes cardIn{
+    0%{transform:translate3d(150px,-42px,0) scale(.82) rotate(7deg);opacity:.35;}
+    100%{transform:none;opacity:1;}
+  }
+  .bf{position:absolute;inset:0;border-radius:7px;overflow:hidden;
+    backface-visibility:hidden;-webkit-backface-visibility:hidden;
+    background:#fff;box-shadow:0 6px 14px rgba(0,0,0,.6);
+    border:1px solid rgba(0,0,0,.35);}
+  .bf img{width:100%;height:100%;display:block;object-fit:cover;}
+  .bf.back{transform:rotateY(180deg);border-color:rgba(245,197,66,.45);background:#2b1a48;}
+  .bcard.hot .bf{box-shadow:0 0 18px rgba(255,205,70,.55),0 6px 14px rgba(0,0,0,.6);
+    border-color:rgba(255,225,140,.85);}
+  .total{
+    flex:0 0 52px;width:52px;height:52px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:22px;font-weight:900;color:#ffe9a8;font-variant-numeric:tabular-nums;
+    background:radial-gradient(circle at 35% 28%,#3a2a5e,#150d24 76%);
+    border:2px solid rgba(245,197,66,.5);
+    box-shadow:0 0 16px rgba(245,197,66,.16), inset 0 0 12px rgba(0,0,0,.72);
+    transition:transform .25s cubic-bezier(.2,1.4,.4,1), color .2s, border-color .2s, box-shadow .2s;
+  }
+  .total.empty{color:#5f5478;border-color:rgba(245,197,66,.18);}
+  .total.pop{transform:scale(1.14);}
+  /* 赢家点数：放大 1.25 倍 + 反白高亮（金底深字），输家保持原样。
+     选择器用 .side.won .total（0,3,0），优先级高于 .total.pop（0,2,0），
+     所以结算时即使 pop 还没褪，也是赢家尺寸生效。 */
+  .side.won .total{
+    transform:scale(1.25);
+    color:#241503;
+    background:radial-gradient(circle at 35% 28%,#fff3c4,#f5c542 72%,#e0a52c);
+    border-color:#fff0b8;
+    box-shadow:0 0 22px rgba(255,205,70,.72),0 0 44px rgba(255,150,30,.32),
+      inset 0 1px 0 rgba(255,255,255,.7), inset 0 0 12px rgba(120,70,0,.28);
+    text-shadow:0 1px 0 rgba(255,255,255,.55);
+    animation:totalWin .52s cubic-bezier(.2,1.5,.4,1);
+  }
+  @keyframes totalWin{
+    0%{transform:scale(1);} 55%{transform:scale(1.38);} 100%{transform:scale(1.25);}
+  }
+
+  /* 中央裁决条 */
+  .verdict{margin:8px 0 2px;height:32px;display:flex;align-items:center;justify-content:center;gap:10px;}
+  .verdict .vt{font-size:16px;font-weight:900;letter-spacing:3px;color:#7d7196;
+    transition:color .2s ease, text-shadow .2s ease, transform .2s ease;}
+  .verdict.p .vt{color:#a8c8ff;text-shadow:0 0 14px rgba(90,140,255,.65);}
+  .verdict.b .vt{color:#ffa8a8;text-shadow:0 0 14px rgba(255,80,80,.6);}
+  .verdict.t .vt{color:#8ff0b8;text-shadow:0 0 14px rgba(60,220,130,.6);}
+  /* 发牌中：中性色 + 轻微呼吸，明确区别于「上一局结果」 */
+  .verdict.dealing .vt{color:#c9b8e8;animation:vtPulse 1.1s ease-in-out infinite;}
+  @keyframes vtPulse{0%,100%{opacity:1}50%{opacity:.45}}
+  .verdict .vwin{font-size:14px;font-weight:900;letter-spacing:1px;color:#9dffb9;
+    text-shadow:0 0 12px rgba(110,240,138,.6);opacity:0;transform:translateY(4px);
+    transition:opacity .25s ease, transform .25s ease;font-variant-numeric:tabular-nums;}
+  .verdict .vwin.show{opacity:1;transform:none;}
+  .verdict .vwin.lose{color:#ff9d9d;text-shadow:0 0 12px rgba(255,80,80,.55);}
+  .verdict .vwin.push{color:#ffe9a8;text-shadow:0 0 12px rgba(245,197,66,.5);}
+  .tlog{min-height:15px;line-height:1.35;text-align:center;font-size:10.5px;color:#8f84a8;letter-spacing:.4px;
+    font-variant-numeric:tabular-nums;}
+  /* 结算拆解（闲 +300 · 和 −100 · 净 +200）：比补牌记录大一号并加粗，金色，便于一眼对账 */
+  .tlog .tlog-brk{font-size:11.5px;font-weight:800;color:#ffd76a;letter-spacing:.2px;
+    text-shadow:0 0 8px rgba(245,197,66,.35);}
+
+  /* ---------- HUD ---------- */
+  .hud{display:flex;gap:10px;margin-top:14px;}
+  .meter{
+    flex:1;border-radius:12px;padding:9px 6px;text-align:center;position:relative;
+    background:linear-gradient(#1c1327,#120c1a);
+    border:3px solid rgba(226,169,15,.62);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  @property --meter-gold-angle{syntax:"<angle>";initial-value:0deg;inherits:false;}
+  @supports ((-webkit-mask-composite:xor) or (mask-composite:exclude)){
+    .meter{border:0;padding:12px 9px;}
+    .meter::before{
+      content:"";position:absolute;inset:0;border-radius:inherit;padding:3px;pointer-events:none;
+      background:conic-gradient(from var(--meter-gold-angle,0deg),
+        #5e3400 0deg, #e2a90f 42deg, #fff6d0 88deg, #ffd76a 132deg,
+        #8a5a00 188deg, #f5c542 248deg, #ffe9a8 300deg, #5e3400 360deg);
+      animation:meterGoldSpin 4s linear infinite;
+      -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+      -webkit-mask-composite:xor;
+      mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+      mask-composite:exclude;
+    }
+    .meter.win::before{
+      animation:none;
+      background:conic-gradient(from -45deg,
+        #fff6d0 0deg, #ffd76a 55deg, #e8b93a 120deg, #c8890f 180deg,
+        #f5c542 240deg, #ffe9a8 300deg, #fff6d0 360deg);
+    }
+  }
+  @keyframes meterGoldSpin{ to{ --meter-gold-angle:360deg; } }
+  @media (prefers-reduced-motion: reduce){ .meter::before{animation:none;} }
+  .meter .label{font-size:10px;letter-spacing:2px;color:var(--muted);}
+  /* 这套 10px + 2px 字距是为英文大写（CREDITS/BET/CHIP/WIN）定的：大写字母笔画简单，
+     宽字距是装饰节奏。换成两个汉字后 10px 让笔画落到 1px 以下（发灰变细），
+     2px 字距比汉字本身还宽，两个字被推散、显得又小又孤立 —— 中文单独给度量并提亮。 */
+  html[lang="zh-CN"] .meter .label{font-size:11.5px;letter-spacing:.5px;font-weight:600;color:#b7a8d2;}
+  .meter .val{font-size:22px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums;
+    color:var(--gold);text-shadow:0 0 10px rgba(245,197,66,.4);
+    transition:transform .26s cubic-bezier(.2,1.35,.4,1), color .2s ease, text-shadow .2s ease;}
+  .meter.win .val{color:#9dffb9;text-shadow:0 0 16px rgba(110,240,138,.95),0 0 34px rgba(60,220,110,.55);
+    transform:scale(1.25);}
+  .meter.hit .val{animation:winValGlow 1.1s ease-out;}
+  @keyframes winValGlow{0%{filter:brightness(2.1) saturate(1.4);}100%{filter:none;}}
+  .meter.hit{animation:meterpop .5s ease;}
+  @keyframes meterpop{0%{transform:scale(1)}40%{transform:scale(1.08)}100%{transform:scale(1)}}
+
+  /* ---------- controls ---------- */
+  .controls{display:flex;gap:10px;margin-top:16px;align-items:stretch;}
+  .btn{
+    flex:1;height:54px;border-radius:14px;cursor:pointer;
+    border:1px solid rgba(245,197,66,.32);
+    background:linear-gradient(#2b1a10,#190f08);color:var(--gold);
+    font-size:19px;font-weight:800;letter-spacing:2px;
+    box-shadow:0 6px 16px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08);
+    transition:transform .08s, filter .18s;
+  }
+  .btn:hover{filter:brightness(1.16);}
+  .btn:active{transform:translateY(2px) scale(.99);}
+  .btn.small{flex:0 0 62px;font-size:24px;line-height:1;}
+  .btn:disabled{opacity:.4;cursor:not-allowed;filter:grayscale(.5);}
+  .stepgrp{display:flex;align-items:center;justify-content:center;gap:5px;padding:0;flex:1 1 0;min-width:0;
+    min-height:52px;background:none;border:0;position:relative;}
+  .max-tag{
+    position:absolute;left:50%;top:-12px;z-index:3;
+    padding:1px 7px;border-radius:999px;white-space:nowrap;
+    font-size:9.5px;font-weight:800;letter-spacing:.6px;line-height:1.5;
+    color:#ffd76a;text-shadow:0 0 6px rgba(255,190,60,.55);
+    background:linear-gradient(180deg,rgba(58,40,8,.96),rgba(28,18,2,.96));
+    border:1px solid rgba(245,197,66,.55);
+    box-shadow:0 3px 10px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.10);
+    opacity:0;pointer-events:none;
+    transform:translate(-50%,3px) scale(.92);
+    transition:opacity .18s ease, transform .18s ease;
+  }
+  .stepgrp.max-flash .max-tag{opacity:1;transform:translate(-50%,0) scale(1);}
+  .stepgrp.at-max .btn.small:last-of-type{opacity:.42;}
+  .stepgrp.at-max .steplbl b{color:#ffd76a;}
+  .stepgrp .btn.small{flex:0 0 32px;width:32px;height:32px;padding:0;border-radius:50%;
+    display:inline-flex;align-items:center;justify-content:center;font-size:0;}
+  .stepgrp .btn.small .tri{width:11px;height:11px;display:block;fill:currentColor;
+    stroke:currentColor;stroke-width:1.4;stroke-linejoin:round;pointer-events:none;}
+  .stepgrp .btn.small:hover{filter:brightness(1.18);
+    box-shadow:0 6px 18px rgba(245,197,66,.22), inset 0 1px 0 rgba(255,255,255,.10);}
+  .steplbl{font-size:11px;color:#cbb8e6;white-space:nowrap;text-align:center;line-height:1.35;}
+  .steplbl b{color:var(--gold);font-size:13.5px;font-variant-numeric:tabular-nums;}
+  .steplbl .sl-name{display:block;font-size:10px;letter-spacing:.5px;color:#9a8fb0;}
+  /* 闲 / 庄 / 和 三个注位用颜色区分，与牌桌、路纸同一套语义色 */
+  .stepgrp[data-spot="p"] .steplbl b{color:#a8c8ff;}
+  .stepgrp[data-spot="b"] .steplbl b{color:#ffa8a8;}
+  .stepgrp[data-spot="t"] .steplbl b{color:#8ff0b8;}
+
+  .featrow{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:12px;flex-wrap:wrap;}
+  .btn.feat{padding:6px 14px;border-radius:9px;font-size:12px;font-weight:800;letter-spacing:1px;
+    color:#1a0a2e;background:linear-gradient(#ffd76a,#e2a90f);border:1px solid rgba(255,255,255,.35);
+    cursor:pointer;font-family:inherit;transition:filter .12s ease, transform .12s ease;
+    flex:0 0 auto;height:34px;}
+  .btn.feat:hover{filter:brightness(1.08);}
+  .btn.feat:active{transform:translateY(1px);}
+  .btn.feat:disabled{opacity:.4;cursor:not-allowed;filter:none;}
+  .btn.feat.ghost{color:#cbb8e6;background:linear-gradient(#241638,#171021);
+    border-color:rgba(245,197,66,.28);}
+  /* 台面模式（有佣 / 免佣）开关：切到免佣时点亮金边，桌面一眼能看出当前台型 */
+  .btn.feat.ghost.on{color:#1a0a2e;background:linear-gradient(#ffd76a,#e2a90f);
+    border-color:rgba(255,255,255,.42);}
+
+  /* ---------- 附加注（闲对 / 庄对 / 幸运六）：控制条下方一条紧凑注位 ---------- */
+  .sidebets{display:flex;gap:8px;margin-top:10px;}
+  .sbet{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:3px;
+    padding:5px 6px;border-radius:13px;
+    background:linear-gradient(180deg,rgba(40,26,66,.92),rgba(17,11,26,.95));
+    border:1px solid rgba(245,197,66,.20);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+    transition:border-color .18s ease, box-shadow .18s ease;}
+  .sbet.hot{border-color:rgba(255,215,106,.62);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 0 14px rgba(255,200,60,.14);}
+  .sbet .sb-mid{flex:1 1 auto;min-width:0;text-align:center;line-height:1.15;}
+  .sbet .sb-lbl{display:block;font-size:10px;font-weight:800;letter-spacing:.5px;color:#a896c4;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .sbet .sb-val{display:block;font-size:14px;font-weight:900;color:#e9dcc0;
+    font-variant-numeric:tabular-nums;line-height:1.2;}
+  .sbet.hot .sb-lbl{color:#ffe9a8;}
+  .sbet .sb-btn{flex:0 0 auto;width:24px;height:24px;padding:0;border-radius:50%;cursor:pointer;
+    font-family:inherit;font-size:15px;font-weight:900;line-height:1;
+    /* +/− 是文本字形，靠 line-height 对不齐 24px 圆钮（U+2212 的 − 尤其偏上）：
+       显式 flex 居中，和主步进器 .btn.small 的处理保持一致 */
+    display:inline-flex;align-items:center;justify-content:center;
+    color:#ffe9b8;background:rgba(255,255,255,.06);
+    border:1px solid rgba(245,197,66,.30);
+    transition:background .14s ease;}
+  .sbet .sb-btn:hover{background:rgba(245,197,66,.24);}
+  .sbet .sb-btn:active{transform:translateY(1px);}
+  .sbet.max-flash{border-color:rgba(255,120,120,.8);}
+
+  /* 发牌按钮：沿用老虎机 SPIN 的黄金光带 */
+  .btn.spin{
+    background-image:
+      linear-gradient(90deg,
+        #ffd76a 0%, #fffbe4 12%, #ffe066 26%, #f0b100 38%,
+        #fff3bc 50%, #ffcf3d 62%, #e8ad00 74%, #fffbe4 88%, #ffd76a 100%),
+      linear-gradient(160deg,#d9a63a 0%,#9a6408 30%,#5e3400 55%,#b07a10 80%,#cf9c36 100%);
+    background-size:200% 100%, 100% 100%;
+    background-position:0 0, 0 0;
+    background-repeat:repeat-x, no-repeat;
+    background-origin:padding-box, border-box;
+    background-clip:padding-box, border-box;
+    border:3px solid transparent;
+    color:#3a2200;font-size:20px;letter-spacing:4px;
+    box-shadow:0 10px 26px rgba(245,180,20,.40),
+               0 0 20px rgba(255,200,70,.30),
+               inset 0 1px 0 rgba(255,255,255,.6);
+    display:flex;align-items:center;justify-content:center;gap:9px;
+    position:relative;
+  }
+  .btn.spin:hover{animation:spinGoldFlow 1.3s linear infinite;}
+  @keyframes spinGoldFlow{
+    from{background-position:0 0, 0 0;}
+    to  {background-position:200% 0, 0 0;}
+  }
+  .btn.spin:disabled:hover{animation:none;}
+  @media (prefers-reduced-motion: reduce){ .btn.spin:hover{animation:none;} }
+  .btn.spin.short{filter:saturate(.28) brightness(.6);}
+  .kb-space{
+    font:inherit;font-size:11px;font-weight:800;letter-spacing:0;line-height:1.5;
+    padding:2px 7px;border-radius:6px;
+    background:rgba(58,34,0,.16);color:#4a2c00;
+    border:1px solid rgba(58,34,0,.32);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.45);
+  }
+
+  /* ---------- 随机源选择（与老虎机同款、同一批桥） ---------- */
+  .srcrow{display:flex;align-items:center;gap:10px;margin-top:10px;}
+  .srcwrap{position:relative;flex:0 0 auto;}
+  .srcbtn{
+    flex:0 0 auto;padding:7px 12px;border-radius:10px;cursor:pointer;
+    border:1px solid rgba(245,197,66,.28);
+    background:linear-gradient(#1c1327,#120c1a);color:#c9b8e0;
+    font-size:12px;letter-spacing:.5px;font-weight:600;
+    transition:filter .15s;
+  }
+  .srcbtn:hover{filter:brightness(1.15);}
+  .srcbtn.on{color:#3a2200;background:linear-gradient(#ffd857,#e8a300);border-color:#ffd857;}
+  .srcmsg{font-size:11px;color:#8f84a8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  /* 发牌键下方的一行临时提示（请先下注 / 已清空 / 正在洗牌…）。
+     与 #srcMsg 分开：srcMsg 只放【随机源状态】（端口 + 串口），常驻不被游戏提示顶掉；
+     这条为空时 display:none，不占位。 */
+  .hintmsg{margin-top:8px;text-align:center;font-size:11px;color:#a99cc0;letter-spacing:.3px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .hintmsg:empty{display:none;}
+  .src-pop{
+    position:absolute;left:0;top:calc(100% + 8px);width:258px;z-index:50;display:none;padding:6px;
+    border-radius:12px;
+    background:linear-gradient(160deg,#241638,#140d20);
+    border:1px solid rgba(245,197,66,.30);
+    box-shadow:0 16px 40px rgba(0,0,0,.72), inset 0 1px 0 rgba(255,255,255,.06);
+  }
+  .src-pop.show{display:block;}
+  .src-opt{
+    display:flex;align-items:center;gap:9px;width:100%;padding:9px 10px;border-radius:9px;
+    background:none;border:0;cursor:pointer;text-align:left;font-family:inherit;
+    color:#d9cdeb;font-size:12.5px;transition:background .12s;
+  }
+  .src-opt:hover{background:rgba(245,197,66,.10);}
+  .src-opt.cur{background:rgba(245,197,66,.16);color:#fff0c8;}
+  .so-dot{width:7px;height:7px;border-radius:50%;background:#5d5470;flex:0 0 auto;}
+  .so-dot.on{background:#6ef08a;box-shadow:0 0 8px rgba(110,240,138,.85);}
+  .so-dot.off{background:#8a4040;}
+  .so-name{flex:1;}
+  .so-state{font-size:10.5px;color:#8f84a8;white-space:nowrap;}
+  .src-opt.cur .so-state{color:#ffd76a;}
+  .src-ent{
+    display:flex;align-items:center;gap:9px;margin:4px 2px 2px;padding:8px 10px;
+    border-top:1px solid rgba(255,255,255,.07);border-radius:0 0 9px 9px;
+    color:#a396bb;font-size:11.5px;
+  }
+  .src-ent .so-state{font-size:10.5px;color:#8f84a8;max-width:150px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .src-ent.on .so-state{color:#9ef0b4;}
+
+  /* ---------- 顶部工具条（音量 + 语言，与老虎机一致） ---------- */
+  .langrow{display:flex;justify-content:flex-end;align-items:center;margin-top:6px;}
+  .langrow > *{flex:0 0 auto;}
+  .langrow > * + *{margin-left:14px;}
+  .langrow .btn.small{min-width:46px;font-size:13px;padding:2px 9px;letter-spacing:1px;}
+  .topbar{position:fixed;top:14px;right:20px;z-index:70;margin-top:0;}
+  .volwrap{position:relative;display:flex;align-items:center;}
+  .volwrap .btn.small{flex:0 0 38px;width:38px;min-width:38px;padding:2px 0;}
+  /* 音量浮层：只留一根竖滑杆（标题/百分比/提示全部去掉） */
+  .vol-pop{
+    position:absolute;right:0;top:calc(100% + 13px);padding:8px;border-radius:12px;
+    display:none;z-index:45;
+    background:linear-gradient(160deg,#2b1a42,#140d20);
+    border:1px solid rgba(245,197,66,.30);
+    box-shadow:0 16px 40px rgba(0,0,0,.72), inset 0 1px 0 rgba(255,255,255,.06);
+  }
+  .vol-pop.show{display:block;}
+  .vol-pop::after{content:"";position:absolute;right:14px;top:-6px;width:10px;height:10px;
+    background:#2b1a42;border-left:1px solid rgba(245,197,66,.30);
+    border-top:1px solid rgba(245,197,66,.30);transform:rotate(45deg);}
+  /* 音量：竖直滑杆。视觉照抄老虎机那条（4px 细轨 + 14px 金色圆钮 / 纯金填充），
+     只把方向从左右改成上下：0% 在底、100% 在顶 */
+  .vol-slider{position:relative;width:52px;height:148px;margin:0 auto;padding:12px 0;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;touch-action:none;-webkit-user-select:none;user-select:none;
+    outline:none;}
+  .vol-slider:focus-visible .vol-track{box-shadow:0 0 0 2px rgba(245,197,66,.38);}
+  .vol-track{position:relative;width:4px;height:100%;border-radius:3px;
+    background:rgba(255,255,255,.14);}
+  /* 已填充部分：纯金，与老虎机滑杆同色（无渐变、无发光、无刻度） */
+  .vol-fill{position:absolute;left:0;right:0;bottom:0;height:100%;border-radius:3px;
+    background:#ffd76a;}
+  .vol-knob{position:absolute;left:50%;width:14px;height:14px;border-radius:50%;
+    transform:translate(-50%,50%);
+    background:radial-gradient(circle at 35% 30%,#fff6d0,#e2a90f);
+    border:1px solid #7a4a00;
+    box-shadow:0 0 8px rgba(255,200,60,.8), 0 2px 4px rgba(0,0,0,.6);
+    transition:box-shadow .15s;}
+  .vol-slider.drag .vol-knob{box-shadow:0 0 12px rgba(255,200,60,.95), 0 2px 4px rgba(0,0,0,.6);}
+
+  /* ---------- 弹窗 ---------- */
+  .mask{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
+    background:rgba(4,2,8,.74);}
+  .mask.show{display:flex;}
+  .modal{width:min(92vw,368px);border-radius:18px;padding:20px 22px;
+    background:linear-gradient(160deg,#2b1a42,#140d20);
+    border:1px solid rgba(245,197,66,.30);
+    box-shadow:0 24px 64px rgba(0,0,0,.72), inset 0 1px 0 rgba(255,255,255,.07);}
+  .modal h3{margin:0 0 10px;font-size:16px;letter-spacing:2px;color:var(--gold);
+    text-shadow:0 0 9px rgba(245,197,66,.35);}
+  .modal p{margin:0 0 10px;font-size:13px;line-height:1.7;color:#d9cdeb;}
+  .modal p b{color:#fff0c8;}
+  .modal .m-amt{font-size:13px;color:#9a8fb0;margin-bottom:16px;}
+  .modal .m-amt b{color:#ffd76a;font-size:16px;}
+  .modal-btns{display:flex;gap:10px;justify-content:flex-end;}
+  .modal-btns button{padding:8px 18px;border-radius:10px;font-weight:700;font-size:13px;
+    cursor:pointer;font-family:inherit;border:1px solid rgba(255,255,255,.18);}
+  .m-cancel{background:#241638;color:#d9cdeb;}
+  .m-cancel:hover{background:#2f1e47;}
+  .m-ok{background:linear-gradient(#ff7a7a,#c43030);color:#fff;border-color:rgba(255,255,255,.3);}
+  .m-ok:hover{filter:brightness(1.07);}
+  .m-ok.rescue-ok{background:linear-gradient(#ffd76a,#e2a90f);color:#1a0a2e;border-color:rgba(255,255,255,.35);}
+
+  .bk-mask{
+    position:fixed;inset:0;z-index:9500;display:none;
+    align-items:center;justify-content:center;
+    background:rgba(4,2,8,0);pointer-events:none;
+    transition:background .3s ease;
+  }
+  .bk-mask.show{display:flex;background:rgba(4,2,8,.62);}
+  .bk-stage{position:relative;width:min(86vw,420px);height:176px;}
+  .bk-half{
+    position:absolute;inset:0;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+    background:linear-gradient(160deg,#2b1a42,#140d20);
+    border:1px solid rgba(245,197,66,.32);border-radius:16px;
+    box-shadow:0 24px 64px rgba(0,0,0,.78), inset 0 1px 0 rgba(255,255,255,.06);
+    transform-origin:50% 100%;
+    transition:transform .6s cubic-bezier(.3,.05,.25,1), opacity .6s ease;
+  }
+  .bk-l{clip-path:polygon(0 0,52% 0,48% 14%,55% 27%,47% 41%,54% 56%,46% 70%,52% 84%,48% 100%,0 100%);}
+  .bk-r{clip-path:polygon(52% 0,100% 0,100% 100%,48% 100%,52% 84%,46% 70%,54% 56%,47% 41%,55% 27%,48% 14%);}
+  .bk-title{font-size:27px;font-weight:900;letter-spacing:5px;color:#ff8f8f;
+    text-shadow:0 0 14px rgba(255,80,80,.65),0 0 34px rgba(255,40,40,.35);}
+  .bk-sub{font-size:12px;color:#9a8fb0;letter-spacing:1px;}
+  .bk-crack{
+    position:absolute;left:50%;top:-6px;bottom:-6px;width:3px;transform:translateX(-50%) rotate(1.5deg);
+    opacity:0;border-radius:3px;
+    background:linear-gradient(#fff,#ffd76a 38%,#ff6a00);
+    filter:blur(.35px) drop-shadow(0 0 9px rgba(255,180,60,.95));
+    transition:opacity .16s ease;
+  }
+  @keyframes bkIn{0%{transform:scale(.86);opacity:0}100%{transform:scale(1);opacity:1}}
+  .bk-mask.show .bk-stage{animation:bkIn .28s ease-out;}
+  .bk-mask.crack .bk-crack{opacity:1;}
+  .bk-mask.broken .bk-l{transform:rotate(-7deg);}
+  .bk-mask.broken .bk-r{transform:rotate(7deg);}
+  .bk-mask.broken .bk-crack{opacity:0;transition:opacity .28s ease;}
+
+  .nc-mask{
+    position:fixed;inset:0;z-index:9400;display:none;align-items:center;justify-content:center;
+    background:rgba(4,2,8,0);pointer-events:none;transition:background .3s ease;
+  }
+  .nc-mask.show{display:flex;background:rgba(4,2,8,.55);}
+  .nc-card{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:11px;
+    width:min(86vw,420px);padding:26px 28px;
+    background:linear-gradient(160deg,#2b1a42,#140d20);
+    border:1px solid rgba(245,197,66,.32);border-radius:16px;
+    box-shadow:0 24px 64px rgba(0,0,0,.78), inset 0 1px 0 rgba(255,255,255,.06);
+    text-align:center;
+  }
+  .nc-mask.show .nc-card{animation:bkIn .28s ease-out;}
+  .nc-title{font-size:25px;font-weight:900;letter-spacing:5px;color:#ffd76a;
+    text-shadow:0 0 14px rgba(245,180,40,.6),0 0 34px rgba(255,140,20,.32);}
+  .nc-sub{font-size:13px;color:#cfc2e2;letter-spacing:.6px;}
+  .nc-sub b{color:#ffd76a;}
+  .nc-hint{font-size:11px;color:#8f84a8;letter-spacing:.4px;line-height:1.5;}
+
+  /* ---------- 银行卡（与老虎机同款；可收起，收起后只剩一个圆形卡标按钮） ---------- */
+  .bankcard{display:flex;flex-direction:column;gap:8px;width:var(--bank-w,248px);
+    position:relative;z-index:6;}
+  .bc-panel{display:flex;flex-direction:column;gap:8px;position:relative;}
+  /* 收起按钮：坐在卡片右上角、压着边框外侧半出（-11px = 半径，正好一半在卡外）。
+     必须挂在 .bc-panel 上，不能放 .bc-face 里——那里 overflow:hidden 会把出界部分裁掉。 */
+  .bc-collapse{
+    position:absolute;right:-11px;top:-11px;z-index:4;
+    width:22px;height:22px;padding:0;border-radius:50%;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    font-family:inherit;font-size:14px;font-weight:700;line-height:1;
+    color:#fff;background:rgba(12,6,22,.78);
+    border:1px solid rgba(255,255,255,.45);
+    box-shadow:0 2px 8px rgba(0,0,0,.55);
+    transition:background .15s, transform .12s;}
+  .bc-collapse:hover{background:rgba(12,6,22,.95);border-color:rgba(255,255,255,.7);}
+  .bc-collapse:active{transform:scale(.94);}
+  /* 收起态：圆形卡标按钮（穿与卡面同一套渐变色，一眼认得出是那张卡）
+     尺寸 58px → 72.5px（×1.25）。 */
+  .bc-mini{
+    display:none;width:72.5px;height:72.5px;padding:0;border-radius:50%;cursor:pointer;
+    align-items:center;justify-content:center;
+    background-image:radial-gradient(circle 210px at 9% 80.3%,
+      rgba(55,60,245,1) 0%, rgba(234,161,15,.9) 100.2%);
+    border:1px solid rgba(255,255,255,.30);
+    box-shadow:0 10px 24px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.28),
+      0 0 0 3px rgba(245,197,66,.16);
+    transition:transform .12s, filter .15s, box-shadow .15s;}
+  .bc-mini:hover{filter:brightness(1.09);box-shadow:0 10px 26px rgba(0,0,0,.6),
+    inset 0 1px 0 rgba(255,255,255,.3), 0 0 0 3px rgba(245,197,66,.34);}
+  .bc-mini:active{transform:scale(.95);}
+  .bc-mini-ico{width:42.5px;height:auto;filter:drop-shadow(0 1px 3px rgba(0,0,0,.45));}
+  /* 收起态：面板只隐身不塌陷（卡片位置不跳动），圆形卡标按钮贴到卡片右上角 */
+  .bankcard.collapsed{width:var(--bank-w,248px);gap:0;pointer-events:none;}
+  .bankcard.collapsed .bc-panel{visibility:hidden;}
+  .bankcard.collapsed .bc-mini{display:flex;position:absolute;right:0;bottom:0;z-index:5;
+    pointer-events:auto;}
+  .bc-face{position:relative;border-radius:10px;overflow:hidden;height:104px;padding:11px 12px;
+    display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:5px;
+    background-image:radial-gradient(circle 897px at 9% 80.3%,
+      rgba(55,60,245,1) 0%, rgba(234,161,15,.9) 100.2%);
+    border:1px solid rgba(255,255,255,.12);
+    box-shadow:0 12px 30px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.22);}
+  .bc-bank-name{position:absolute;top:9px;left:12px;font-size:10px;font-weight:800;
+    letter-spacing:1.4px;color:#fff;opacity:.92;text-shadow:0 1px 3px rgba(0,0,0,.45);}
+  .bc-logo{position:absolute;top:0;right:0;display:flex;align-items:center;justify-content:flex-end;
+    padding:8px 12px;pointer-events:none;}
+  .bc-logo-svg{height:20px;width:auto;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4));}
+  .bc-num{width:100%;font-family:"Courier New",ui-monospace,monospace;font-size:17px;font-weight:700;
+    letter-spacing:1.2px;color:#fff;line-height:1.1;font-variant-numeric:tabular-nums;
+    text-shadow:0 1px 4px rgba(0,0,0,.35);}
+  .bc-meta{width:100%;display:flex;gap:10px;align-items:flex-end;}
+  .bc-mi{display:flex;flex-direction:column;min-width:0;}
+  .bc-mi-name{width:60%;} .bc-mi-mid{width:30%;} .bc-mi-end{width:10%;}
+  .bc-ml{font-size:7.5px;letter-spacing:.9px;color:#e2e2e2;white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis;}
+  .bc-ctrl{display:flex;flex-direction:column;gap:6px;}
+  .bc-amt{display:flex;flex-wrap:wrap;gap:5px;}
+  .bc-q{flex:1 1 28%;padding:5px 0;border-radius:7px;cursor:pointer;font-weight:700;font-size:11px;
+    color:#1a0a2e;background:linear-gradient(#ffd76a,#e2a90f);border:1px solid rgba(255,255,255,.35);
+    font-family:inherit;transition:filter .12s ease, transform .12s ease;}
+  .bc-q:hover{filter:brightness(1.08);}
+  .bc-q:active{transform:translateY(1px);}
+  .bc-q:disabled{opacity:.4;cursor:not-allowed;filter:none;}
+  .bc-in{flex:1 1 100%;min-width:0;padding:5px 7px;border-radius:7px;font-family:inherit;font-size:11px;
+    color:#ffe9a8;background:rgba(10,6,18,.6);border:1px solid rgba(245,197,66,.4);text-align:center;}
+  .bc-in::placeholder{color:#9a8fb0;}
+  .bc-actions{display:flex;gap:6px;}
+  .bc-dep,.bc-wd{flex:1;padding:6px 0;border-radius:8px;cursor:pointer;font-weight:800;font-size:11px;
+    letter-spacing:.5px;font-family:inherit;border:1px solid transparent;
+    transition:filter .12s ease, transform .12s ease;}
+  .bc-dep{color:#1a0a2e;background:linear-gradient(#9dffb9,#36c46a);border-color:rgba(255,255,255,.35);}
+  .bc-wd{color:#fff;background:linear-gradient(#ff9a6a,#d8502a);border-color:rgba(255,255,255,.3);}
+  .bc-dep:hover,.bc-wd:hover{filter:brightness(1.08);}
+  .bc-dep:active,.bc-wd:active{transform:translateY(1px);}
+  .bc-dep:disabled,.bc-wd:disabled{opacity:.4;cursor:not-allowed;filter:none;}
+
+  @media (max-width:980px){
+    .machrow{flex-direction:column;align-items:center;gap:14px;}
+    .bankbar{justify-content:center;}
+    .sidecard,.bankcard{align-self:center;width:min(100%,600px);}
+    /* 银行卡是竖版卡面，窄屏撑满整行会显得又扁又宽 —— 单独收窄到 330 */
+    .bankcard{width:min(100%,330px);}
+    .jp-body{flex-direction:row;justify-content:center;gap:16px;}
+    .roadcard .jp-body{flex-direction:column;}
+    .pl-body{flex-direction:row;justify-content:center;gap:14px 20px;flex-wrap:wrap;}
+    /* 窄屏 .pl-body 转横排：撤掉撑满宽度，赢/输两列收拢居中，不再被 space-between 拉到两端 */
+    .pl-duo{width:auto;justify-content:center;gap:22px;}
+    .pl-reset{width:auto;align-self:center;padding:8px 26px;}
+    /* 窄屏是流式布局，收起时不能再留整块空白：面板直接塌陷，圆钮回到文档流 */
+    .bankcard.collapsed{width:auto;align-self:center;}
+    .bankcard.collapsed .bc-panel{display:none;}
+    .bankcard.collapsed .bc-mini{position:static;}
+  }
+  /* 1.2 倍下三卡 1409px、卡 170×1.2=204px，右侧空档要 ≥212 ⇒ 视口 ≥1910 才放得下；
+     更窄就把整页缩回 1 倍（三卡 1174、卡 170 ⇒ 1594 起仍放得下） */
+  @media (max-width:1909px){ .page{zoom:1;} }
+  @media (max-width:900px){ .page{zoom:.92;} }
+  @media (max-width:760px){ .cabinet{width:100%;max-width:690px;} .roadbook{width:100%;} .page{zoom:.86;} }
+  @media (max-width:680px){ .page{zoom:.74;} }
+  @media (max-width:560px){
+    .page{zoom:.6;}
+    .topbar{top:8px;right:10px;}
+    .homelink{top:8px;left:10px;padding:5px 10px;font-size:11px;}
+    .topbar .btn.small{min-width:38px;font-size:12px;padding:1px 6px;}
+    .topbar .volwrap .btn.small{flex:0 0 32px;width:32px;min-width:32px;}
+    .vol-pop{padding:7px;}
+    .vol-pop::after{right:11px;}
+  }
+
+  /* 余牌小牌：去掉 class="arc" 时的降级样式（右侧浮动小字），避免旧柜机外观下变成裸文字 */
+  .shoecard{float:right;margin:0 0 6px 10px;text-align:center;}
+  .shoecard .sc-lbl{display:block;font-size:9.5px;letter-spacing:1.5px;color:#8f84a8;}
+  .shoecard .sc-val{display:block;font-size:16px;font-weight:900;color:var(--gold);font-variant-numeric:tabular-nums;}
+
+  /* ============================================================================
+     ARC 试验版：圆弧赌桌（去掉柜机外壳）
+     —— 全部规则挂在 body.arc 下，是纯粹的「外观叠层」，不动任何 ID / 交互逻辑。
+     —— 想回退旧柜机：把 <body class="arc"> 的 class 去掉即可（或 git 还原）。
+     台面形状：上半大圆弧（荷官/庄家侧）、下半近平边（玩家/闲家侧），
+     庄家在上、闲家在下，中间是裁决字 + 三个下注圈。
+     ============================================================================ */
+  body.arc .cabinet{
+    width:724px;padding:0;border:0;border-radius:0;background:none;box-shadow:none;
+    display:flex;flex-direction:column;
+  }
+  body.arc .cabinet::before{display:none;}
+  body.arc .marquee{display:none;}          /* 招牌横条不要了：标题改为台呢印字 */
+  /* 柜机外壳拿掉后桌面加宽，1.12 的放大倍率会把发牌键挤出首屏、银行卡推出视口 → 回到 1 */
+  body.arc .machine{zoom:1;}
+
+  /* HUD 四格放到桌面下方等距分布；余牌单独做小牌挂桌面右侧中部 */
+  body.arc .hud{order:0;margin:18px 0 0;gap:10px;}
+  body.arc .meter{border-radius:12px;padding:8px 6px;
+    background:linear-gradient(180deg,rgba(28,19,39,.94),rgba(11,7,16,.96));}
+  body.arc .meter .val{font-size:19px;}
+  body.arc .meter .label{font-size:9.5px;letter-spacing:1.6px;}
+  html[lang="zh-CN"] body.arc .meter .label{font-size:11px;letter-spacing:.4px;}
+
+  /* 去掉屏幕边框：桌面直接坐在页面背景上 */
+  body.arc .screen{padding:0;border:0;background:none;box-shadow:none;}
+  body.arc .screen::after{display:none;}
+
+  /* ---------- 台面本体 ---------- */
+  body.arc .felt{
+    position:relative;min-height:414px;padding:44px 74px 22px;
+    display:flex;flex-direction:column;
+    border-radius:50% 50% 30px 30px / 36% 36% 30px 30px;
+    background:
+      radial-gradient(92% 128% at 50% -16%, #3a9a70 0%, #237554 20%, #145a42 42%, #0b3a2c 70%, #051c16 100%);
+    border:1px solid rgba(245,197,66,.20);
+    box-shadow:
+      0 0 0 9px #150d22,
+      0 0 0 11px rgba(245,197,66,.48),
+      0 0 0 13px #2a1608,
+      0 30px 70px rgba(0,0,0,.66),
+      inset 0 0 120px rgba(0,0,0,.52),
+      inset 0 2px 0 rgba(255,255,255,.09);
+  }
+  /* 台呢内圈金线：与外形同弧 */
+  body.arc .felt::before{
+    content:"";position:absolute;inset:15px;border-radius:inherit;pointer-events:none;
+    border:1px solid rgba(255,225,150,.10);
+  }
+  /* 顶部弧形高光，让圆弧有体积感 */
+  body.arc .felt::after{
+    content:"";position:absolute;left:6%;right:6%;top:1px;height:140px;pointer-events:none;
+    border-radius:50% / 100% 100% 0 0;
+    background:radial-gradient(60% 100% at 50% 0%, rgba(255,255,255,.15), rgba(255,255,255,0) 70%);
+    opacity:.55;
+  }
+  body.arc .felt > *{position:relative;z-index:1;}
+
+  /* 台呢顶部不再印字：招牌与水印都已去掉，弧顶留白由 .felt 的 padding 控制 */
+
+  /* 余牌小牌：桌面右侧中部。刻意不用 .meter 那套「流动金边」（conic 渐变 + 旋转），
+     只是一块静态的深色小牌，避免和台面上的牌抢注意力 */
+  body.arc .felt > .shoecard{
+    position:absolute;right:24px;top:50%;transform:translateY(-50%);z-index:2;
+    width:76px;padding:9px 6px 10px;border-radius:14px;text-align:center;
+    background:linear-gradient(180deg,rgba(9,30,23,.88),rgba(4,15,11,.92));
+    border:1px solid rgba(245,197,66,.26);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 8px 18px rgba(0,0,0,.38);
+  }
+  body.arc .shoecard .sc-lbl{display:block;font-size:9.5px;letter-spacing:1.8px;color:#a9c7bb;}
+  body.arc .shoecard .sc-val{display:block;margin-top:3px;font-size:22px;font-weight:900;line-height:1.1;
+    color:#ffd76a;font-variant-numeric:tabular-nums;text-shadow:0 0 10px rgba(245,197,66,.35);}
+
+  /* ---------- 闲 / 庄 两张手牌区：名字牌居中在上，牌居中、点数在右 ---------- */
+  body.arc .side{
+    display:grid;grid-template-columns:1fr 56px;
+    grid-template-areas:"who who" "cards total";
+    align-items:center;justify-items:center;gap:4px 10px;
+    width:100%;max-width:512px;margin:0 auto;padding:8px 12px;min-height:0;
+    background:none;border:0;border-radius:0;box-shadow:none;
+  }
+  /* 赢家不画框：只在牌后面铺一层很淡的金光，靠点数球高亮 + 牌面金边表达胜负 */
+  body.arc .side.won{
+    background:radial-gradient(58% 96% at 50% 52%, rgba(255,200,60,.11), rgba(255,200,60,0) 72%);
+    border:0;box-shadow:none;
+  }
+  /* 桌面高了：牌张比柜机版小一号，保证发牌键留在首屏 */
+  body.arc .bcard{width:68px;height:96px;flex:0 0 68px;}
+  body.arc .cards{min-height:96px;}
+  body.arc .side .who{grid-area:who;width:auto;display:flex;align-items:baseline;justify-content:center;gap:9px;}
+  body.arc .side .wen{margin-top:0;}
+  body.arc .side .cards{grid-area:cards;justify-content:center;padding-left:0;}
+  body.arc .side .total{grid-area:total;}
+  body.arc .side.b{order:1;}
+  body.arc .side.p{order:5;margin-top:auto;}
+  body.arc .verdict{order:2;margin:10px 0 0;height:auto;min-height:24px;}
+  body.arc .verdict .vt{font-size:17px;letter-spacing:4px;}
+  body.arc .tlog{order:3;margin-top:4px;padding:0 26px;}
+
+  /* ---------- 中央三个下注圈（玩法上真正下注的位置） ---------- */
+  body.arc .arcspots{order:4;display:flex;justify-content:center;gap:16px;margin:12px 0 2px;}
+  body.arc .arcspots .aspot{
+    width:76px;height:76px;border-radius:50%;flex:0 0 auto;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+    background:radial-gradient(circle at 50% 26%, rgba(255,255,255,.06), rgba(0,0,0,.30));
+    border:2px dashed rgba(245,197,66,.32);
+    box-shadow:inset 0 0 26px rgba(0,0,0,.42);
+    transition:border-color .2s ease, box-shadow .2s ease;
+  }
+  body.arc .arcspots .as-lbl{font-size:10.5px;font-weight:800;letter-spacing:1px;line-height:1.2;}
+  body.arc .arcspots .aspot.p .as-lbl{color:#a8c8ff;}
+  body.arc .arcspots .aspot.b .as-lbl{color:#ffa8a8;}
+  body.arc .arcspots .aspot.t .as-lbl{color:#8ff0b8;}
+  body.arc .arcspots .as-val{font-size:15px;font-weight:900;font-variant-numeric:tabular-nums;
+    color:rgba(255,233,168,.42);line-height:1.15;}
+  body.arc .arcspots .aspot.hot{border-style:solid;border-color:rgba(255,215,106,.72);
+    box-shadow:inset 0 0 26px rgba(0,0,0,.40), 0 0 18px rgba(255,200,60,.22);}
+  body.arc .arcspots .aspot.hot .as-val{color:#ffe9a8;text-shadow:0 0 10px rgba(245,197,66,.5);}
+
+  /* ---------- 下注轨 / 发牌键 ---------- */
+  body.arc .controls{
+    margin-top:18px;padding:14px 14px 12px;border-radius:18px;
+    background:linear-gradient(180deg,rgba(38,24,14,.92),rgba(17,10,6,.94));
+    border:1px solid rgba(245,197,66,.22);
+    box-shadow:0 12px 28px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.07);
+  }
+  body.arc .btn.small{height:44px;flex:0 0 50px;font-size:21px;}
+  body.arc .stepgrp{min-height:44px;}
+  /* 下注区的加减注键：44×44 正圆。上面那条 flex-basis 50 + 高 44 会把 50% 圆角拉成椭圆，
+     所以这里同时锁死宽高，保证是正圆而不是胶囊 */
+  body.arc .stepgrp .btn.small{width:44px;height:44px;flex:0 0 44px;border-radius:50%;}
+  body.arc .cab-col .btn.spin{margin-top:16px;height:58px;}
+
+  @media (max-width:900px){ body.arc .felt{padding:48px 46px 22px;} }
+  @media (max-width:760px){
+    body.arc .cabinet{width:100%;max-width:700px;}
+    body.arc .felt{padding:46px 26px 20px;border-radius:44% 44% 24px 24px / 26% 26% 24px 24px;}
+    body.arc .side{max-width:100%;}
+    body.arc .arcspots .aspot{width:70px;height:70px;}
+    body.arc .arcspots .as-val{font-size:13px;}
+  }
+
+  /* ---------- 中文小标签统一度量（置于样式表末尾，压过各处原始定义） ----------
+     页面里 9.5–10.5px 的「字段标签」原是按英文大写定的：大写字母笔画简单，
+     宽字距当装饰。汉字在这个尺寸笔画落到 1px 以下（发灰显细），宽字距反而
+     把两三个字推散。这里给中文统一一套度量：+1px / 600 字重 / 收紧字距 /
+     提亮一档（仍明显弱于数值的金色，保持「标签为辅、数字为主」的层次）。
+     注意 .sbet .sb-lbl 不改颜色 —— 「有注即亮」的 #ffe9a8 高亮优先级必须保住。 */
+  html[lang="zh-CN"] .pl-lbl,
+  html[lang="zh-CN"] .steplbl .sl-name,
+  html[lang="zh-CN"] .shoecard .sc-lbl{font-size:11px;letter-spacing:.3px;font-weight:600;color:#b7a8d2;}
+  html[lang="zh-CN"] .sbet .sb-lbl{font-size:11px;letter-spacing:.3px;font-weight:800;}
+  html[lang="zh-CN"] .jp-sub{font-size:11.5px;letter-spacing:.5px;font-weight:600;color:#b7a8d2;}
+  /* 珠盘路底部的结果统计（庄 20 · 闲 25 · 和 3）：同样按中文标签度量处理。
+     只挂 .roadcard —— 老虎机页的 .jp-foot 是 JACKPOT 说明整句，不属于字段标签。 */
+  html[lang="zh-CN"] .roadcard .jp-foot{font-size:11px;letter-spacing:.4px;font-weight:600;color:#b7a8d2;}
+  /* 补牌记录（闲 1 (补 6♠ → 7) · 庄 3 (补 5♥ → 8)）：同样按中文标签度量处理，
+     金色结算拆解再站高一级，保住「记录为辅、结算为主」的层次。 */
+  html[lang="zh-CN"] .tlog{font-size:11.5px;letter-spacing:.2px;font-weight:600;color:#b7a8d2;min-height:20px;}
+  html[lang="zh-CN"] .tlog .tlog-brk{font-size:12.5px;}
+  html[lang="zh-CN"] body.arc .shoecard .sc-lbl{font-size:11px;letter-spacing:.4px;color:#a9c7bb;}
+</style>
+</head>
+<body class="arc">
+
+<!-- 左上角：回到老虎机（与老虎机页右上角工具条同款按钮语言） -->
+<a class="homelink" href="slot_machine.html" title="回到老虎机 / Back to slot">
+  <span class="hl-arrow" aria-hidden="true">&#8592;</span>
+  <svg class="hl-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#sym-slot"/></svg>
+  <span data-i18n="nav.slot">老虎机</span>
+</a>
+
+<!-- 右上角：音量 + 语言（与老虎机完全一致） -->
+<div class="langrow topbar">
+  <div class="volwrap">
+    <button class="btn small" id="soundBtn" type="button" title="音量 / Volume"
+            aria-haspopup="true" aria-expanded="false"></button>
+    <div class="vol-pop" id="volPop">
+      <!-- 音量：只有一根上下（竖直）滑杆。拖动 / 点击轨道 / 滚轮 / 键盘都能调 -->
+      <div class="vol-slider" id="volSlider" role="slider" tabindex="0"
+           aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100"
+           aria-valuenow="100" aria-label="音量 / Volume">
+        <div class="vol-track">
+          <i class="vol-fill" id="volFill"></i>
+          <b class="vol-knob" id="volKnob"></b>
+        </div>
+      </div>
+    </div>
+  </div>
+  <button class="btn small" id="langBtn" type="button" title="切换语言 / Switch language">EN</button>
+</div>
+
+<!-- 图标精灵：老虎机小图标（返回链接用） -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="gGold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff3b0"/><stop offset=".5" stop-color="#f5c542"/><stop offset="1" stop-color="#a9760a"/>
+    </linearGradient>
+    <symbol id="sym-slot" viewBox="0 0 100 100">
+      <rect x="8" y="20" width="84" height="62" rx="9" fill="url(#gGold)" stroke="#6e4300" stroke-width="3"/>
+      <rect x="17" y="30" width="66" height="32" rx="5" fill="#1a0f2b"/>
+      <circle cx="30" cy="46" r="8" fill="#ffd76a"/><circle cx="50" cy="46" r="8" fill="#ff8f8f"/>
+      <circle cx="70" cy="46" r="8" fill="#9fe8b0"/>
+      <rect x="26" y="69" width="48" height="7" rx="3.5" fill="#8a5a00"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="page">
+<div class="stage">
+  <div class="machine">
+
+    <div class="bankbar">
+    <!-- ==================== 银行卡（可收起：收起后只剩一个圆形卡标按钮，浮于柜机右上角） ==================== -->
+    <div class="bankcard" id="bankCard">
+      <button class="bc-mini" id="bcOpen" type="button"
+              aria-label="展开银行卡 / Open bank card" aria-expanded="false" title="展开银行卡 / Open">
+        <svg class="bc-mini-ico" viewBox="0 0 64 40" aria-hidden="true">
+          <circle cx="26" cy="20" r="13" fill="#eb001b"/>
+          <circle cx="38" cy="20" r="13" fill="#f79e1b"/>
+          <path d="M32 8.5A13 13 0 0 1 32 31.5A13 13 0 0 0 32 8.5Z" fill="#ff5f00"/>
+        </svg>
+      </button>
+      <div class="bc-panel" id="bcPanel">
+        <button class="bc-collapse" id="bcClose" type="button"
+                aria-label="收起银行卡 / Collapse bank card" title="收起 / Collapse">&#8722;</button>
+        <div class="bc-face">
+          <div class="bc-bank-name" data-i18n="bc.title">银行卡</div>
+          <div class="bc-logo" aria-hidden="true">
+            <svg class="bc-logo-svg" viewBox="0 0 64 40">
+              <circle cx="26" cy="20" r="13" fill="#eb001b"/>
+              <circle cx="38" cy="20" r="13" fill="#f79e1b"/>
+              <path d="M32 8.5A13 13 0 0 1 32 31.5A13 13 0 0 0 32 8.5Z" fill="#ff5f00"/>
+            </svg>
+          </div>
+          <div class="bc-num" id="cardBal">0</div>
+          <div class="bc-meta">
+            <div class="bc-mi bc-mi-name"><span class="bc-ml" data-i18n="bc.label">卡内积分</span></div>
+            <div class="bc-mi bc-mi-mid"><span class="bc-ml">H743</span></div>
+            <div class="bc-mi bc-mi-end"><span class="bc-ml">B</span></div>
+          </div>
+        </div>
+        <div class="bc-ctrl">
+          <div class="bc-amt">
+            <button class="bc-q" type="button" data-amt="1000">1000</button>
+            <button class="bc-q" type="button" data-amt="5000">5000</button>
+            <button class="bc-q bc-all" type="button" data-amt="all" data-i18n="bc.all">全部</button>
+            <input class="bc-in" id="cardAmt" type="number" min="0" inputmode="numeric"
+                   data-i18n-ph="bc.amtPh" placeholder="自定义">
+          </div>
+          <div class="bc-actions">
+            <button class="bc-dep" id="cardDep" type="button" data-i18n="bc.dep">存入 ▲</button>
+            <button class="bc-wd" id="cardWd" type="button" data-i18n="bc.wd">取出 ▼</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div><!-- /.bankbar -->
+
+    <!-- ==================== 三卡行：玩家档案 / 柜机 / 珠盘路 + 路纸 ==================== -->
+    <div class="machrow">
+
+    <!-- ==================== 玩家档案 ==================== -->
+    <div class="sidecard" id="playerCard">
+      <div class="jp-bulbs">
+        <i class="bulb"></i><i class="bulb"></i><i class="bulb"></i><i class="bulb"></i>
+        <i class="bulb"></i><i class="bulb"></i><i class="bulb"></i><i class="bulb"></i>
+      </div>
+      <div class="jp-title">PLAYER</div>
+      <div class="jp-sub" data-i18n="pl.sub">玩家档案</div>
+      <div class="jp-body" id="plBody">
+        <div class="pl-stat">
+          <div class="pl-lbl" data-i18n="pl.peak">最高盈利</div>
+          <div class="pl-num" id="peakVal">0</div>
+        </div>
+        <div class="pl-stat">
+          <div class="pl-lbl" data-i18n="pl.maxwin">单手最高派彩</div>
+          <div class="pl-num" id="maxWinVal">0</div>
+        </div>
+        <div class="pl-stat pl-duo">
+          <div class="pl-duo-item">
+            <div class="pl-lbl" data-i18n="pl.won">累计赢分</div>
+            <div class="pl-num sm win" id="wonVal">0</div>
+          </div>
+          <div class="pl-duo-item">
+            <div class="pl-lbl" data-i18n="pl.lost">累计输分</div>
+            <div class="pl-num sm lost" id="lostVal">0</div>
+          </div>
+        </div>
+        <div class="pl-stat">
+          <div class="pl-lbl" data-i18n="pl.hands">累计手数</div>
+          <div class="pl-num" id="handsVal">0</div>
+        </div>
+        <div class="pl-stat">
+          <div class="pl-lbl" data-i18n="pl.broke">破产次数</div>
+          <div class="pl-num" id="brokeVal">0</div>
+        </div>
+      </div>
+      <button class="pl-reset" id="resetBtn" type="button">
+        <span class="rs-txt" data-i18n="pl.reset">重新开始</span>
+        <span class="rs-alt" data-i18n="pl.resetAlt" aria-hidden="true">新游戏</span>
+      </button>
+    </div>
+
+    <!-- ==================== 柜机 ==================== -->
+    <div class="cab-col">
+    <div class="cabinet">
+      <div class="marquee">
+        <div class="bulbs top">
+          <i class="bulb"></i><i class="bulb"></i><i class="bulb"></i><i class="bulb"></i><i class="bulb"></i>
+          <i class="bulb"></i><i class="bulb"></i><i class="bulb"></i><i class="bulb"></i><i class="bulb"></i>
+        </div>
+        <div class="title" data-i18n="brand.title">BACCARAT</div>
+        <div class="bulbs bot">
+          <i class="bulb"></i><i class="bulb"></i><i class="bulb"></i><i class="bulb"></i><i class="bulb"></i>
+          <i class="bulb"></i><i class="bulb"></i><i class="bulb"></i><i class="bulb"></i><i class="bulb"></i>
+        </div>
+      </div>
+
+      <div class="screen">
+        <div class="felt" id="felt">
+          <!-- 余牌：从 HUD 里拆出来，单独挂在桌面右侧中部（无流动金边，静态小牌） -->
+          <div class="shoecard">
+            <span class="sc-lbl" data-i18n="hud.shoe">余牌</span>
+            <b class="sc-val" id="shoeLeft">–</b>
+          </div>
+          <!-- 闲家 -->
+          <div class="side p" id="sideP">
+            <div class="who">
+              <div class="wname" data-i18n="side.p">闲家</div>
+              <div class="wen">PLAYER</div>
+            </div>
+            <div class="cards" id="pCards"></div>
+            <div class="total empty" id="pTotal"></div>
+          </div>
+          <!-- 裁决 -->
+          <div class="verdict" id="verdict">
+            <span class="vt" id="vt" data-i18n="verdict.place">请下注 · 按「发牌」开始</span>
+            <span class="vwin" id="vwin"></span>
+          </div>
+          <div class="tlog" id="tlog"></div>
+          <!-- 中央三个下注圈：金额与下注区同源（updateHUD 里镜像），>0 时金圈点亮 -->
+          <div class="arcspots">
+            <div class="aspot p" id="spotP"><span class="as-lbl" data-i18n="side.p">闲家</span><b class="as-val">0</b></div>
+            <div class="aspot b" id="spotB"><span class="as-lbl" data-i18n="side.b">庄家</span><b class="as-val">0</b></div>
+            <div class="aspot t" id="spotT"><span class="as-lbl" data-i18n="ctl.t">和局注</span><b class="as-val">0</b></div>
+          </div>
+          <!-- 庄家 -->
+          <div class="side b" id="sideB">
+            <div class="who">
+              <div class="wname" data-i18n="side.b">庄家</div>
+              <div class="wen">BANKER</div>
+            </div>
+            <div class="cards" id="bCards"></div>
+            <div class="total empty" id="bTotal"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hud">
+        <div class="meter"><div class="label" data-i18n="hud.credits">积分</div><div class="val" id="credits">20000</div></div>
+        <div class="meter"><div class="label" data-i18n="hud.bet">本注</div><div class="val" id="betTotal">0</div></div>
+        <div class="meter"><div class="label" data-i18n="hud.chip">筹码</div><div class="val" id="chipVal">10</div></div>
+        <div class="meter" id="winMeter"><div class="label" data-i18n="hud.win">WIN</div><div class="val" id="win">0</div></div>
+      </div>
+
+      <div class="controls">
+        <div class="stepgrp" id="grpChip">
+          <span class="max-tag" data-i18n="bet.max">已达最大值</span>
+          <button class="btn small" id="chipDown" aria-label="降低筹码"><svg class="tri" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 9.6 1.4 3.4h9.2z"/></svg></button>
+          <span class="steplbl"><span class="sl-name" data-i18n="ctl.chip">筹码</span> <b id="chipLbl">×10</b></span>
+          <button class="btn small" id="chipUp" aria-label="提高筹码"><svg class="tri" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2.4 10.6 8.6H1.4z"/></svg></button>
+        </div>
+        <div class="stepgrp" data-spot="p" id="grpP">
+          <span class="max-tag" data-i18n="bet.max">已达最大值</span>
+          <button class="btn small" id="pDown" aria-label="减少闲家注"><svg class="tri" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 9.6 1.4 3.4h9.2z"/></svg></button>
+          <span class="steplbl"><span class="sl-name" data-i18n="ctl.p">闲家注</span> <b id="betP">0</b></span>
+          <button class="btn small" id="pUp" aria-label="增加闲家注"><svg class="tri" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2.4 10.6 8.6H1.4z"/></svg></button>
+        </div>
+        <div class="stepgrp" data-spot="b" id="grpB">
+          <span class="max-tag" data-i18n="bet.max">已达最大值</span>
+          <button class="btn small" id="bDown" aria-label="减少庄家注"><svg class="tri" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 9.6 1.4 3.4h9.2z"/></svg></button>
+          <span class="steplbl"><span class="sl-name" data-i18n="ctl.b">庄家注</span> <b id="betB">0</b></span>
+          <button class="btn small" id="bUp" aria-label="增加庄家注"><svg class="tri" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2.4 10.6 8.6H1.4z"/></svg></button>
+        </div>
+        <div class="stepgrp" data-spot="t" id="grpT">
+          <span class="max-tag" data-i18n="bet.max">已达最大值</span>
+          <button class="btn small" id="tDown" aria-label="减少和局注"><svg class="tri" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 9.6 1.4 3.4h9.2z"/></svg></button>
+          <span class="steplbl"><span class="sl-name" data-i18n="ctl.t">和局注</span> <b id="betT">0</b></span>
+          <button class="btn small" id="tUp" aria-label="增加和局注"><svg class="tri" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2.4 10.6 8.6H1.4z"/></svg></button>
+        </div>
+      </div>
+
+      <!-- 附加注：对子 11:1、幸运六 12:1（两张牌）/ 20:1（三张牌）；单位与「筹码 ±」一致 -->
+      <div class="sidebets" id="sidebets">
+        <div class="sbet" data-sb="pp" id="grpPP">
+          <button class="sb-btn" type="button" data-sb="pp" data-dir="-1" aria-label="减少闲对注">&#8722;</button>
+          <div class="sb-mid"><span class="sb-lbl" data-i18n="sb.pp">闲对 11:1</span><b class="sb-val" id="betPP">0</b></div>
+          <button class="sb-btn" type="button" data-sb="pp" data-dir="1" aria-label="增加闲对注">+</button>
+        </div>
+        <div class="sbet" data-sb="bp" id="grpBP">
+          <button class="sb-btn" type="button" data-sb="bp" data-dir="-1" aria-label="减少庄对注">&#8722;</button>
+          <div class="sb-mid"><span class="sb-lbl" data-i18n="sb.bp">庄对 11:1</span><b class="sb-val" id="betBP">0</b></div>
+          <button class="sb-btn" type="button" data-sb="bp" data-dir="1" aria-label="增加庄对注">+</button>
+        </div>
+        <div class="sbet" data-sb="l6" id="grpL6">
+          <button class="sb-btn" type="button" data-sb="l6" data-dir="-1" aria-label="减少幸运六注">&#8722;</button>
+          <div class="sb-mid"><span class="sb-lbl" data-i18n="sb.l6">幸运六 12/20</span><b class="sb-val" id="betL6">0</b></div>
+          <button class="sb-btn" type="button" data-sb="l6" data-dir="1" aria-label="增加幸运六注">+</button>
+        </div>
+      </div>
+
+      <div class="srcrow">
+        <div class="srcwrap">
+          <button class="srcbtn" id="srcBtn" type="button" aria-haspopup="true" aria-expanded="false">随机源：H743 离线 ▾</button>
+          <div class="src-pop" id="srcPop">
+            <button class="src-opt" type="button" data-mode="trng">
+              <i class="so-dot" id="dotTrng"></i>
+              <span class="so-name" data-i18n="src.opt.trng">H743 在线 · 串口直供</span>
+              <span class="so-state" id="stateTrng" data-i18n="src.state.check">检测中…</span>
+            </button>
+            <button class="src-opt" type="button" data-mode="offline">
+              <i class="so-dot" id="dotOffline"></i>
+              <span class="so-name" data-i18n="src.opt.offline">H743 离线 · 熵快照</span>
+              <span class="so-state" id="stateOffline" data-i18n="src.state.check">检测中…</span>
+            </button>
+            <div class="src-ent" id="srcEnt" title="">
+              <i class="so-dot" id="dotEnt"></i>
+              <span class="so-name" data-i18n="src.ent.title">熵源链路</span>
+              <span class="so-state" id="stateEnt">—</span>
+            </div>
+          </div>
+        </div>
+        <span class="srcmsg" id="srcMsg"></span>
+      </div>
+
+      <div class="featrow">
+        <button class="btn feat ghost" id="clearBtn" type="button" data-i18n="feat.clear">清空下注</button>
+        <!-- 台面模式：有佣台（庄赢抽 5%）⇄ 澳门免佣台（不抽水，但庄以 6 点赢只赔 0.5:1）。
+             文案由 renderComm() 按当前模式拼，不放 data-i18n（切换语言时重拼） -->
+        <button class="btn feat ghost" id="commBtn" type="button">台面：有佣 5%</button>
+      </div>
+
+      <button class="btn spin" id="dealBtn" type="button">
+        <span data-i18n="btn.deal">发牌</span><kbd class="kb-space" data-i18n="btn.space">空格</kbd>
+      </button>
+      <div class="hintmsg" id="hintMsg"></div>
+    </div>
+    </div>
+
+    <!-- ==================== 路纸（珠盘路） ==================== -->
+    <div class="sidecard roadcard" id="roadCard">
+      <div class="jp-bulbs">
+        <i class="bulb"></i><i class="bulb"></i><i class="bulb"></i><i class="bulb"></i>
+        <i class="bulb"></i><i class="bulb"></i><i class="bulb"></i><i class="bulb"></i>
+      </div>
+      <div class="jp-title">ROAD</div>
+      <div class="jp-sub" data-i18n="road.sub">珠盘路</div>
+      <div class="jp-body">
+        <div class="road-grid" id="roadGrid"></div>
+        <div class="road-legend">
+          <i><span class="rd b"></span><span data-i18n="side.bShort">庄</span></i>
+          <i><span class="rd p"></span><span data-i18n="side.pShort">闲</span></i>
+          <i><span class="rd t"></span><span data-i18n="side.tShort">和</span></i>
+        </div>
+      </div>
+      <div class="jp-foot" id="roadStat">&mdash;</div>
+    </div>
+
+    </div><!-- /.machrow -->
+
+  </div>
+
+  <!-- ==================== 路纸墙（大路 + 三条衍生路）：桌面下方、规则卡上方，四条路横排，可收起 ====================
+       纯渲染：全部由 bacc_road 里的 48 手结果推导，不参与概率与结算 -->
+  <section class="roadbook" id="roadBook">
+    <div class="rb-head">
+      <h2 data-i18n="rb.title">路纸</h2>
+      <span data-i18n="rb.hint">大路：同一边继续往下叠，换边开新列；和局不开新列，在上一个格子上打绿斜线。衍生路：红圈=齐、蓝点=跳。</span>
+        <button class="rb-toggle" id="rbToggle" type="button"
+                aria-label="收起 / 展开路纸" aria-expanded="true" title="收起路纸 / Collapse">&#9662;</button>
+    </div>
+    <div class="rb-rows">
+    <div class="rb-row">
+      <div class="rb-lbl"><b data-i18n="rb.big">大路</b><span>BIG ROAD</span></div>
+      <div class="rb-wrap"><div class="rb-grid big" id="bigRoad"></div></div>
+    </div>
+    <div class="rb-row">
+      <div class="rb-lbl"><b data-i18n="rb.beb">大眼仔</b><span>BIG EYE BOY</span></div>
+      <div class="rb-wrap"><div class="rb-grid sm" id="bebRoad"></div></div>
+    </div>
+    <div class="rb-row">
+      <div class="rb-lbl"><b data-i18n="rb.sr">小路</b><span>SMALL ROAD</span></div>
+      <div class="rb-wrap"><div class="rb-grid sm" id="srRoad"></div></div>
+    </div>
+    <div class="rb-row">
+      <div class="rb-lbl"><b data-i18n="rb.cr">曱甴路</b><span>COCKROACH</span></div>
+      <div class="rb-wrap"><div class="rb-grid sm" id="crRoad"></div></div>
+    </div>
+    </div><!-- /.rb-rows -->
+  </section>
+
+  <!-- ==================== 规则 ==================== -->
+  <div class="rules">
+    <h2 data-i18n="rules.title">玩法规则</h2>
+
+    <h3 data-i18n="rules.basic">基本设定</h3>
+    <ul>
+      <li data-i18n="rules.basic.1">本机以标准 <b>Punto Banco</b>（欧美式百家乐）为内核：<b>8 副牌</b>混成一副牌靴（<b>416 张</b>），剩余不足 26 张自动换靴。<b>默认台型为澳门免佣台</b>——庄赢不抽水、庄以 6 点赢只赔 0.5:1；仍可一键切回<b>有佣台</b>（庄赢抽 5%）。另加了<b>附加注</b>（闲对 / 庄对 / 幸运六），见下文。</li>
+      <li data-i18n="rules.basic.2">牌面点数：<b>A = 1</b>，<b>2~9</b> 按面值，<b>10 / J / Q / K = 0</b>；只取总和的<b>个位</b>，所以点数范围是 <b>0~9</b>。</li>
+      <li data-i18n="rules.basic.3">牌桌上只有两个角色：<b>闲家（Player）</b>与<b>庄家（Banker）</b>各自摸牌、自动补牌，你只负责在 <b>6 个注位</b>（闲 / 庄 / 和 + 闲对 / 庄对 / 幸运六）上下注，全程不需要做任何决策。</li>
+      <li data-i18n="rules.basic.4"><b>资金共通</b>：积分与银行卡余额是本机<b>全局钱袋</b>，与<b>老虎机</b>游戏页共用 —— 在老虎机赢的分可以直接拿到这里下注，在这里赢的分也能回老虎机继续玩；银行卡里的存款同样是两边共用的同一笔钱。「最高盈利」按全局总资产（积分 + 银行卡 − 20000 起始资金）统计，<b>破产次数</b>也是两边共用的一次账（积分和银行卡一起清零才算一次破产）。</li>
+    </ul>
+
+    <h3 data-i18n="rules.bet">下注与赔率</h3>
+    <p data-i18n="rules.bet.p">六个注位可同时下注，各注位<b>独立派彩</b>。先用「筹码 ±」把单注面额调到 <b>10 / 25 / 50 / 100 / 500</b> 中的一档，再按注位自己的 ± 加减（主注用三角键、附加注用两侧的 − / +）：<b>按一下加一注、再按一下再加一注</b>，注额 = 面额 × 次数，按多了一下一下减回去。点「发牌」或按<b>空格</b>后六个注位一起结算。派彩规则：</p>
+    <table>
+      <thead><tr><th data-i18n="th.spot">注位</th><th data-i18n="th.pay">赔率</th><th data-i18n="th.cond">成立条件</th></tr></thead>
+      <tbody>
+        <tr><td><span class="tag p" data-i18n="side.p">闲家</span></td><td data-i18n="pay.p">1 : 1</td><td data-i18n="pay.p.c">闲家点数高于庄家</td></tr>
+        <tr><td><span class="tag b" data-i18n="side.b">庄家</span></td><td data-i18n="pay.b">0.95 : 1</td><td data-i18n="pay.b.c">庄家点数高于闲家（有佣台抽 5% 佣金；免佣台不抽佣，但庄以 6 点赢只赔 0.5:1）</td></tr>
+        <tr><td><span class="tag t" data-i18n="side.t">和局</span></td><td data-i18n="pay.t">8 : 1</td><td data-i18n="pay.t.c">两边点数相同（此时闲/庄注全额退还）</td></tr>
+        <tr><td><span class="tag pair" data-i18n="sb.pp">闲对</span></td><td data-i18n="pay.pp">11 : 1</td><td data-i18n="pay.pp.c">闲家头两张牌点数相同</td></tr>
+        <tr><td><span class="tag pair" data-i18n="sb.bp">庄对</span></td><td data-i18n="pay.bp">11 : 1</td><td data-i18n="pay.bp.c">庄家头两张牌点数相同</td></tr>
+        <tr><td><span class="tag six" data-i18n="sb.l6">幸运六</span></td><td data-i18n="pay.l6">12 : 1 / 20 : 1</td><td data-i18n="pay.l6.c">庄以 6 点赢：两张牌成 6 点 12:1，补第三张成 6 点 20:1</td></tr>
+      </tbody>
+    </table>
+    <p class="note" data-i18n="rules.bet.note">下注时按注额从积分里扣除，上方「本注」格是六个注位的合计；和局时押在闲/庄的注会<b>原额退回</b>，押和的注按 8:1 派彩，附加注（对子 / 幸运六）在和局时<b>全输</b>。每手每个注位最多押 <b>100,000</b>。补牌记录后面那行金色小字是<b>本手拆解</b>——逐个注位写出赔了多少 / 输了多少，末尾给净额。<b>发牌后注额会留在注位上</b>：下一手直接再按「发牌」就按同样注额继续；想改注额用 ±，想归零按「清空下注」。</p>
+
+    <h3 data-i18n="rules.comm">台面模式：有佣 / 免佣</h3>
+    <p data-i18n="rules.comm.p">下注区下方那排按钮里的「台面」在两种真实台型之间切换，按钮上直接显示当前台型（默认<b>免佣</b>）。切换只影响<b>下一手</b>——已经发出去的一手按发牌那一刻的台型结算；选择会随存档保留，刷新后不变：</p>
+    <ul>
+      <li data-i18n="rules.comm.1"><b>有佣台</b>：庄赢一律按 <b>0.95 : 1</b> 派彩，抽 5% 佣金，不足 1 分向下取整。庄家优势 <b>1.06%</b>，是全桌最优注。</li>
+      <li data-i18n="rules.comm.2"><b>免佣台（默认 · 澳门主流）</b>：庄赢<b>不抽水</b>，但庄以 <b>6 点</b>赢时只赔 <b>0.5 : 1</b>（押 100 净赢 50，本金照退；注额为奇数时利润向下取整，押 25 赢 12）。庄家优势升到 <b>1.46%</b>。</li>
+    </ul>
+    <p class="note" data-i18n="rules.comm.note">注意口径：0.5 : 1 是<b>净赢</b>的赔率，押 100 拿回 150（本金 100 + 利润 50），不是总共只赔 50。若某处写成「庄 6 点只返还一半本金」（净输 50），那是另一种对玩家极不利的规则，本机不采用。</p>
+
+    <h3 data-i18n="rules.side">附加注：对子 / 幸运六</h3>
+    <ul>
+      <li data-i18n="rules.side.1"><b>闲对 / 庄对（11:1）</b>：只看该方<b>头两张牌</b>是否同点数（如 8♠ 8♦、K♣ K♥）。补的第三张不算，10 与 Q 也<b>不算</b>对子（点数同为 0，但牌面不同）。</li>
+      <li data-i18n="rules.side.2"><b>幸运六（12:1 / 20:1）</b>：押「庄以 6 点赢」。庄用<b>两张牌</b>就成 6 点 → 12:1；补第三张才成 6 点 → 20:1。庄以别的点数赢、或闲赢、或和局，都算输。</li>
+      <li data-i18n="rules.side.3">附加注与主注<b>各自独立结算</b>：押庄 100 + 幸运六 100，庄 6 点赢时主注按台型赔、幸运六另按 12:1 或 20:1 赔。</li>
+      <li data-i18n="rules.side.4">附加注同样受「筹码」面额与单注上限约束；赔率<b>与台面模式无关</b>，有佣台、免佣台都是 11:1 与 12 / 20:1。</li>
+    </ul>
+
+    <h3 data-i18n="rules.draw">发牌与补牌</h3>
+    <p data-i18n="rules.draw.p">发牌顺序固定为 <b>闲 → 庄 → 闲 → 庄</b>，各两张。若任一方两张牌点数为 <b>8 或 9</b>（天生赢家 Natural），双方都<b>不再补牌</b>，直接比大小。否则按下面的规则自动补第三张——<b>这一步是全自动的，玩家不参与</b>：</p>
+    <ul>
+      <li data-i18n="rules.draw.p1"><b>闲家</b>：0~5 点<b>补牌</b>；6~7 点<b>停牌</b>。</li>
+      <li data-i18n="rules.draw.p2"><b>庄家</b>：闲家停牌时，庄家 0~5 补、6~7 停；闲家补了第三张时，庄家按下表决定。</li>
+    </ul>
+    <table>
+      <thead>
+        <tr>
+          <th data-i18n="th.bt">庄家点数</th>
+          <th data-i18n="th.p3">闲家第三张为 0~9 时是否补牌</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>0 – 2</td><td data-i18n="bc.r02">总是补牌</td></tr>
+        <tr><td>3</td><td data-i18n="bc.r3">闲第三张 ≠ 8 时补牌</td></tr>
+        <tr><td>4</td><td data-i18n="bc.r4">闲第三张 2 – 7 时补牌</td></tr>
+        <tr><td>5</td><td data-i18n="bc.r5">闲第三张 4 – 7 时补牌</td></tr>
+        <tr><td>6</td><td data-i18n="bc.r6">闲第三张 6 – 7 时补牌</td></tr>
+        <tr><td>7</td><td data-i18n="bc.r7">停牌</td></tr>
+      </tbody>
+    </table>
+    <p class="note" data-i18n="rules.draw.note">牌桌下方的灰字会写出这一手的补牌过程（谁补了什么、最终点数），方便复盘。</p>
+
+    <h3 data-i18n="rules.shoe">牌靴与换牌</h3>
+    <p data-i18n="rules.shoe.p">一副牌靴 <b>416 张</b>不会发到见底。每手发牌<b>之前</b>先看余量：<b>剩余不足 26 张</b>就整靴换新，重洗后才发这一手。所以余牌会停在 25、24…这种位置就直接换靴，是规则本身，不是漏发。</p>
+    <ul>
+      <li data-i18n="rules.shoe.1"><b>为什么是 26</b>：真实台面把切牌卡插在距靴底 <b>14 张</b>处，这张卡一露头、当前这手打完就换靴。本机把「切牌卡 14 张 + 一手最多 6 张 + 余量」折成 <b>26</b>，把判断提到发牌前，因此<b>永远不会出现发到一半没牌</b>。</li>
+      <li data-i18n="rules.shoe.2"><b>换靴即重洗</b>：用 H743 熵整靴重洗（Fisher-Yates + 16 bit 拒绝采样），余牌照 <b>416 张</b>重新计数；旧牌序完全作废，不会接着上一副的顺序往下发。</li>
+      <li data-i18n="rules.shoe.3"><b>洗不出来就不发</b>：两块桥都连不上时本手<b>直接取消</b>、注额<b>原额退回</b>，牌靴保持原样，绝不拿假随机补上。</li>
+      <li data-i18n="rules.shoe.4"><b>刷新不换靴</b>：牌靴与进行中的一手都已落盘，刷新页面后接着打<b>同一副牌</b>、余牌继续递减；只有牌靴存档损坏或被篡改才会丢弃重洗。</li>
+    </ul>
+
+    <h3 data-i18n="rules.road">路纸怎么看</h3>
+    <p data-i18n="rules.road.p">每手的结果都会记进路纸，共两处：桌面右侧 <b>ROAD</b> 卡片是<b>珠盘路</b>——每手一颗圆点（<b>庄红 / 闲蓝 / 和绿</b>），按时间顺序自上而下排，一列 8 颗、满列往右换一列；桌面下方的<b>路纸墙</b>把同一批结果画成走势图（四条路并排：大路 + 大眼仔 / 小路 / 曱甴路）。两处都只保留<b>最近 48 手</b>，更早的一手会从最前面移走。</p>
+    <ul>
+      <li data-i18n="rules.road.1"><b>大路</b>：同一边连续出现就往下叠成一列（最多 6 格）；连到第 7 手时不再往下，改为沿底行<b>向右延伸</b>（长龙）。换边就开新的一列，从左往右排。</li>
+      <li data-i18n="rules.road.2"><b>和局</b>：大路不开新列，只在上一格上画一条<b>绿斜线</b>；悬停能看到这一格累计了几个和局。</li>
+      <li data-i18n="rules.road.3"><b>大眼仔 / 小路 / 曱甴路</b>：三条都是大路的<b>变形观察窗口</b>——分别把「往前第 1 / 2 / 3 列的长度」与「再前一列」逐格比对，两列一样长画<b>红圈（齐）</b>，不一样长画<b>蓝点（跳）</b>。三条路看的是同一批结果的不同侧面，所以不会互相矛盾；开头几格留空是因为还没有足够的前列可比。</li>
+      <li data-i18n="rules.road.4"><b>路纸只是记录</b>：不参与发牌，也不预示下一手。每一手都是从真随机牌靴里发的，前面出了多少庄、多长的龙，都不会改变下一手的概率。</li>
+    </ul>
+
+    <h3 data-i18n="rules.two">两种特殊情形</h3>
+    <ul>
+      <li data-i18n="rules.two.1"><b>和局（Tie）</b>：两边点数相同。押闲/庄不输不赢（退还本金），押和按 <b>8:1</b> 派彩，附加注（对子 / 幸运六）全输。</li>
+      <li data-i18n="rules.two.2"><b>庄以 6 点赢</b>：庄最终点数正好是 <b>6</b> 且高于闲，才算这种结局 —— 免佣台的半赔与「幸运六」都只看它。庄拿 6 点而闲是 7 / 8 / 9 时，赢的是<b>闲</b>。</li>
+    </ul>
+
+    <h3 data-i18n="rules.rtp">RTP（玩家回报率）与庄家优势</h3>
+    <p data-i18n="rules.rtp.p">RTP 指长期来看每投入 100 元平均能拿回多少钱。8 副牌、标准补牌规则下，六个注位的 RTP 与庄家优势如下（庄家按两种台面各列一行，优势越低越划算）：</p>
+    <table>
+      <thead><tr><th data-i18n="rtp.spot">注位</th><th data-i18n="rtp.pays">赔率</th><th data-i18n="rtp.rtp">RTP</th><th data-i18n="rtp.edge">庄家优势</th></tr></thead>
+      <tbody>
+        <tr><td data-i18n="side.p">闲家</td><td>1 : 1</td><td>98.76%</td><td>1.24%</td></tr>
+        <tr><td data-i18n="rtp.bankPaid">庄家 · 有佣台</td><td>0.95 : 1</td><td><b>98.94%</b></td><td><b>1.06%</b></td></tr>
+        <tr><td data-i18n="rtp.bankFree">庄家 · 免佣台</td><td data-i18n="rtp.bankFreePay">1 : 1（庄 6 点 0.5 : 1）</td><td>98.54%</td><td>1.46%</td></tr>
+        <tr><td data-i18n="side.t">和局</td><td>8 : 1</td><td>85.64%</td><td>14.36%</td></tr>
+        <tr><td data-i18n="rtp.pair">闲对 / 庄对</td><td>11 : 1</td><td>89.64%</td><td>10.36%</td></tr>
+        <tr><td data-i18n="rtp.l6">幸运六</td><td>12 : 1 / 20 : 1</td><td>83.4%</td><td>16.6%</td></tr>
+      </tbody>
+    </table>
+    <p class="note" data-i18n="rules.rtp.note">主注三行是 8 副牌的标准理论值（无限牌靴，与实际有限牌靴差 &lt;0.1%）；附加注两行按本机赔率用 4000 万手模拟核对。结论很直白：<b>全桌唯一低于 1.1% 优势的是有佣台的庄</b>，免佣台换来的是更高的庄赢赔率、但也把优势推到 1.46%；附加注赔率看着诱人，优势反而高一个数量级，长期更吃亏。</p>
+
+    <h3 data-i18n="rules.rand">随机源</h3>
+    <p data-i18n="rules.rand.p">和老虎机<b>用的是同一条随机链</b>。洗牌用 <b>Fisher-Yates</b>：从牌靴尾部开始，每步向随机源要一个均匀整数（16 bit 拒绝采样，消除取模偏差）决定与前面哪一张交换，全程<b>不使用浏览器随机数</b>。两种来源：<b>H743 在线 · 串口直供</b>——直接向 STM32H743 的片上 TRNG 要新字节；<b>H743 离线 · 熵快照</b>（默认）——用这颗芯片某次采到的 <b>4096 B</b> 物理熵当种子，喂给 <b>ChaCha20 DRBG</b> 扩展成字节流，不占串口。</p>
+    <p class="note" data-i18n="rules.rand.note">取随机失败（两块桥都连不上）时，本手<b>直接取消</b>，已下的注<b>原额退回</b>，绝不用假随机兜底。牌靴余量、当前随机源与熵源链路都能在桌面下方的状态行里看到。</p>
+
+    <h3 data-i18n="rules.assets">牌面素材</h3>
+    <p class="note" data-i18n="rules.assets.p">54 张牌面取自 <b>AustinGabriel/Public-Domain-and-CC0-Playing-Cards</b>（Public Domain / CC0，可自由商用，无需署名），已转成 WebP 并缩放到 330 px 宽放在 <b>assets/cards/</b> 下。</p>
+  </div>
+
+</div><!-- /.stage -->
+
+</div><!-- /.page -->
+
+<!-- 重新开始确认 -->
+<div class="mask" id="resetMask">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="resetTitle">
+    <h3 id="resetTitle" data-i18n="reset.title">重新开始？</h3>
+    <p data-i18n="reset.body">将清空当前积分并重置为初始 20000 积分。路纸与历史统计不受影响。</p>
+    <div class="m-amt"><span data-i18n="reset.amountLbl">当前积分</span>：<b id="resetAmount">0</b></div>
+    <div class="modal-btns">
+      <button class="m-cancel" id="resetCancel" type="button" data-i18n="reset.cancel">取消</button>
+      <button class="m-ok" id="resetConfirm" type="button" data-i18n="reset.confirm">确认清空</button>
+    </div>
+  </div>
+</div>
+
+<!-- 破产 -->
+<div class="bk-mask" id="bkMask">
+  <div class="bk-stage">
+    <div class="bk-half bk-l">
+      <div class="bk-title" data-i18n="bk.title">你已经破产了</div>
+      <div class="bk-sub" data-i18n="bk.sub">点「重新开始」领取 20000 积分</div>
+    </div>
+    <div class="bk-half bk-r">
+      <div class="bk-title" data-i18n="bk.title">你已经破产了</div>
+      <div class="bk-sub" data-i18n="bk.sub">点「重新开始」领取 20000 积分</div>
+    </div>
+    <div class="bk-crack"></div>
+  </div>
+</div>
+
+<!-- 积分不足 -->
+<div class="nc-mask" id="ncMask">
+  <div class="nc-card">
+    <div class="nc-title" data-i18n="nc.title">积分不足</div>
+    <div class="nc-sub" id="ncDetail"></div>
+    <div class="nc-hint" data-i18n="nc.hint">调低筹码或减少注位后再发牌</div>
+  </div>
+</div>
+
+<!-- 卡内余额续玩 -->
+<div class="mask" id="rescueMask">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rescueTitle">
+    <h3 id="rescueTitle" data-i18n="rescue.title">积分用完了</h3>
+    <p data-i18n="rescue.body">你的银行卡里还有积分。是否取出卡内余额继续游戏？</p>
+    <div class="m-amt"><span data-i18n="rescue.amtLbl">卡内余额</span>：<b id="rescueAmt">0</b></div>
+    <div class="modal-btns">
+      <button class="m-cancel" id="rescueNo" type="button" data-i18n="rescue.no">暂不</button>
+      <button class="m-ok rescue-ok" id="rescueYes" type="button" data-i18n="rescue.yes">取出继续</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* =====================================================================
+   *  百家乐（Punto Banco）· 8 副牌
+   *  - 随机源与 slot_machine.html 完全共用：本地 HTTP 桥 8765~8784
+   *    /status 探测模式、/rnd?n=N 取字节；online=H743 直供，offline=DRBG 快照
+   *  - 洗牌 = Fisher-Yates + 16bit 拒绝采样；牌序绝不用浏览器随机数
+   * ===================================================================== */
+
+  var DECKS = 8, CUT_CARD = 26, SHOE_SIZE = 52 * DECKS;
+  var CHIP_TIERS = [10, 25, 50, 100, 500];
+  var START_CREDITS = 20000;
+  var MAX_SPOT = 100000;         // 单个注位上限
+  var PAY_B = 95;                // 有佣台：庄赢按 95% 派彩（5% 佣金），整数百分比避免浮点误差
+  var PAY_CF_B6 = 50;            // 免佣台：庄以 6 点赢只赔 50%（0.5 : 1），其余庄赢满赔
+  var PAY_T = 8;                 // 和 8:1
+  var PAY_PAIR = 11;             // 对子 11:1（闲对 / 庄对）
+  var PAY_L6_2 = 12;             // 幸运六：庄以 6 点赢且只用两张牌 12:1
+  var PAY_L6_3 = 20;             // 幸运六：庄以 6 点赢且补了第三张 20:1
+
+  var RANKS = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+  var SUITS = ["S","H","C","D"];
+
+  /* ---------------- 存档 ----------------
+     钱包（积分）与银行卡是【全局钱袋】，与老虎机 slot_machine.html 共用同一对存储键：
+       slot_credits = 手上积分，slot_card = 银行卡余额，slot_broke = 破产次数
+     两个游戏看到的是同一笔钱 —— 老虎机赢的分能直接拿到百家乐下注，反之亦然；
+     在同一钱袋里存/取款，两边余额同步变化。
+     最高盈利（slot_profit）是「总资产 − 20000 起始资金」的全局口径，破产次数（slot_broke）
+     也是全局事件（钱袋一起空才算破产），两者都必须共用，否则两个页面会各记一份。
+     输赢/单手最高/手数属于各游戏自己的战绩，仍按 bacc_* 分开记。 */
+  var LS = {
+    credits:"slot_credits", card:"slot_card", peak:"slot_profit", broke:"slot_broke",
+    won:"bacc_won", lost:"bacc_lost",
+    maxwin:"bacc_maxwin", hands:"bacc_hands",
+    road:"bacc_road", chipIdx:"bacc_chipIdx",
+    /* 牌靴与「进行中的一手」也必须落盘，否则一刷新就等于换了一副新牌：
+       余牌回到 416（牌靴连续性丢失）、已扣的注额悬空（这手永远不结算）。 */
+    shoe:"bacc_shoe", hand:"bacc_hand",
+    /* 台面模式：0/1 = 有佣台 / 澳门免佣台。存在本地，刷新后保持上次选的台型 */
+    comm:"bacc_commfree"
+  };
+  function lsLoad(k, d){ try{ var v = parseFloat(localStorage.getItem(k)); if (isFinite(v)) return v; }catch(e){} return d; }
+  function lsSave(k, v){ try{ localStorage.setItem(k, String(v)); }catch(e){} }
+  function lsLoadStr(k, d){ try{ var v = localStorage.getItem(k); return (v == null) ? d : v; }catch(e){ return d; } }
+
+  /* ---------------- 一次性存档迁移 ----------------
+     Firefox / Zen 给每个 file:// 页面分配**独立源**（privacy.file_unique_origin），
+     所以「老虎机页」和「百家乐页」各有一份 localStorage，互相读不到 —— 这就是
+     "积分没同步过去"的真因（Chrome 内核的 file:// 反而是共享的，容易看走眼）。
+     现在两页都从 http://127.0.0.1:8788 打开（start_casino.py 负责起这个静态服务），
+     同源之后 localStorage 才真正共用。用户在 file:// 时代攒下的存档由
+     wallet_seed.json 搬进来：只补"当前源里还没有"的键，且只做一次。 */
+  (function importSeed(){
+    try{
+      if (localStorage.getItem("slot_seed_done") === "1") return;
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", "wallet_seed.json?t=" + Date.now(), false);   // 同步：必须赶在下面读存档之前
+      xhr.send(null);
+      if (xhr.status !== 200) return;
+      var seed = JSON.parse(xhr.responseText);
+      Object.keys(seed).forEach(function(k){
+        if (k.charAt(0) === "_") return;                             // _comment/_source 只是说明
+        if (localStorage.getItem(k) === null) localStorage.setItem(k, String(seed[k]));
+      });
+      localStorage.setItem("slot_seed_done", "1");
+    }catch(e){ /* 仍用 file:// 打开时读不到种子（跨源被拦），照常用本页自己的存档 */ }
+  })();
+
+  var credits = Math.max(0, Math.floor(lsLoad(LS.credits, START_CREDITS)));
+  var cardBalance = Math.max(0, Math.floor(lsLoad(LS.card, 0)));
+  var statPeak = Math.max(0, Math.floor(lsLoad(LS.peak, 0)));
+  var statMaxWin = Math.max(0, Math.floor(lsLoad(LS.maxwin, 0)));
+  var statWon = Math.max(0, Math.floor(lsLoad(LS.won, 0)));
+  var statLost = Math.max(0, Math.floor(lsLoad(LS.lost, 0)));
+  var statBroke = Math.max(0, Math.floor(lsLoad(LS.broke, 0)));
+  var statHands = Math.max(0, Math.floor(lsLoad(LS.hands, 0)));
+  var chipIdx = (function(){
+    var v = lsLoad(LS.chipIdx, 0);
+    return (v >= 0 && v < CHIP_TIERS.length) ? Math.floor(v) : 0;
+  })();
+  var road = (function(){
+    try{
+      var a = JSON.parse(lsLoadStr(LS.road, "[]"));
+      if (Array.isArray(a)) return a.filter(function(x){ return x === "p" || x === "b" || x === "t"; }).slice(-48);
+    }catch(e){}
+    return [];
+  })();
+  var brokeFlag = (credits < 1 && cardBalance < 1);
+
+  // 注位：p/b/t 是主注，pp/bp/l6 是附加注（闲对 / 庄对 / 幸运六）
+  var bet = { p:0, b:0, t:0, pp:0, bp:0, l6:0 };
+  // 台面模式：false = 有佣台（庄赢抽 5%），true = 澳门免佣台（不抽水，庄以 6 点赢赔 0.5:1）
+  // 切换只影响【下一手】：发牌那一刻会把模式快照进 h.cf，刷新补结算也用快照，绝不半路改口径
+  var commFree = (function(){ return lsLoadStr(LS.comm, "1") === "1"; })();
+  // 牌靴：末尾是下一张要发的。刷新后从存档恢复，余牌与牌序都接着上一局走。
+  var shoe = loadShoe() || [];
+  var dealing = false;
+  var lastResult = null;  // "p" | "b" | "t"
+  var _settleT = null;
+
+  var $ = function(id){ return document.getElementById(id); };
+  var creditsEl = $("credits"), betTotalEl = $("betTotal"), chipValEl = $("chipVal");
+  var winEl = $("win"), winMeter = $("winMeter"), shoeLeftEl = $("shoeLeft");
+  var chipLbl = $("chipLbl"), betPEl = $("betP"), betBEl = $("betB"), betTEl = $("betT");
+  var betPPEl = $("betPP"), betBPEl = $("betBP"), betL6El = $("betL6");
+  var commBtn = $("commBtn");
+  var pCards = $("pCards"), bCards = $("bCards"), pTotalEl = $("pTotal"), bTotalEl = $("bTotal");
+  var sideP = $("sideP"), sideB = $("sideB");
+  var verdictEl = $("verdict"), vtEl = $("vt"), vwinEl = $("vwin"), tlogEl = $("tlog");
+  var dealBtn = $("dealBtn");
+  var roadGrid = $("roadGrid"), roadStat = $("roadStat");
+  var bigRoadEl = $("bigRoad"), bebRoadEl = $("bebRoad"), srRoadEl = $("srRoad"), crRoadEl = $("crRoad");
+  var peakEl = $("peakVal"), maxWinEl = $("maxWinVal"), wonEl = $("wonVal"),
+      lostEl = $("lostVal"), brokeEl = $("brokeVal"), handsEl = $("handsVal");
+
+  /* =====================================================================
+   *  随机源（与老虎机同一批桥，逐字沿用其探测逻辑）
+   * ===================================================================== */
+  var TRNG_PORTS = [];
+  for (var _p = 8765; _p <= 8784; _p++) TRNG_PORTS.push(_p);
+  var _bridgeCache = { online:null, offline:null };
+  var _bridgeMissAt = { online:0, offline:0 };
+  var BRIDGE_MISS_COOLDOWN = 4000;
+  var BRIDGE_TIMEOUT = 600;
+  var srcMode = "offline";
+  var useTrng = false;
+
+  function fetchStatus(base){
+    return new Promise(function(resolve, reject){
+      var done = false;
+      var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+      var timer = setTimeout(function(){
+        if (done) return; done = true;
+        if (ctrl){ try{ ctrl.abort(); }catch(e){} }
+        reject(new Error("timeout"));
+      }, BRIDGE_TIMEOUT);
+      var opt = { cache:"no-store" };
+      if (ctrl) opt.signal = ctrl.signal;
+      fetch(base + "/status", opt)
+        .then(function(r){ if (!r.ok) throw 0; return r.json(); })
+        .then(function(j){ if (done) return; done = true; clearTimeout(timer); resolve(j); })
+        .catch(function(e){ if (done) return; done = true; clearTimeout(timer); reject(e); });
+    });
+  }
+
+  function probeBridge(wantMode, force){
+    wantMode = wantMode || "online";
+    if (_bridgeCache[wantMode]) return Promise.resolve(_bridgeCache[wantMode]);
+    if (!force && Date.now() - _bridgeMissAt[wantMode] < BRIDGE_MISS_COOLDOWN){
+      return Promise.reject(new Error("cooldown"));
+    }
+    var jobs = TRNG_PORTS.map(function(port){
+      var base = "http://127.0.0.1:" + port;
+      return fetchStatus(base).then(function(j){
+        if (j && typeof j.buffered === "number" && "reconnects" in j
+            && (j.mode || "online") === wantMode){
+          return { base:base, st:j };
+        }
+        return null;
+      }).catch(function(){ return null; });
+    });
+    return new Promise(function(resolve, reject){
+      var settled = false, pending = jobs.length;
+      jobs.forEach(function(job){
+        job.then(function(hit){
+          if (settled) return;
+          if (hit){
+            settled = true;
+            _bridgeCache[wantMode] = hit;
+            _bridgeMissAt[wantMode] = 0;
+            resolve(hit);
+            return;
+          }
+          if (--pending === 0){
+            settled = true;
+            _bridgeMissAt[wantMode] = Date.now();
+            reject(new Error("no bridge"));
+          }
+        });
+      });
+    });
+  }
+
+  function fetchWithTimeout(url, ms){
+    return new Promise(function(resolve, reject){
+      var done = false;
+      var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+      var timer = setTimeout(function(){
+        if (done) return; done = true;
+        if (ctrl){ try{ ctrl.abort(); }catch(e){} }
+        reject(new Error("timeout"));
+      }, ms);
+      var opt = { cache:"no-store" };
+      if (ctrl) opt.signal = ctrl.signal;
+      fetch(url, opt)
+        .then(function(r){ if (done) return; done = true; clearTimeout(timer); resolve(r); })
+        .catch(function(e){ if (done) return; done = true; clearTimeout(timer); reject(e); });
+    });
+  }
+
+  // 取 n 字节（服务端单次上限 4096）；失败 → 清缓存 → 强制重探 → 再取一次
+  function bridgeBytes(mode, n){
+    mode = mode || "online";
+    n = Math.max(1, Math.min(n, 2048));
+    function take(){
+      var base = _bridgeCache[mode] ? Promise.resolve(_bridgeCache[mode].base)
+                                  : probeBridge(mode).then(function(x){ return x.base; });
+      return base.then(function(b){
+        return fetchWithTimeout(b + "/rnd?n=" + n, 5000);   // 须大于桥的服务端等待上限
+      }).then(function(r){
+        if (!r.ok) throw new Error("http " + r.status);
+        return r.arrayBuffer();
+      }).then(function(ab){
+        var u8 = new Uint8Array(ab);
+        if (u8.length < n) throw new Error("short");
+        return u8;
+      });
+    }
+    return take().catch(function(){
+      delete _bridgeCache[mode];
+      _bridgeMissAt[mode] = Date.now();
+      return probeBridge(mode, true).then(function(hit){
+        _bridgeCache[mode] = hit;
+        return take();
+      });
+    });
+  }
+
+  // 先取当前选的源；该源确实断了而另一源可用则自动切过去（与老虎机同策略）
+  async function fetchBytesSafe(n){
+    var primary = useTrng ? "online" : "offline";
+    try {
+      return await bridgeBytes(primary, n);
+    } catch(e){
+      var other = useTrng ? "offline" : "online";
+      var ready = await probeBridge(other, true).then(function(){ return true; }, function(){ return false; });
+      if (ready){
+        setSrcMode(other === "online" ? "trng" : "offline");
+        // 切换用一次性提示（hint 区），状态行留给「源 + 端口 + 串口」这类常驻信息
+        setHintKey("src.msg.autoSwitch",
+          { mode: other === "online" ? tt("src.msg.onlineShort") : tt("src.msg.offlineShort") });
+        probeSrcLine(other, true);
+        return await bridgeBytes(other, n);
+      }
+      throw e;
+    }
+  }
+
+  // 字节流：够用就同步取，不够再向桥要一批
+  function ByteQueue(){ this.buf = new Uint8Array(0); this.p = 0; }
+  ByteQueue.prototype.ensure = async function(n){
+    if (this.buf.length - this.p >= n) return;
+    var more = await fetchBytesSafe(Math.max(1024, n));
+    var rest = this.buf.subarray(this.p);
+    var joined = new Uint8Array(rest.length + more.length);
+    joined.set(rest, 0);
+    joined.set(more, rest.length);
+    this.buf = joined;
+    this.p = 0;
+  };
+  ByteQueue.prototype.u16 = async function(){
+    await this.ensure(2);
+    var v = (this.buf[this.p] << 8) | this.buf[this.p + 1];
+    this.p += 2;
+    return v;
+  };
+  // 均匀整数 [0,k)：16bit 拒绝采样，丢掉 65536 除不尽的尾巴，彻底消除取模偏差
+  async function rndInt(k, q){
+    var M = 65536 - (65536 % k);
+    for (;;){
+      var v = await q.u16();
+      if (v < M) return v % k;
+    }
+  }
+
+  /* =====================================================================
+   *  牌靴
+   * ===================================================================== */
+  function buildDeck(){
+    var arr = [];
+    for (var d = 0; d < DECKS; d++){
+      for (var si = 0; si < SUITS.length; si++){
+        for (var ri = 0; ri < RANKS.length; ri++){
+          arr.push(RANKS[ri] + SUITS[si]);
+        }
+      }
+    }
+    return arr;
+  }
+  /* ---------------- 牌靴落盘 ----------------
+     牌序是跨刷新的全局状态。只放在内存里的话，刷新一次就等于换了一副新牌：
+     余牌从 416 重新计数，牌靴连续性丢掉，中途已扣注的一手还会永久悬空。
+     恢复时逐张校验：牌码必须合法、同一张牌不得超过 DECKS 张 —— 存档被手改或
+     版本杂糅时宁可丢弃重洗，也不能拿一副「20 张 A♠」的牌去发牌。 */
+  function isCardCode(c){
+    if (typeof c !== "string") return false;
+    return SUITS.indexOf(c.slice(-1)) >= 0 && RANKS.indexOf(c.slice(0, -1)) >= 0;
+  }
+  function loadShoe(){
+    var raw;
+    try{ raw = JSON.parse(lsLoadStr(LS.shoe, "")); }catch(e){ return null; }
+    if (!raw || raw.v !== 1 || !Array.isArray(raw.cards)) return null;
+    var a = raw.cards;
+    if (!a.length || a.length > SHOE_SIZE) return null;
+    var cnt = {};
+    for (var i = 0; i < a.length; i++){
+      if (!isCardCode(a[i])) return null;
+      cnt[a[i]] = (cnt[a[i]] || 0) + 1;
+      if (cnt[a[i]] > DECKS) return null;      // 8 副牌里同一张最多 8 张
+    }
+    return a;
+  }
+  function saveShoe(){
+    try{ localStorage.setItem(LS.shoe, JSON.stringify({ v:1, cards:shoe })); }catch(e){}
+  }
+
+  async function reshuffle(){
+    var arr = buildDeck();
+    var q = new ByteQueue();
+    for (var i = arr.length - 1; i > 0; i--){
+      var j = await rndInt(i + 1, q);
+      var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    shoe = arr;
+    saveShoe();          // 洗牌结果立刻落盘：刷新不该让这一副牌白洗
+    updateHUD();
+  }
+
+  function cardVal(c){
+    var r = c.slice(0, -1);
+    if (r === "A") return 1;
+    if (r === "10" || r === "J" || r === "Q" || r === "K") return 0;
+    return parseInt(r, 10);
+  }
+  function handTotal(cs){
+    var s = 0;
+    for (var i = 0; i < cs.length; i++) s += cardVal(cs[i]);
+    return s % 10;
+  }
+  function cardLabel(c){
+    var r = c.slice(0, -1), s = c.slice(-1);
+    var sm = { S:"\u2660", H:"\u2665", C:"\u2663", D:"\u2666" }[s];
+    return r + sm;
+  }
+
+  /* =====================================================================
+   *  i18n（键集合与老虎机同风格；data-i18n 走 innerHTML，允许 <b>）
+   * ===================================================================== */
+  var I18N = {
+    zh:{
+      "nav.slot":"老虎机",
+      "brand.title":"百家乐",
+      "vol.title":"音量","vol.hint":"上下拖动滑杆调音量；调到 0 即静音",
+      "pl.sub":"玩家档案","pl.peak":"最高盈利","pl.maxwin":"单手最高派彩",
+      "pl.won":"累计赢分","pl.lost":"累计输分","pl.hands":"累计手数","pl.broke":"破产次数",
+      "pl.reset":"重新开始","pl.resetAlt":"新游戏",
+      "side.p":"闲家","side.b":"庄家","side.t":"和局",
+      "side.pShort":"闲","side.bShort":"庄","side.tShort":"和",
+      "hud.credits":"积分","hud.bet":"本注","hud.chip":"筹码","hud.win":"中奖","hud.shoe":"余牌",
+      "ctl.chip":"筹码","ctl.p":"闲家注","ctl.b":"庄家注","ctl.t":"和局注",
+      "bet.max":"已达最大值",
+      "feat.clear":"清空下注",
+      "feat.commPaid":"台面：有佣 5%","feat.commFree":"台面：免佣 · 庄6半赔",
+      "feat.commTip":"切换有佣台 / 澳门免佣台（下一手生效）",
+      "msg.cfOn":"已切到免佣台：庄赢不抽水，但庄以 6 点赢只赔 0.5:1（下一手生效）",
+      "msg.cfOff":"已切回有佣台：庄赢一律按 0.95:1 派彩（抽 5%，下一手生效）",
+      "sb.pp":"闲对 11:1","sb.bp":"庄对 11:1","sb.l6":"幸运六 12/20",
+      "btn.deal":"发牌","btn.space":"空格",
+      "verdict.place":"请下注 · 按「发牌」开始","verdict.dealing":"发牌中…","verdict.p":"闲家胜","verdict.b":"庄家胜","verdict.t":"和局",
+      "verdict.win":"+{n}","verdict.lose":"−{n}","verdict.push":"退还 {n}",
+      "src.btn":{ trng:"随机源：H743 在线", offline:"随机源：H743 离线" },
+      // 随机源状态行（#srcMsg）：文案与老虎机 slot_machine.html 逐字一致，端口 {p} 取自探测到的
+      // HTTP 端口，{c} 是 /status.port 里的串口（如 " · COM9"），没有就留空
+      "src.msg.connecting":"连接中…",
+      "src.msg.trngReady":"H743 在线 · 串口直供 · 端口 {p}{c}",
+      "src.msg.offlineReady":"H743 离线 · 熵快照 + DRBG · 端口 {p}",
+      "src.msg.trngMissing":"H743 在线源未就绪（检查 CH340/USB，或运行 start_casino.py）；也可先切到 H743 离线源",
+      "src.msg.offlineMissing":"H743 离线源未就绪（跑 start_casino.py，或 trng_server.py --offline --entropy file）；也可先切到在线源",
+      "src.opt.trng":"H743 在线 · 串口直供","src.opt.offline":"H743 离线 · 熵快照",
+      "src.ent.title":"熵源链路",
+      "src.state.check":"检测中…","src.state.none":"未启动","src.state.noboard":"熵源未连",
+      "src.state.direct":"直供","src.state.mixed":"混流","src.state.os":"OS CSPRNG",
+      "src.state.snapshot":"熵快照","src.state.pool":"种子池","src.state.reseeds":" 次重播种",
+      "src.ent.os":"OS CSPRNG · 不可复现","src.ent.h743":"H743 熵快照","src.ent.pool":"种子池",
+      "src.msg.autoSwitch":"已自动切换到 {mode}","src.msg.onlineShort":"H743 在线","src.msg.offlineShort":"H743 离线",
+      "msg.shuffle":"牌靴余量不足 · 正在用 H743 熵重新洗牌…","msg.norand":"随机源不可用，本手未扣分，请稍后再试",
+      "msg.resume":"已接回刷新前的那一手 · 牌序与注额按牌靴原样结算","msg.void":"上一手的存档不可用 · 注额已原额退回",
+      "msg.nobet":"请先下注再发牌","msg.cleared":"已清空下注",
+      "reset.title":"重新开始？","reset.body":"将清空当前积分并重置为初始 20000 积分。路纸与历史统计不受影响。",
+      "reset.amountLbl":"当前积分","reset.cancel":"取消","reset.confirm":"确认清空",
+      "bk.title":"你已经破产了","bk.sub":"点「重新开始」领取 20000 积分",
+      "nc.title":"积分不足","nc.detail":"本注 {bet} · 积分 {cr}","nc.hint":"调低筹码或减少注位后再发牌",
+      "rescue.title":"积分用完了","rescue.body":"你的银行卡里还有积分。是否取出卡内余额继续游戏？",
+      "rescue.amtLbl":"卡内余额","rescue.no":"暂不","rescue.yes":"取出继续",
+      "bc.title":"银行卡","bc.label":"卡内积分","bc.all":"全部","bc.amtPh":"自定义",
+      "bc.dep":"存入 ▲","bc.wd":"取出 ▼",
+      "tlog.p":"闲 {t}","tlog.b":"庄 {t}","tlog.hit":"补 {c} → {t}","tlog.stand":"停牌",
+      "brk.p":"闲","brk.b":"庄","brk.t":"和","brk.net":"净","brk.push":"退回",
+      "brk.pp":"闲对","brk.bp":"庄对","brk.l6":"幸运六",
+      /* 庄赢但没满赔时的括注：免佣台庄 6 点半赔 / 有佣台抽水 5%。
+         括号写在词条里，中文用全角、英文用半角，别在代码里拼括号。 */
+      "brk.b6":"（庄 6 点半赔 0.5:1）","brk.cm":"（庄赢抽水 5%）",
+      "roads.stat":"庄 {b} · 闲 {p} · 和 {t}（近 {n} 手）",
+      "rb.title":"路纸",
+      "rb.hint":"大路：同一边继续往下叠，换边开新列；和局不开新列，在上一个格子上打绿斜线。衍生路：红圈=齐、蓝点=跳。",
+      "rb.big":"大路","rb.beb":"大眼仔","rb.sr":"小路","rb.cr":"曱甴路",
+      "rb.empty":"还没有开牌记录","rb.tieN":"和 {n} 手","rb.same":"齐（与前面同长）","rb.diff":"跳（长度不同）",
+      "rules.title":"玩法规则","rules.basic":"基本设定",
+      "rules.basic.1":"本机以标准 <b>Punto Banco</b>（欧美式百家乐）为内核：<b>8 副牌</b>混成一副牌靴（<b>416 张</b>），剩余不足 26 张自动换靴。<b>默认台型为澳门免佣台</b>——庄赢不抽水、庄以 6 点赢只赔 0.5:1；仍可一键切回<b>有佣台</b>（庄赢抽 5%）。另加了<b>附加注</b>（闲对 / 庄对 / 幸运六），见下文。",
+      "rules.basic.2":"牌面点数：<b>A = 1</b>，<b>2~9</b> 按面值，<b>10 / J / Q / K = 0</b>；只取总和的<b>个位</b>，所以点数范围是 <b>0~9</b>。",
+      "rules.basic.3":"牌桌上只有两个角色：<b>闲家（Player）</b>与<b>庄家（Banker）</b>各自摸牌、自动补牌，你只负责在 <b>6 个注位</b>（闲 / 庄 / 和 + 闲对 / 庄对 / 幸运六）上下注，全程不需要做任何决策。",
+      "rules.basic.4":"<b>资金共通</b>：积分与银行卡余额是本机<b>全局钱袋</b>，与<b>老虎机</b>游戏页共用 —— 在老虎机赢的分可以直接拿到这里下注，在这里赢的分也能回老虎机继续玩；银行卡里的存款同样是两边共用的同一笔钱。「最高盈利」按全局总资产（积分 + 银行卡 − 20000 起始资金）统计，<b>破产次数</b>也是两边共用的一次账（积分和银行卡一起清零才算一次破产）。",
+      "rules.bet":"下注与赔率",
+      "rules.bet.p":"六个注位可同时下注，各注位<b>独立派彩</b>。先用「筹码 ±」把单注面额调到 <b>10 / 25 / 50 / 100 / 500</b> 中的一档，再按注位自己的 ± 加减（主注用三角键、附加注用两侧的 − / +）：<b>按一下加一注、再按一下再加一注</b>，注额 = 面额 × 次数，按多了一下一下减回去。点「发牌」或按<b>空格</b>后六个注位一起结算。派彩规则：",
+      "th.spot":"注位","th.pay":"赔率","th.cond":"成立条件",
+      "pay.p":"1 : 1","pay.p.c":"闲家点数高于庄家",
+      "pay.b":"0.95 : 1","pay.b.c":"庄家点数高于闲家（有佣台抽 5% 佣金；免佣台不抽佣，但庄以 6 点赢只赔 0.5:1）",
+      "pay.t":"8 : 1","pay.t.c":"两边点数相同（此时闲/庄注全额退还）",
+      "pay.pp":"11 : 1","pay.pp.c":"闲家头两张牌点数相同",
+      "pay.bp":"11 : 1","pay.bp.c":"庄家头两张牌点数相同",
+      "pay.l6":"12 : 1 / 20 : 1","pay.l6.c":"庄以 6 点赢：两张牌成 6 点 12:1，补第三张成 6 点 20:1",
+      "rules.bet.note":"下注时按注额从积分里扣除，上方「本注」格是六个注位的合计；和局时押在闲/庄的注会<b>原额退回</b>，押和的注按 8:1 派彩，附加注（对子 / 幸运六）在和局时<b>全输</b>。每手每个注位最多押 <b>100,000</b>。补牌记录后面那行金色小字是<b>本手拆解</b>——逐个注位写出赔了多少 / 输了多少，末尾给净额。<b>发牌后注额会留在注位上</b>：下一手直接再按「发牌」就按同样注额继续；想改注额用 ±，想归零按「清空下注」。",
+      "rules.comm":"台面模式：有佣 / 免佣",
+      "rules.comm.p":"下注区下方那排按钮里的「台面」在两种真实台型之间切换，按钮上直接显示当前台型（默认<b>免佣</b>）。切换只影响<b>下一手</b>——已经发出去的一手按发牌那一刻的台型结算；选择会随存档保留，刷新后不变：",
+      "rules.comm.1":"<b>有佣台</b>：庄赢一律按 <b>0.95 : 1</b> 派彩，抽 5% 佣金，不足 1 分向下取整。庄家优势 <b>1.06%</b>，是全桌最优注。",
+      "rules.comm.2":"<b>免佣台（默认 · 澳门主流）</b>：庄赢<b>不抽水</b>，但庄以 <b>6 点</b>赢时只赔 <b>0.5 : 1</b>（押 100 净赢 50，本金照退；注额为奇数时利润向下取整，押 25 赢 12）。庄家优势升到 <b>1.46%</b>。",
+      "rules.comm.note":"注意口径：0.5 : 1 是<b>净赢</b>的赔率，押 100 拿回 150（本金 100 + 利润 50），不是总共只赔 50。若某处写成「庄 6 点只返还一半本金」（净输 50），那是另一种对玩家极不利的规则，本机不采用。",
+      "rules.side":"附加注：对子 / 幸运六",
+      "rules.side.1":"<b>闲对 / 庄对（11:1）</b>：只看该方<b>头两张牌</b>是否同点数（如 8♠ 8♦、K♣ K♥）。补的第三张不算，10 与 Q 也<b>不算</b>对子（点数同为 0，但牌面不同）。",
+      "rules.side.2":"<b>幸运六（12:1 / 20:1）</b>：押「庄以 6 点赢」。庄用<b>两张牌</b>就成 6 点 → 12:1；补第三张才成 6 点 → 20:1。庄以别的点数赢、或闲赢、或和局，都算输。",
+      "rules.side.3":"附加注与主注<b>各自独立结算</b>：押庄 100 + 幸运六 100，庄 6 点赢时主注按台型赔、幸运六另按 12:1 或 20:1 赔。",
+      "rules.side.4":"附加注同样受「筹码」面额与单注上限约束；赔率<b>与台面模式无关</b>，有佣台、免佣台都是 11:1 与 12 / 20:1。",
+      "rules.draw":"发牌与补牌",
+      "rules.draw.p":"发牌顺序固定为 <b>闲 → 庄 → 闲 → 庄</b>，各两张。若任一方两张牌点数为 <b>8 或 9</b>（天生赢家 Natural），双方都<b>不再补牌</b>，直接比大小。否则按下面的规则自动补第三张——<b>这一步是全自动的，玩家不参与</b>：",
+      "rules.draw.p1":"<b>闲家</b>：0~5 点<b>补牌</b>；6~7 点<b>停牌</b>。",
+      "rules.draw.p2":"<b>庄家</b>：闲家停牌时，庄家 0~5 补、6~7 停；闲家补了第三张时，庄家按下表决定。",
+      "th.bt":"庄家点数","th.p3":"闲家第三张为 0~9 时是否补牌",
+      "bc.r02":"总是补牌","bc.r3":"闲第三张 ≠ 8 时补牌","bc.r4":"闲第三张 2 – 7 时补牌",
+      "bc.r5":"闲第三张 4 – 7 时补牌","bc.r6":"闲第三张 6 – 7 时补牌","bc.r7":"停牌",
+      "rules.draw.note":"牌桌下方的灰字会写出这一手的补牌过程（谁补了什么、最终点数），方便复盘。",
+      "rules.shoe":"牌靴与换牌",
+      "rules.shoe.p":"一副牌靴 <b>416 张</b>不会发到见底。每手发牌<b>之前</b>先看余量：<b>剩余不足 26 张</b>就整靴换新，重洗后才发这一手。所以余牌会停在 25、24… 这种位置就直接换靴，是规则本身，不是漏发。",
+      "rules.shoe.1":"<b>为什么是 26</b>：真实台面把切牌卡插在距靴底 <b>14 张</b>处，这张卡一露头、当前这手打完就换靴。本机把「切牌卡 14 张 + 一手最多 6 张 + 余量」折成 <b>26</b>，把判断提到发牌前，因此<b>永远不会出现发到一半没牌</b>。",
+      "rules.shoe.2":"<b>换靴即重洗</b>：用 H743 熵整靴重洗（Fisher-Yates + 16 bit 拒绝采样），余牌照 <b>416 张</b>重新计数；旧牌序完全作废，不会接着上一副的顺序往下发。",
+      "rules.shoe.3":"<b>洗不出来就不发</b>：两块桥都连不上时本手<b>直接取消</b>、注额<b>原额退回</b>，牌靴保持原样，绝不拿假随机补上。",
+      "rules.shoe.4":"<b>刷新不换靴</b>：牌靴与进行中的一手都已落盘，刷新页面后接着打<b>同一副牌</b>、余牌继续递减；只有牌靴存档损坏或被篡改才会丢弃重洗。",
+      "rules.road":"路纸怎么看",
+      "rules.road.p":"每手的结果都会记进路纸，共两处：桌面右侧 <b>ROAD</b> 卡片是<b>珠盘路</b>——每手一颗圆点（<b>庄红 / 闲蓝 / 和绿</b>），按时间顺序自上而下排，一列 8 颗、满列往右换一列；桌面下方的<b>路纸墙</b>把同一批结果画成走势图（四条路并排：大路 + 大眼仔 / 小路 / 曱甴路）。两处都只保留<b>最近 48 手</b>，更早的一手会从最前面移走。",
+      "rules.road.1":"<b>大路</b>：同一边连续出现就往下叠成一列（最多 6 格）；连到第 7 手时不再往下，改为沿底行<b>向右延伸</b>（长龙）。换边就开新的一列，从左往右排。",
+      "rules.road.2":"<b>和局</b>：大路不开新列，只在上一格上画一条<b>绿斜线</b>；悬停能看到这一格累计了几个和局。",
+      "rules.road.3":"<b>大眼仔 / 小路 / 曱甴路</b>：三条都是大路的<b>变形观察窗口</b>——分别把「往前第 1 / 2 / 3 列的长度」与「再前一列」逐格比对，两列一样长画<b>红圈（齐）</b>，不一样长画<b>蓝点（跳）</b>。三条路看的是同一批结果的不同侧面，所以不会互相矛盾；开头几格留空是因为还没有足够的前列可比。",
+      "rules.road.4":"<b>路纸只是记录</b>：不参与发牌，也不预示下一手。每一手都是从真随机牌靴里发的，前面出了多少庄、多长的龙，都不会改变下一手的概率。",
+      "rules.two":"两种特殊情形",
+      "rules.two.1":"<b>和局（Tie）</b>：两边点数相同。押闲/庄不输不赢（退还本金），押和按 <b>8:1</b> 派彩，附加注（对子 / 幸运六）全输。",
+      "rules.two.2":"<b>庄以 6 点赢</b>：庄最终点数正好是 <b>6</b> 且高于闲，才算这种结局 —— 免佣台的半赔与「幸运六」都只看它。庄拿 6 点而闲是 7 / 8 / 9 时，赢的是<b>闲</b>。",
+      "rules.rtp":"RTP（玩家回报率）与庄家优势",
+      "rules.rtp.p":"RTP 指长期来看每投入 100 元平均能拿回多少钱。8 副牌、标准补牌规则下，六个注位的 RTP 与庄家优势如下（庄家按两种台面各列一行，优势越低越划算）：",
+      "rtp.spot":"注位","rtp.pays":"赔率","rtp.rtp":"RTP","rtp.edge":"庄家优势",
+      "rtp.bankPaid":"庄家 · 有佣台","rtp.bankFree":"庄家 · 免佣台",
+      "rtp.bankFreePay":"1 : 1（庄 6 点 0.5 : 1）","rtp.pair":"闲对 / 庄对","rtp.l6":"幸运六",
+      "rules.rtp.note":"主注三行是 8 副牌的标准理论值（无限牌靴，与实际有限牌靴差 &lt;0.1%）；附加注两行按本机赔率用 4000 万手模拟核对。结论很直白：<b>全桌唯一低于 1.1% 优势的是有佣台的庄</b>，免佣台换来的是更高的庄赢赔率、但也把优势推到 1.46%；附加注赔率看着诱人，优势反而高一个数量级，长期更吃亏。",
+      "rules.rand":"随机源",
+      "rules.rand.p":"和老虎机<b>用的是同一条随机链</b>。洗牌用 <b>Fisher-Yates</b>：从牌靴尾部开始，每步向随机源要一个均匀整数（16 bit 拒绝采样，消除取模偏差）决定与前面哪一张交换，全程<b>不使用浏览器随机数</b>。两种来源：<b>H743 在线 · 串口直供</b>——直接向 STM32H743 的片上 TRNG 要新字节；<b>H743 离线 · 熵快照</b>（默认）——用这颗芯片某次采到的 <b>4096 B</b> 物理熵当种子，喂给 <b>ChaCha20 DRBG</b> 扩展成字节流，不占串口。",
+      "rules.rand.note":"取随机失败（两块桥都连不上）时，本手<b>直接取消</b>，已下的注<b>原额退回</b>，绝不用假随机兜底。牌靴余量、当前随机源与熵源链路都能在桌面下方的状态行里看到。",
+      "rules.assets":"牌面素材",
+      "rules.assets.p":"54 张牌面取自 <b>AustinGabriel/Public-Domain-and-CC0-Playing-Cards</b>（Public Domain / CC0，可自由商用，无需署名），已转成 WebP 并缩放到 330 px 宽放在 <b>assets/cards/</b> 下。"
+    },
+    en:{
+      "nav.slot":"Slots",
+      "brand.title":"BACCARAT",
+      "vol.title":"Volume","vol.hint":"Drag the slider up/down; 0 = mute",
+      "pl.sub":"Player profile","pl.peak":"Peak profit","pl.maxwin":"Best single payout",
+      "pl.won":"Total won","pl.lost":"Total wagered","pl.hands":"Hands played","pl.broke":"Busts",
+      "pl.reset":"Restart","pl.resetAlt":"New game",
+      "side.p":"Player","side.b":"Banker","side.t":"Tie",
+      "side.pShort":"P","side.bShort":"B","side.tShort":"T",
+      "hud.credits":"CREDITS","hud.bet":"BET","hud.chip":"CHIP","hud.win":"WIN","hud.shoe":"SHOE",
+      "ctl.chip":"Chip","ctl.p":"Player bet","ctl.b":"Banker bet","ctl.t":"Tie bet",
+      "bet.max":"MAX",
+      "feat.clear":"Clear bets",
+      "feat.commPaid":"Table: 5% commission","feat.commFree":"Table: commission-free",
+      "feat.commTip":"Switch between the commission table and the Macau commission-free table (applies to the next hand)",
+      "msg.cfOn":"Commission-free table: banker pays even money, but a banker win on 6 pays only 0.5:1 (next hand)",
+      "msg.cfOff":"Commission table: banker wins pay 0.95:1 (5% rake, next hand)",
+      "sb.pp":"Player pair 11:1","sb.bp":"Banker pair 11:1","sb.l6":"Lucky Six 12/20",
+      "btn.deal":"DEAL","btn.space":"Space",
+      "verdict.place":"PLACE YOUR BETS","verdict.dealing":"DEALING…","verdict.p":"PLAYER WINS","verdict.b":"BANKER WINS","verdict.t":"TIE",
+      "verdict.win":"+{n}","verdict.lose":"-{n}","verdict.push":"PUSH {n}",
+      "src.btn":{ trng:"Source: H743 live", offline:"Source: H743 offline" },
+      "src.msg.connecting":"connecting…",
+      "src.msg.trngReady":"H743 online · serial direct · port {p}{c}",
+      "src.msg.offlineReady":"H743 offline · snapshot + DRBG · port {p}",
+      "src.msg.trngMissing":"H743 online source not ready (check CH340/USB, or run start_casino.py) - you can switch to the offline source meanwhile",
+      "src.msg.offlineMissing":"H743 offline source not ready (run start_casino.py, or trng_server.py --offline --entropy file) - you can switch to the online source meanwhile",
+      "src.opt.trng":"H743 live · serial","src.opt.offline":"H743 offline · entropy snapshot",
+      "src.ent.title":"Entropy chain",
+      "src.state.check":"checking…","src.state.none":"not running","src.state.noboard":"no entropy",
+      "src.state.direct":"direct","src.state.mixed":"mixed","src.state.os":"OS CSPRNG",
+      "src.state.snapshot":"snapshot","src.state.pool":"seed pool","src.state.reseeds":" reseeds",
+      "src.ent.os":"OS CSPRNG · non-reproducible","src.ent.h743":"H743 entropy snapshot","src.ent.pool":"seed pool",
+      "src.msg.autoSwitch":"switched to {mode}","src.msg.onlineShort":"H743 live","src.msg.offlineShort":"H743 offline",
+      "msg.shuffle":"Shoe low · reshuffling with H743 entropy…","msg.norand":"Random source unavailable - no bet taken",
+      "msg.resume":"Resumed the interrupted hand - same shoe, same bet, settled as dealt","msg.void":"Previous hand state was unreadable - bet refunded",
+      "msg.nobet":"Place a bet first","msg.cleared":"Bets cleared",
+      "reset.title":"Restart?","reset.body":"Credits reset to 20000. Road and statistics are kept.",
+      "reset.amountLbl":"Credits","reset.cancel":"Cancel","reset.confirm":"Reset",
+      "bk.title":"YOU ARE BUST","bk.sub":"Hit Restart to get 20000 credits",
+      "nc.title":"NOT ENOUGH","nc.detail":"Bet {bet} · Credits {cr}","nc.hint":"Lower the chip or remove a bet",
+      "rescue.title":"Out of credits","rescue.body":"Your bank card still holds credits. Withdraw them and continue?",
+      "rescue.amtLbl":"Card balance","rescue.no":"Not now","rescue.yes":"Withdraw",
+      "bc.title":"BANK CARD","bc.label":"CARD BALANCE","bc.all":"ALL","bc.amtPh":"amount",
+      "bc.dep":"DEPOSIT ▲","bc.wd":"WITHDRAW ▼",
+      "tlog.p":"P {t}","tlog.b":"B {t}","tlog.hit":"draw {c} → {t}","tlog.stand":"stand",
+      "brk.p":"Player","brk.b":"Banker","brk.t":"Tie","brk.net":"NET","brk.push":"push",
+      "brk.pp":"P pair","brk.bp":"B pair","brk.l6":"Lucky 6",
+      "brk.b6":" (B6 pays 0.5:1)","brk.cm":" (5% commission)",
+      "roads.stat":"B {b} · P {p} · T {t} (last {n})",
+      "road.sub":"BEAD PLATE",
+      "rb.title":"Road maps",
+      "rb.hint":"Big Road: repeats stack downward, a change opens a new column; ties draw a green slash instead of a new column. Derived roads: red ring = match, blue dot = break.",
+      "rb.big":"Big Road","rb.beb":"Big Eye Boy","rb.sr":"Small Road","rb.cr":"Cockroach Road",
+      "rb.empty":"No hands yet","rb.tieN":"{n} ties","rb.same":"Match (same length)","rb.diff":"Break (different length)",
+      "rules.title":"How to play","rules.basic":"The basics",
+      "rules.basic.1":"Standard <b>Punto Banco</b> baccarat core: an <b>8-deck</b> shoe (<b>416 cards</b>), replaced when fewer than 26 cards remain. The <b>default table is the commission-free table</b> used in Macau - banker wins pay no rake, but a banker win on 6 pays only 0.5:1; you can switch back to the <b>commission table</b> (5% rake) anytime. Plus the <b>side bets</b> (below).",
+      "rules.basic.2":"Card values: <b>A = 1</b>, <b>2-9</b> face value, <b>10 / J / Q / K = 0</b>. Only the <b>last digit</b> of the sum counts, so totals run <b>0-9</b>.",
+      "rules.basic.3":"Two hands only: <b>Player</b> and <b>Banker</b> are dealt and draw automatically - you just bet on <b>6 spots</b> (Player / Banker / Tie + Player pair / Banker pair / Lucky Six). No decisions to make.",
+      "rules.basic.4":"<b>Shared wallet</b>: credits and the bank-card balance are a <b>single casino-wide purse</b>, shared with the <b>slot machine</b> page - winnings from the slots can be bet here, and vice versa; the bank card holds one balance for both games. <b>BEST PROFIT</b> is likewise computed from total assets (credits + card - 20,000 starting bankroll), and the <b>bankruptcy count</b> is one shared tally too (counted only when credits and the card are both empty).",
+      "rules.bet":"Bets & payouts",
+      "rules.bet.p":"Six spots can be bet at once and each settles <b>independently</b>. Set the unit with the CHIP +/- buttons (<b>10 / 25 / 50 / 100 / 500</b>), then use each spot's own +/- (triangles for the main spots, the - / + buttons on either side for side bets): <b>one press adds one unit</b>, the stake is unit x presses, and over-betting is undone one press at a time. DEAL (or <b>Space</b>) settles all six spots together. Payouts:",
+      "th.spot":"Spot","th.pay":"Pays","th.cond":"Wins when",
+      "pay.p":"1 : 1","pay.p.c":"Player total is higher",
+      "pay.b":"0.95 : 1","pay.b.c":"Banker total is higher (commission table: 5% rake; commission-free: no rake, but a banker win on 6 pays only 0.5:1)",
+      "pay.t":"8 : 1","pay.t.c":"Totals are equal (Player/Banker bets push)",
+      "pay.pp":"11 : 1","pay.pp.c":"Player's first two cards share the same rank",
+      "pay.bp":"11 : 1","pay.bp.c":"Banker's first two cards share the same rank",
+      "pay.l6":"12 : 1 / 20 : 1","pay.l6.c":"Banker wins with 6: 12:1 on two cards, 20:1 when the third card makes the 6",
+      "rules.bet.note":"Bets are deducted on deal and the BET meter shows the total of all six spots. On a tie, Player/Banker bets are <b>returned in full</b>, the Tie bet pays 8:1, and all side bets <b>lose</b>. Max <b>100,000</b> per spot per hand. The small gold line after the draw log is the <b>hand breakdown</b>: it shows what each spot won or lost and ends with the net. <b>Stakes stay on the spots after a deal</b>, so pressing DEAL again repeats the same bet; use +/- to change it, or CLEAR BETS to reset.",
+      "rules.comm":"Table type: commission / commission-free",
+      "rules.comm.p":"The TABLE button in the row under the betting area switches between the two real-world variants and shows the current one (default: <b>commission-free</b>). It applies to the <b>next hand</b> - a hand already dealt settles under the table type it was dealt with. The choice is saved and survives a reload:",
+      "rules.comm.1":"<b>Commission table</b>: every banker win pays <b>0.95:1</b> (5% rake, rounded down). House edge <b>1.06%</b> - the best bet on the table.",
+      "rules.comm.2":"<b>Commission-free (default · standard in Macau)</b>: banker wins pay even money with <b>no rake</b>, but a banker win on <b>6</b> pays only <b>0.5:1</b> (bet 100, win 50, stake returned; odd stakes round the profit down - 25 wins 12). House edge rises to <b>1.46%</b>.",
+      "rules.comm.note":"Note the wording: 0.5:1 is the <b>profit</b> - a 100 bet returns 150 (100 stake + 50 profit), not 50 in total. A table that says 'banker 6 returns half the stake' (a 50 loss) is a far worse variant and is not used here.",
+      "rules.side":"Side bets: pairs / Lucky Six",
+      "rules.side.1":"<b>Player pair / Banker pair (11:1)</b>: the side's <b>first two cards</b> must share the same rank (8♠ 8♦, K♣ K♥). A third card never counts, and 10 with Q is <b>not</b> a pair (both worth 0 but different ranks).",
+      "rules.side.2":"<b>Lucky Six (12:1 / 20:1)</b>: bets on 'banker wins with 6'. Two cards totalling 6 → 12:1; a third card making the 6 → 20:1. A banker win on any other total, a player win or a tie all lose.",
+      "rules.side.3":"Side bets settle <b>independently</b> of the main bets: banker 100 + Lucky Six 100 on a banker 6 win pays the main bet by table type plus 12:1 or 20:1 on the side bet.",
+      "rules.side.4":"Side bets use the same chip unit and the same per-spot cap; their odds do <b>not</b> depend on the table type - 11:1 and 12 / 20:1 on both tables.",
+      "rules.draw":"Dealing & third card",
+      "rules.draw.p":"Order is fixed: <b>Player → Banker → Player → Banker</b>. A two-card <b>8 or 9</b> is a natural - <b>no more cards</b> are drawn. Otherwise the third card is drawn automatically (<b>no player decision</b>):",
+      "rules.draw.p1":"<b>Player</b>: draws on 0-5, stands on 6-7.",
+      "rules.draw.p2":"<b>Banker</b>: if the Player stood, draws on 0-5 and stands on 6-7; if the Player drew, follow the table below.",
+      "th.bt":"Banker total","th.p3":"Draws when the Player's 3rd card is",
+      "bc.r02":"always draws","bc.r3":"anything but 8","bc.r4":"2 - 7",
+      "bc.r5":"4 - 7","bc.r6":"6 - 7","bc.r7":"stands",
+      "rules.draw.note":"The small grey line under the table replays the third-card decisions of the last hand.",
+      "rules.shoe":"The shoe & reshuffling",
+      "rules.shoe.p":"A <b>416-card</b> shoe is never dealt empty. Before every hand the machine checks the remaining cards: with <b>fewer than 26 left</b> the whole shoe is replaced and reshuffled first. So the count stopping at 25 or 24 and switching shoes is the rule itself, not a missing deal.",
+      "rules.shoe.1":"<b>Why 26</b>: a real table places the cut card about <b>14 cards</b> from the bottom - once it appears, the current hand finishes and the shoe is changed. This machine folds \"14 cut cards + up to 6 cards for one hand + margin\" into <b>26</b> and checks <b>before</b> dealing, so a hand can never run out of cards halfway.",
+      "rules.shoe.2":"<b>A new shoe is a real reshuffle</b>: the full shoe is shuffled with H743 entropy (Fisher-Yates + 16-bit rejection sampling) and the count resets to <b>416</b>. The old order is discarded completely - play never continues from the previous shoe.",
+      "rules.shoe.3":"<b>No entropy, no deal</b>: if neither bridge answers, the hand is <b>cancelled</b>, every bet is <b>refunded</b> and the shoe is left untouched - never topped up with fake randomness.",
+      "rules.shoe.4":"<b>Reloading does not change the shoe</b>: the shoe and the hand in progress are both persisted, so after a page reload you continue with <b>the same shoe</b> and the count keeps falling. Only a corrupted or tampered shoe save is thrown away and reshuffled.",
+      "rules.road":"Reading the road maps",
+      "rules.road.p":"Every result goes into the road maps, in two places: the <b>ROAD</b> card on the right of the table is the <b>bead plate</b> - one dot per hand (<b>Banker red / Player blue / Tie green</b>) filled top to bottom, 8 per column, then the next column to the right; the <b>road wall</b> under the table draws the same results as trend charts (four roads side by side: Big Road + Big Eye Boy / Small Road / Cockroach). Both keep only the <b>last 48 hands</b>; older hands drop off the front.",
+      "rules.road.1":"<b>Big Road</b>: a repeating side stacks downward (max 6 cells); from the 7th in a row it stops going down and <b>extends right along the bottom row</b> (a dragon tail). A change of side opens a new column, left to right.",
+      "rules.road.2":"<b>Ties</b>: no new column - a <b>green slash</b> is drawn on the previous cell instead. Hover it to see how many ties are stacked there.",
+      "rules.road.3":"<b>Big Eye Boy / Small Road / Cockroach Road</b>: all three are <b>shifted views</b> of the Big Road - each compares the length of the column k steps back (k = 1 / 2 / 3) with the one before it, cell by cell: equal length draws a <b>red ring (match)</b>, different length a <b>blue dot (break)</b>. They describe the same results from different angles, so they never contradict each other; the first few cells stay empty until there are enough earlier columns to compare.",
+      "rules.road.4":"<b>The road is only a record</b>: it does not deal cards and does not predict the next hand. Every hand comes from a truly random shoe - how many bankers or how long a dragon came before does not change the next hand's odds.",
+      "rules.two":"Two special cases",
+      "rules.two.1":"<b>Tie</b>: equal totals. Player/Banker bets push; the Tie bet pays <b>8:1</b>; side bets lose.",
+      "rules.two.2":"<b>Banker wins with 6</b>: only when the banker's final total is exactly <b>6</b> AND higher than the player's. The commission-free half payout and Lucky Six both key off this. If the banker has 6 and the player 7/8/9, the <b>player</b> wins.",
+      "rules.rtp":"RTP & house edge",
+      "rules.rtp.p":"RTP is the long-run return per 100 wagered. With 8 decks and standard drawing rules, the six spots come out as follows (the banker is listed once per table type; lower edge is better):",
+      "rtp.spot":"Spot","rtp.pays":"Pays","rtp.rtp":"RTP","rtp.edge":"House edge",
+      "rtp.bankPaid":"Banker - commission","rtp.bankFree":"Banker - commission-free",
+      "rtp.bankFreePay":"1 : 1 (banker 6 pays 0.5 : 1)","rtp.pair":"Player / Banker pair","rtp.l6":"Lucky Six",
+      "rules.rtp.note":"The three main bets are standard 8-deck theoretical values (infinite shoe; the finite-shoe difference is under 0.1%). The two side-bet rows were checked by a 40-million-hand simulation of this exact pay table. The conclusion is blunt: <b>the only bet below a 1.1% edge is the banker on the commission table</b>. The commission-free table buys a better banker payout but pushes the edge to 1.46%; side bets look tempting yet carry an edge an order of magnitude worse.",
+      "rules.rand":"Randomness",
+      "rules.rand.p":"This page uses <b>the very same random chain as the slot machine</b>. The shoe is shuffled with <b>Fisher-Yates</b>: each step asks the source for a uniform integer (16-bit rejection sampling, so no modulo bias) and swaps cards - <b>the browser RNG is never used</b>. Two sources: <b>H743 live</b> pulls fresh bytes from the STM32H743 on-chip TRNG; <b>H743 offline</b> (default) seeds a <b>ChaCha20 DRBG</b> from a <b>4096 B</b> physical entropy snapshot captured on that chip.",
+      "rules.rand.note":"If neither bridge answers, the hand is <b>cancelled</b> and every bet is <b>refunded</b> - never a fake fallback. Shoe size, active source and entropy chain are shown in the status row under the table.",
+      "rules.assets":"Card artwork",
+      "rules.assets.p":"The 54 card faces come from <b>AustinGabriel/Public-Domain-and-CC0-Playing-Cards</b> (public domain / CC0, free for commercial use, no attribution required), converted to 330 px wide WebP under <b>assets/cards/</b>."
+    }
+  };
+
+  var curLang = (function(){ try { return localStorage.getItem("slot_lang") || "zh"; }catch(e){ return "zh"; } })();
+  var langBtn = $("langBtn");
+  var _lastSrcMsg = null;
+  var _lastHint = null;
+  var _tlogState = null;      // {h, st, bs}：最近一手的牌面/结算/注额，供切语言时重拼补牌记录行
+  var _vwinState = null;      // 最近一手的结算结果，供切语言时重拼「+200 / 退还 400 / −400」
+
+  function tt(key, vars){
+    var s = (I18N[curLang] && I18N[curLang][key]);
+    if (s == null) s = key;
+    if (vars){ for (var k in vars){ s = s.split("{" + k + "}").join(vars[k]); } }
+    return s;
+  }
+
+  function applyLang(lang){
+    curLang = lang;
+    document.documentElement.lang = (lang === "zh") ? "zh-CN" : "en";
+    document.querySelectorAll("[data-i18n]").forEach(function(el){
+      var k = el.getAttribute("data-i18n");
+      var t = I18N[lang] && I18N[lang][k];
+      if (t != null) el.innerHTML = t;
+    });
+    document.querySelectorAll("[data-i18n-ph]").forEach(function(el){
+      var k = el.getAttribute("data-i18n-ph");
+      var t = I18N[lang] && I18N[lang][k];
+      if (t != null) el.setAttribute("placeholder", t);
+    });
+    document.title = (lang === "zh") ? "Baccarat · 百家乐" : "Baccarat";
+    refreshSrcBtn();
+    if (_lastSrcMsg) setSrcMsgKey(_lastSrcMsg.key, _lastSrcMsg.vars);
+    if (_lastHint) setHintKey(_lastHint.key, _lastHint.vars);
+    renderRoad();
+    renderVerdictText();
+    // 补牌记录 + 结算拆解是「按当时语言拼好的一整行」，没有 data-i18n 可挂，
+    // 切语言时必须用存档的牌面重拼一遍，否则中文拆解会一直挂在英文界面上
+    if (_tlogState) setTlog(handLog(_tlogState.h), brkText(_tlogState.st, _tlogState.bs));
+    if (_vwinState) renderVwin(_vwinState);
+    renderStats();
+    renderCard();
+    renderComm();
+    updateHUD();
+    if (langBtn) langBtn.textContent = (lang === "zh") ? "EN" : "中";
+    try { localStorage.setItem("slot_lang", lang); }catch(e){}
+  }
+  if (langBtn) langBtn.addEventListener("click", function(){ applyLang(curLang === "zh" ? "en" : "zh"); });
+
+  /* =====================================================================
+   *  音效（音量与老虎机共用 slot_vol 存档；发牌用 sfx/ 里的取牌 mp3，翻牌用 WebAudio 合成）
+   * ===================================================================== */
+  var SPK_ON  = '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M16 8a4 4 0 0 1 0 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18.5 5.5a7 7 0 0 1 0 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+  var SPK_OFF = '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M16 9l5 6M21 9l-5 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+  var SPK_LOW = '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M16 8a4 4 0 0 1 0 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+
+  var soundBtn = $("soundBtn"), volPop = $("volPop");
+  var volSliderEl = $("volSlider"), volFillEl = $("volFill"), volKnobEl = $("volKnob");
+  var volTrackEl = volSliderEl ? volSliderEl.querySelector(".vol-track") : null;
+  var VOL_STEP = 5;                       // 键盘 / 滚轮的单步
+  var soundVol = (function(){
+    var v = lsLoad("slot_vol", NaN);
+    if (!isFinite(v)){
+      try { if (localStorage.getItem("slot_sound") === "off") return 0; }catch(e){}
+      return 100;
+    }
+    return Math.max(0, Math.min(100, Math.round(v)));
+  })();
+  function renderSound(){
+    var on = soundVol > 0;
+    if (soundBtn){
+      soundBtn.innerHTML = !on ? SPK_OFF : (soundVol <= 40 ? SPK_LOW : SPK_ON);
+      soundBtn.setAttribute("aria-pressed", on ? "true" : "false");
+      soundBtn.title = on ? ("音量 " + soundVol + "% / Volume " + soundVol + "%")
+                          : "已静音 / Muted";
+    }
+    // 竖直滑杆：填充高度与圆钮位置都跟音量走
+    if (volFillEl) volFillEl.style.height = soundVol + "%";
+    if (volKnobEl) volKnobEl.style.bottom = soundVol + "%";
+    if (volSliderEl) volSliderEl.setAttribute("aria-valuenow", String(soundVol));
+  }
+  function setSoundVol(v, save){
+    soundVol = Math.max(0, Math.min(100, Math.round(v)));
+    renderSound();
+    if (save) lsSave("slot_vol", soundVol);
+  }
+  // 上下滑杆：按下即跳、拖动跟手；键盘 ↑↓（Shift 加速）与滚轮也能调
+  (function bindVolSlider(){
+    if (!volSliderEl) return;
+    var dragging = false, pctAtDown = soundVol;
+    function volFromY(clientY){
+      var el = volTrackEl || volSliderEl, r = el.getBoundingClientRect();
+      if (!r.height) return soundVol;
+      return Math.max(0, Math.min(100, Math.round((r.bottom - clientY) / r.height * 100)));
+    }
+    volSliderEl.addEventListener("pointerdown", function(e){
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      e.preventDefault();
+      dragging = true;
+      pctAtDown = soundVol;
+      volSliderEl.classList.add("drag");
+      try { volSliderEl.setPointerCapture(e.pointerId); }catch(err){}
+      setSoundVol(volFromY(e.clientY), false);
+    });
+    volSliderEl.addEventListener("pointermove", function(e){
+      if (!dragging) return;
+      setSoundVol(volFromY(e.clientY), false);
+    });
+    function endDrag(e){
+      if (!dragging) return;
+      dragging = false;
+      volSliderEl.classList.remove("drag");
+      try { volSliderEl.releasePointerCapture(e.pointerId); }catch(err){}
+      lsSave("slot_vol", soundVol);                 // 拖动过程只改内存，松手才落盘
+      if (soundVol !== pctAtDown) playSfx("chip");  // 一次拖动只给一次反馈音
+      pctAtDown = soundVol;
+    }
+    volSliderEl.addEventListener("pointerup", endDrag);
+    volSliderEl.addEventListener("pointercancel", endDrag);
+    volSliderEl.addEventListener("keydown", function(e){
+      var k = e.key, step = e.shiftKey ? 10 : VOL_STEP, v = soundVol, used = true;
+      if (k === "ArrowUp" || k === "ArrowRight") v += step;
+      else if (k === "ArrowDown" || k === "ArrowLeft") v -= step;
+      else if (k === "Home") v = 0;
+      else if (k === "End") v = 100;
+      else used = false;
+      if (!used) return;
+      e.preventDefault();
+      setSoundVol(v, true);
+      playSfx("chip");
+      pctAtDown = soundVol;
+    });
+    volSliderEl.addEventListener("wheel", function(e){
+      e.preventDefault();
+      setSoundVol(soundVol + (e.deltaY < 0 ? VOL_STEP : -VOL_STEP), true);
+    }, { passive: false });
+  })();
+  function toggleVolPop(show){
+    if (!volPop) return;
+    var willShow = (show != null) ? show : !volPop.classList.contains("show");
+    volPop.classList.toggle("show", willShow);
+    if (soundBtn) soundBtn.setAttribute("aria-expanded", willShow ? "true" : "false");
+  }
+  var SFX_MAP = {
+    chip: "sfx/cash-register-kaching-sound-effect-125042.mp3",
+    win:  "sfx/win.mp3",
+    // 发牌：真实的「取牌」音效（约 0.39s）。一手要连发 4~6 张，所以用多路复用播放，
+    // 保证上一张的尾音不被下一张硬切（见 playSfx 的 voices 参数）
+    deal: "sfx/oxidvideos-taking-playing-card-3-522513.mp3"
+  };
+  var SFX_VOL = { chip:0.42, win:0.50, deal:0.45 };
+  var _sfxPool = {}, _sfxIdx = {}, SFX_VER = Date.now();
+  function playSfx(type, voices){
+    if (soundVol <= 0) return;
+    var src = SFX_MAP[type]; if (!src) return;
+    try{
+      var n = voices || 1;
+      var arr = _sfxPool[type];
+      if (!arr) arr = _sfxPool[type] = [];
+      while (arr.length < n){
+        var a0 = new Audio(src + "?v=" + SFX_VER);
+        a0.preload = "auto";
+        arr.push(a0);
+      }
+      var i = (_sfxIdx[type] = ((_sfxIdx[type] || 0) + 1) % arr.length);
+      var a = arr[i];
+      a.volume = Math.max(0, Math.min(1, (SFX_VOL[type] || 0.5) * (soundVol / 100)));
+      try{ a.currentTime = 0; }catch(e){}
+      var p = a.play(); if (p && p.catch) p.catch(function(){});
+    }catch(e){}
+  }
+  // 翻牌：一段带通白噪，短促的「唰」声（发牌本身已用取牌音效，这里压低一档做叠层）
+  var _actx = null, _noise = null;
+  function cardSfx(kind){
+    if (soundVol <= 0) return;
+    // 发牌一律走取牌 mp3；翻面保留合成「唰」声垫在底下，念得清又不抢戏
+    if (kind === "deal"){ playSfx("deal", 3); return; }
+    try{
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (!_actx) _actx = new AC();
+      if (_actx.state === "suspended") _actx.resume();
+      if (!_noise){
+        var len = Math.round(_actx.sampleRate * 0.25);
+        _noise = _actx.createBuffer(1, len, _actx.sampleRate);
+        var d = _noise.getChannelData(0);
+        for (var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      }
+      var s = _actx.createBufferSource(); s.buffer = _noise;
+      var bp = _actx.createBiquadFilter(); bp.type = "bandpass";
+      bp.frequency.value = (kind === "flip") ? 2600 : 1500;
+      bp.Q.value = (kind === "flip") ? 1.1 : 0.8;
+      var g = _actx.createGain();
+      var v = (kind === "flip" ? 0.09 : 0.26) * (soundVol / 100);
+      var t0 = _actx.currentTime;
+      g.gain.setValueAtTime(0, t0);
+      g.gain.linearRampToValueAtTime(v, t0 + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0008, t0 + (kind === "flip" ? 0.12 : 0.2));
+      s.connect(bp); bp.connect(g); g.connect(_actx.destination);
+      s.start(t0); s.stop(t0 + 0.24);
+    }catch(e){}
+  }
+  if (soundBtn) soundBtn.addEventListener("click", function(e){ e.stopPropagation(); toggleVolPop(); });
+  document.addEventListener("click", function(e){
+    if (!volPop || !volPop.classList.contains("show")) return;
+    if (volPop.contains(e.target) || (soundBtn && soundBtn.contains(e.target))) return;
+    toggleVolPop(false);
+  });
+
+  /* =====================================================================
+   *  随机源 UI
+   * ===================================================================== */
+  var srcBtn = $("srcBtn"), srcMsg = $("srcMsg"), srcPop = $("srcPop");
+  var hintEl = $("hintMsg");
+  var dotTrng = $("dotTrng"), dotOff = $("dotOffline");
+  var stateTrng = $("stateTrng"), stateOff = $("stateOffline");
+  var srcEntEl = $("srcEnt"), dotEnt = $("dotEnt"), stateEnt = $("stateEnt");
+
+  function setSrcMsg(t){ _lastSrcMsg = null; if (srcMsg) srcMsg.textContent = t || ""; }
+  function setSrcMsgKey(key, vars){
+    _lastSrcMsg = { key:key, vars:vars || null };
+    if (srcMsg) srcMsg.textContent = tt(key, vars);
+  }
+  /* 临时提示（发牌键下方）：与随机源状态行分开，别互相覆盖。
+     之前这一行是借 #srcMsg 显示的，结果「端口 … · COM9」被「随机源就绪」「请先下注」
+     这类一次性提示顶掉，看起来就是「下拉列表旁边那行小字不显示」。 */
+  function setHint(t){ _lastHint = null; if (hintEl) hintEl.textContent = t || ""; }
+  function setHintKey(key, vars){
+    _lastHint = { key:key, vars:vars || null };
+    if (hintEl) hintEl.textContent = tt(key, vars);
+  }
+
+  /* ---------- 随机源状态行：H743 在线 · 串口直供 · 端口 8765 · COM9 ---------- */
+  // /status.port 是**串口**（H743:COM9 / COM17），HTTP 端口要从 probe 到的 base 里取
+  function srcVars(x){
+    var st = (x && x.st) || {};
+    var p = String((x && x.base) || "").split(":").pop();
+    var dev = String(st.port || "").replace(/^H743:/, "");
+    return { p: p, c: dev ? (" · " + dev) : "" };
+  }
+  function srcReadyKey(mode){ return mode === "online" ? "src.msg.trngReady" : "src.msg.offlineReady"; }
+  function srcMissingKey(mode){ return mode === "online" ? "src.msg.trngMissing" : "src.msg.offlineMissing"; }
+  // 探测某一路并把结果写进状态行（成功带端口/串口，失败给可操作的提示）
+  function probeSrcLine(mode, quiet){
+    mode = (mode === "online") ? "online" : "offline";
+    probeBridge(mode, true).then(function(x){
+      setSrcMsgKey(srcReadyKey(mode), srcVars(x));
+    }).catch(function(){
+      if (!quiet) setSrcMsgKey(srcMissingKey(mode));
+    });
+  }
+  function refreshSrcBtn(){
+    if (!srcBtn) return;
+    var map = (I18N[curLang] && I18N[curLang]["src.btn"]) || {};
+    srcBtn.textContent = (map[srcMode] || "随机源") + " ▾";
+    srcBtn.classList.toggle("on", srcMode === "trng");
+    Array.prototype.forEach.call(document.querySelectorAll(".src-opt"), function(o){
+      o.classList.toggle("cur", o.getAttribute("data-mode") === srcMode);
+    });
+  }
+  function setSrcMode(m){
+    srcMode = (m === "trng") ? "trng" : "offline";
+    useTrng = (srcMode === "trng");
+    refreshSrcBtn();
+  }
+  function renderEntropyState(st){
+    if (!srcEntEl || !dotEnt || !stateEnt) return;
+    dotEnt.className = "so-dot";
+    srcEntEl.classList.remove("on");
+    var ent = st && st.entropy;
+    stateEnt.title = (ent && ent.last_error) ? ent.last_error : "";
+    if (!st){ stateEnt.textContent = "—"; return; }
+    if (st.mode === "offline"){
+      var d = st.drbg || {};
+      if (d.seed_from === "os"){
+        dotEnt.classList.add("on"); srcEntEl.classList.add("on");
+        stateEnt.textContent = tt("src.ent.os") + (d.reseeds ? (" · " + d.reseeds + tt("src.state.reseeds")) : "");
+        return;
+      }
+      if (d.seeded_with_h743){
+        dotEnt.classList.add("on"); srcEntEl.classList.add("on");
+        stateEnt.textContent = tt("src.ent.h743") + (d.reseeds ? (" · " + d.reseeds + tt("src.state.reseeds")) : "");
+        return;
+      }
+      stateEnt.textContent = tt("src.ent.pool");
+      return;
+    }
+    if (st.source === "h743" || !st.source){
+      dotEnt.classList.add("on"); srcEntEl.classList.add("on");
+      stateEnt.textContent = tt("src.state.direct");
+    } else {
+      stateEnt.textContent = tt("src.state.mixed");
+    }
+  }
+  function refreshSrcStatus(){
+    [["online", dotTrng, stateTrng], ["offline", dotOff, stateOff]].forEach(function(t){
+      var mode = t[0], dot = t[1], stateEl = t[2];
+      if (!dot || !stateEl) return;
+      dot.className = "so-dot";
+      stateEl.textContent = tt("src.state.check");
+      probeBridge(mode, true).then(function(x){
+        var st = x.st || {};
+        if (mode === "online"){
+          var dev = String(st.port || "").replace(/^H743:/, "");
+          if (st.ok === false){
+            dot.className = "so-dot off";
+            stateEl.textContent = tt("src.state.noboard");
+            stateEl.title = st.err || "";
+          } else {
+            dot.className = "so-dot on";
+            stateEl.textContent = (st.source === "h743" ? tt("src.state.direct") : tt("src.state.mixed"))
+                                + (dev ? (" · " + dev) : "");
+            stateEl.title = "";
+          }
+        } else {
+          dot.className = "so-dot on";
+          var d = st.drbg || {};
+          var seedLabel = (d.seed_from === "os") ? tt("src.state.os")
+                        : d.certified_only ? tt("src.state.snapshot")
+                        : tt("src.state.pool");
+          stateEl.textContent = seedLabel + (d.reseeds ? (" · " + d.reseeds + tt("src.state.reseeds")) : "");
+          stateEl.title = "";
+        }
+        renderEntropyState(st);
+      }).catch(function(){
+        dot.className = "so-dot off";
+        stateEl.textContent = tt("src.state.none");
+      });
+    });
+  }
+  if (srcBtn) srcBtn.addEventListener("click", function(e){
+    e.stopPropagation();
+    var show = !srcPop.classList.contains("show");
+    srcPop.classList.toggle("show", show);
+    srcBtn.setAttribute("aria-expanded", show ? "true" : "false");
+    if (show) refreshSrcStatus();
+  });
+  Array.prototype.forEach.call(document.querySelectorAll(".src-opt"), function(o){
+    o.addEventListener("click", function(){
+      var m = o.getAttribute("data-mode");
+      setSrcMode(m);
+      srcPop.classList.remove("show");
+      srcBtn.setAttribute("aria-expanded", "false");
+      // 选完源必须把结果写进状态行（之前漏了这一步：只切内部模式，不写文案，
+      // 于是「H743 在线 · 串口直供 · 端口 8765 · COM9」这行小字永远不出现）
+      var mode = (m === "trng") ? "online" : "offline";
+      setSrcMsgKey("src.msg.connecting");
+      probeBridge(mode, true).then(function(x){
+        setSrcMsgKey(srcReadyKey(mode), srcVars(x));
+      }).catch(function(){
+        // 选中的桥没起：保留选择（发牌时会被闸门拦下，绝不用浏览器随机），并明确告知
+        setSrcMsgKey(srcMissingKey(mode));
+      });
+    });
+  });
+  document.addEventListener("click", function(e){
+    if (!srcPop || !srcPop.classList.contains("show")) return;
+    if (srcPop.contains(e.target) || (srcBtn && srcBtn.contains(e.target))) return;
+    srcPop.classList.remove("show");
+    srcBtn.setAttribute("aria-expanded", "false");
+  });
+
+  /* =====================================================================
+   *  HUD / 档案
+   * ===================================================================== */
+  /* 金额（积分 / 银行卡 / 注额 / 赢分 / 余款）：一律给【精确整数】，禁止万 / K 缩写。
+     余额被四舍五入后玩家看不出自己到底有多少钱：21990 显示成「2.2萬」，
+     等于把 21990 和 22000 显示成同一个数，够不够下这一注就无从判断；
+     和老虎机页 CREDITS 表同口径（那边一直是原样整数）。 */
+  function fmtAmt(n){ return String(Math.floor(n || 0)); }
+  /* 战绩（最高盈利 / 累计赢输 / 单手最高）才允许缩写，且必须与老虎机 fmtBig 用【同一套规则】：
+     否则同一份全局档案在两边会显示成「1萬」和「1.03萬」两个不同的数。
+     中文：一万起用「萬」两位小数（125萬 整数）；英文：万起 K、百万起 M。 */
+  function fmt(n){
+    n = Math.floor(n || 0);
+    if (curLang === "zh"){
+      if (n < 10000) return String(n);
+      if (n >= 1000000) return Math.round(n / 10000) + "萬";
+      return (n / 10000).toFixed(2).replace(/\.?0+$/, "") + "萬";
+    }
+    if (n < 100000) return n.toLocaleString("en-US");   // 与老虎机 fmtBig 同阈值：十万起才转 K
+    if (n < 1000000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + "K";
+    return (n / 1e6).toFixed(2).replace(/\.?0+$/, "") + "M";
+  }
+  function betSum(b){ b = b || bet; return b.p + b.b + b.t + (b.pp || 0) + (b.bp || 0) + (b.l6 || 0); }
+
+  function updateHUD(){
+    var sum = betSum(), sumTxt = fmtAmt(sum);
+    creditsEl.textContent = fmtAmt(credits);
+    betTotalEl.textContent = sumTxt;                      // HUD「本注」
+    chipValEl.textContent = fmtAmt(CHIP_TIERS[chipIdx]);
+    chipLbl.textContent = "×" + fmtAmt(CHIP_TIERS[chipIdx]);
+    shoeLeftEl.textContent = shoe.length ? String(shoe.length) : "–";
+    betPEl.textContent = fmtAmt(bet.p);
+    betBEl.textContent = fmtAmt(bet.b);
+    betTEl.textContent = fmtAmt(bet.t);
+    betPPEl.textContent = fmtAmt(bet.pp);
+    betBPEl.textContent = fmtAmt(bet.bp);
+    betL6El.textContent = fmtAmt(bet.l6);
+    // 附加注：>0 时整条注位点亮，和桌面下注圈用同一套「有注即亮」的语言
+    [["grpPP", bet.pp], ["grpBP", bet.bp], ["grpL6", bet.l6]].forEach(function(x){
+      var el = $(x[0]); if (!el) return;
+      el.classList.toggle("hot", x[1] > 0);
+    });
+    // 桌面中央的三个下注圈：金额与下注区同源，>0 时金圈点亮（ARC 版外观，见 CSS 末尾）
+    [["spotP", bet.p], ["spotB", bet.b], ["spotT", bet.t]].forEach(function(x){
+      var el = $(x[0]); if (!el) return;
+      el.classList.toggle("hot", x[1] > 0);
+      var v = el.querySelector(".as-val"); if (v) v.textContent = fmtAmt(x[1]);
+    });
+    dealBtn.classList.toggle("short", betSum() > credits || betSum() < 1);
+    renderCard();
+    renderStats();
+    [["grpP", bet.p], ["grpB", bet.b], ["grpT", bet.t],
+     ["grpPP", bet.pp], ["grpBP", bet.bp], ["grpL6", bet.l6]].forEach(function(x){
+      var el = $(x[0]); if (el) el.classList.toggle("at-max", x[1] >= MAX_SPOT);
+    });
+    var g = $("grpChip"); if (g) g.classList.toggle("at-max", chipIdx >= CHIP_TIERS.length - 1);
+  }
+  function setWin(n){
+    winEl.textContent = fmtAmt(n);
+    winMeter.classList.toggle("win", n > 0);
+    if (n > 0){
+      winMeter.classList.remove("hit");
+      void winMeter.offsetWidth;
+      winMeter.classList.add("hit");
+    }
+  }
+  function renderStats(){
+    peakEl.textContent = fmt(statPeak);
+    maxWinEl.textContent = fmt(statMaxWin);
+    wonEl.textContent = fmt(statWon);
+    lostEl.textContent = fmt(statLost);
+    handsEl.textContent = String(statHands);
+    brokeEl.textContent = String(statBroke);
+    peakEl.classList.toggle("warn", statPeak < 0);
+  }
+  function persist(){
+    lsSave(LS.credits, credits); lsSave(LS.card, cardBalance);
+    lsSave(LS.won, statWon); lsSave(LS.lost, statLost);
+    lsSave(LS.maxwin, statMaxWin); lsSave(LS.hands, statHands);
+    // 最高盈利 / 破产次数是全局记录（与老虎机共用），只许抬高：先吸收对方可能已刷新的更高值，再决定是否落盘
+    var storedPeak = Math.floor(lsLoad(LS.peak, 0));
+    if (storedPeak > statPeak) statPeak = storedPeak;
+    if (statPeak > storedPeak) lsSave(LS.peak, statPeak);
+    var storedBroke = Math.floor(lsLoad(LS.broke, 0));
+    if (storedBroke > statBroke) statBroke = storedBroke;
+    if (statBroke > storedBroke) lsSave(LS.broke, statBroke);
+    lsSave(LS.chipIdx, chipIdx);
+  }
+  function trackPeak(){
+    var p = Math.floor((credits + cardBalance) - START_CREDITS);
+    var storedPeak = Math.floor(lsLoad(LS.peak, 0));
+    if (storedPeak > statPeak) statPeak = storedPeak;    // 老虎机那边抬过
+    if (p > statPeak){ statPeak = p; lsSave(LS.peak, statPeak); }
+  }
+
+  /* =====================================================================
+   *  下注
+   * ===================================================================== */
+  function flashMax(grp){
+    if (!grp) return;
+    grp.classList.add("max-flash");
+    clearTimeout(grp._maxT);
+    grp._maxT = setTimeout(function(){ grp.classList.remove("max-flash"); }, 2000);
+  }
+  function addBet(side, dir, grp){
+    if (dealing) return;
+    var step = CHIP_TIERS[chipIdx];
+    var v = bet[side] + dir * step;
+    if (v < 0) v = 0;
+    if (v > MAX_SPOT){ v = MAX_SPOT; flashMax(grp); }
+    var delta = v - bet[side];
+    if (delta > 0 && betSum() + delta > credits){ showNotEnough(); return; }
+    bet[side] = v;
+    playSfx("chip");
+    updateHUD();
+  }
+  $("chipUp").addEventListener("click", function(){
+    if (dealing) return;
+    if (chipIdx < CHIP_TIERS.length - 1){ chipIdx++; updateHUD(); lsSave(LS.chipIdx, chipIdx); }
+    else flashMax($("grpChip"));
+  });
+  $("chipDown").addEventListener("click", function(){
+    if (dealing) return;
+    if (chipIdx > 0){ chipIdx--; updateHUD(); lsSave(LS.chipIdx, chipIdx); }
+  });
+  $("pUp").addEventListener("click", function(){ addBet("p", 1, $("grpP")); });
+  $("pDown").addEventListener("click", function(){ addBet("p", -1, $("grpP")); });
+  $("bUp").addEventListener("click", function(){ addBet("b", 1, $("grpB")); });
+  $("bDown").addEventListener("click", function(){ addBet("b", -1, $("grpB")); });
+  $("tUp").addEventListener("click", function(){ addBet("t", 1, $("grpT")); });
+  $("tDown").addEventListener("click", function(){ addBet("t", -1, $("grpT")); });
+  // 附加注的 ± 按钮：走同一个 addBet（同样受筹码面额、上限、余额校验）
+  Array.prototype.forEach.call(document.querySelectorAll("#sidebets .sb-btn"), function(b){
+    b.addEventListener("click", function(){
+      var tile = b.parentNode;
+      addBet(b.getAttribute("data-sb"), parseInt(b.getAttribute("data-dir"), 10) || 0, tile);
+    });
+  });
+  $("clearBtn").addEventListener("click", function(){
+    if (dealing) return;
+    bet.p = bet.b = bet.t = bet.pp = bet.bp = bet.l6 = 0;
+    updateHUD(); setHintKey("msg.cleared");
+  });
+
+  /* 台面模式开关：有佣台（庄赢抽 5%）⇄ 澳门免佣台（不抽水、庄以 6 点赢半赔）。
+     切换只影响下一手：发牌时会把模式快照进 h.cf，进行中的一手不受影响。 */
+  function renderComm(){
+    if (!commBtn) return;
+    commBtn.classList.toggle("on", commFree);
+    commBtn.innerHTML = commFree ? tt("feat.commFree") : tt("feat.commPaid");
+    commBtn.title = tt("feat.commTip");
+    commBtn.setAttribute("aria-pressed", commFree ? "true" : "false");
+  }
+  if (commBtn) commBtn.addEventListener("click", function(){
+    if (dealing) return;
+    commFree = !commFree;
+    lsSave(LS.comm, commFree ? 1 : 0);
+    renderComm();
+    setHintKey(commFree ? "msg.cfOn" : "msg.cfOff");
+  });
+
+  /* =====================================================================
+   *  牌桌渲染
+   * ===================================================================== */
+  function clearTable(){
+    pCards.innerHTML = ""; bCards.innerHTML = "";
+    // 占位不再用「–」：22px 粗体下它渲染成一条粗横线，看起来像球里多了根线段。
+    // 空球 + empty 暗淡描边就足够表达「还没有点数」。
+    pTotalEl.textContent = ""; bTotalEl.textContent = "";
+    pTotalEl.classList.add("empty"); bTotalEl.classList.add("empty");
+    // pop 是发牌时的瞬时放大，不清掉会让占位「–」一直停在 1.14 倍
+    pTotalEl.classList.remove("pop"); bTotalEl.classList.remove("pop");
+    sideP.classList.remove("won"); sideB.classList.remove("won");
+    tlogEl.textContent = "";
+    _tlogState = null;          // 桌上没牌了，切语言也不该再拼上一手的记录
+    _vwinState = null;
+    vwinEl.className = "vwin";
+    vwinEl.textContent = "";
+    renderVerdictText();
+  }
+  function renderVerdictText(){
+    if (!vtEl) return;
+    // 发牌过程中（还没出结果）显示「发牌中…」，绝不能把上一局的胜负词留在桌上
+    if (dealing && !lastResult){
+      vtEl.textContent = tt("verdict.dealing");
+      verdictEl.className = "verdict dealing";
+      return;
+    }
+    if (lastResult === "p") vtEl.textContent = tt("verdict.p");
+    else if (lastResult === "b") vtEl.textContent = tt("verdict.b");
+    else if (lastResult === "t") vtEl.textContent = tt("verdict.t");
+    else vtEl.textContent = tt("verdict.place");
+    verdictEl.className = "verdict" + (lastResult ? " " + lastResult : "");
+  }
+  function cardNode(code){
+    var el = document.createElement("div");
+    el.className = "bcard deal";
+    el.setAttribute("role", "img");
+    el.setAttribute("aria-label", cardLabel(code) + " (" + cardVal(code) + ")");
+    var inner = document.createElement("div");
+    inner.className = "bcard-in";
+    var front = document.createElement("div");
+    front.className = "bf front";
+    var fi = document.createElement("img");
+    fi.src = "assets/cards/" + code + ".webp";
+    fi.alt = cardLabel(code);
+    fi.draggable = false;
+    front.appendChild(fi);
+    var back = document.createElement("div");
+    back.className = "bf back";
+    var bi = document.createElement("img");
+    bi.src = "assets/cards/back_red.webp";
+    bi.alt = "";
+    bi.draggable = false;
+    back.appendChild(bi);
+    inner.appendChild(back); inner.appendChild(front);
+    el.appendChild(inner);
+    return el;
+  }
+  function wait(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+
+  // 发一张牌到指定边：入场（从牌靴方向滑入）+ 翻牌
+  async function dealCard(side, code){
+    var el = cardNode(code);
+    (side === "p" ? pCards : bCards).appendChild(el);
+    cardSfx("deal");
+    await wait(170);
+    el.classList.add("up");
+    cardSfx("flip");
+    await wait(230);
+    return el;
+  }
+  function popTotal(el, v){
+    el.textContent = String(v);
+    el.classList.remove("empty", "pop");
+    void el.offsetWidth;
+    el.classList.add("pop");
+  }
+  function needBankerDraw(bt, p3){
+    if (p3 == null) return bt <= 5;
+    if (bt <= 2) return true;
+    if (bt === 3) return p3 !== 8;
+    if (bt === 4) return p3 >= 2 && p3 <= 7;
+    if (bt === 5) return p3 >= 4 && p3 <= 7;
+    if (bt === 6) return p3 === 6 || p3 === 7;
+    return false;
+  }
+
+  /* =====================================================================
+   *  发牌主流程
+   * ===================================================================== */
+
+  /* 一手牌一次算定：先把该发的牌全部从牌靴取出来（4 或 6 张），算出两边最终点数。
+     "先取完再播动画"是为了给刷新留一个确定的中间态：取完立刻 saveShoe() + saveHand()，
+     此后刷新只是"把这一手接着播完并结算"，既不换牌靴，也不会把注额吞掉。 */
+  function drawHand(){
+    var plays = [], p = [], b = [];
+    function to(side){
+      var c = shoe.pop();
+      plays.push({ side:side, code:c });
+      (side === "p" ? p : b).push(c);
+      return c;
+    }
+    to("p"); to("b"); to("p"); to("b");
+    var pt = handTotal(p), bt = handTotal(b);
+    if (pt < 8 && bt < 8){
+      var p3 = null;
+      if (pt <= 5){ p3 = to("p"); pt = handTotal(p); }
+      if (needBankerDraw(bt, p3 == null ? null : cardVal(p3))) to("b");
+    }
+    return { plays:plays, p:p, b:b, pt:handTotal(p), bt:handTotal(b) };
+  }
+
+  /* 对子 = 头两张牌【点数相同】（10/J/Q/K 都算 0 点，但按牌面点数判对：
+     10♦ + Q♠ 不算对子；对子看的是牌面大小，不是 0 点的牌值） */
+  function pairOf(cs){
+    if (!cs || cs.length < 2) return false;
+    return cs[0].slice(0, -1) === cs[1].slice(0, -1);
+  }
+
+  /* 结算 = 纯函数：只依赖牌面、注额与「发牌那一刻的台面模式快照 h.cf」。
+     所以「刷新后补结算」与「当场结算」必然得到同一个数，可以放心分开执行。 */
+  function settleOf(h, bs){
+    var pp = bs.pp || 0, bp = bs.bp || 0, l6 = bs.l6 || 0;
+    var total = bs.p + bs.b + bs.t + pp + bp + l6;
+    // 注额在发牌前已整笔扣掉，所以 credit = 「本金退还 + 净赢」：
+    //   闲赢 → 注 ×2（1:1 派彩 + 退回本金）
+    //   庄赢 → 注 + 利润；有佣台利润 = ⌊注×95%⌋，免佣台满赔、但庄以 6 点赢只有 ⌊注×50%⌋
+    //   和局 → 闲/庄注原额退回 + 和注 ×9（8:1 派彩 + 退回本金）
+    var res = (h.pt > h.bt) ? "p" : (h.bt > h.pt) ? "b" : "t";
+    var cf = (h.cf === 1) ? 1 : 0;
+    var credit = 0, bProfit = 0;
+    if (res === "p"){
+      credit = bs.p * 2;
+    } else if (res === "b"){
+      bProfit = cf ? (h.bt === 6 ? Math.floor(bs.b * PAY_CF_B6 / 100) : bs.b)
+                   : Math.floor(bs.b * PAY_B / 100);
+      credit = bs.b + bProfit;
+    } else {
+      credit = bs.p + bs.b + bs.t * (PAY_T + 1);
+    }
+    // 附加注：对子看头两张、幸运六看「庄赢且庄最终 6 点」（两张牌 12:1 / 三张牌 20:1）
+    var ppWin = (pp > 0) && pairOf(h.p);
+    if (ppWin) credit += pp * (PAY_PAIR + 1);
+    var bpWin = (bp > 0) && pairOf(h.b);
+    if (bpWin) credit += bp * (PAY_PAIR + 1);
+    var l6Rate = (l6 > 0 && res === "b" && h.bt === 6) ? (h.b.length === 2 ? PAY_L6_2 : PAY_L6_3) : 0;
+    if (l6Rate) credit += l6 * (l6Rate + 1);
+    return { res:res, credit:credit, net:credit - total, total:total, cf:cf,
+             bProfit:bProfit, ppWin:ppWin, bpWin:bpWin, l6Rate:l6Rate };
+  }
+
+  /* 「进行中的一手」存档：注额 + 牌 + 是否已结算。刷新后全靠它把这手补完。 */
+  function saveHand(h){
+    try{ localStorage.setItem(LS.hand, JSON.stringify({ v:1, h:h })); }catch(e){}
+  }
+  function clearHand(){ try{ localStorage.removeItem(LS.hand); }catch(e){} }
+  function loadHand(){
+    var raw;
+    try{ raw = JSON.parse(lsLoadStr(LS.hand, "")); }catch(e){ return null; }
+    if (!raw || raw.v !== 1 || !raw.h || typeof raw.h !== "object") return null;
+    var h = raw.h;
+    if (!Array.isArray(h.plays) || !h.plays.length || h.plays.length > 6) return null;
+    if (!h.bet || typeof h.bet !== "object") return null;
+    var bs = { p:Math.floor(h.bet.p || 0), b:Math.floor(h.bet.b || 0), t:Math.floor(h.bet.t || 0),
+               pp:Math.floor(h.bet.pp || 0), bp:Math.floor(h.bet.bp || 0), l6:Math.floor(h.bet.l6 || 0) };
+    if (bs.p < 0 || bs.b < 0 || bs.t < 0 || bs.pp < 0 || bs.bp < 0 || bs.l6 < 0) return null;
+    if (bs.p + bs.b + bs.t + bs.pp + bs.bp + bs.l6 < 1) return null;
+    var p = [], b = [];
+    for (var i = 0; i < h.plays.length; i++){
+      var s = h.plays[i];
+      if (!s || (s.side !== "p" && s.side !== "b") || !isCardCode(s.code)) return null;
+      (s.side === "p" ? p : b).push(s.code);
+    }
+    if (p.length < 2 || b.length < 2 || p.length > 3 || b.length > 3) return null;
+    return { plays:h.plays.map(function(s){ return { side:s.side, code:s.code }; }),
+             p:p, b:b, pt:handTotal(p), bt:handTotal(b),
+             bet:bs, cf:(h.cf === 1 ? 1 : 0), settled:h.settled === true };
+  }
+
+  /* 日志格式：闲 <补牌前> (补 X → <补牌后>)。刷新前后共用它，牌面相同则文字相同。 */
+  function handLog(h){
+    var pt = handTotal(h.p.slice(0, 2)), bt = handTotal(h.b.slice(0, 2));
+    if (pt >= 8 || bt >= 8){
+      return tt("tlog.p", { t:pt }) + "  ·  " + tt("tlog.b", { t:bt }) + "  ·  Natural";
+    }
+    var logP = (h.p.length >= 3)
+      ? tt("tlog.p", { t:pt }) + " (" + tt("tlog.hit", { c:cardLabel(h.p[2]), t:h.pt }) + ")"
+      : tt("tlog.p", { t:pt }) + " (" + tt("tlog.stand") + ")";
+    var logB = (h.b.length >= 3)
+      ? tt("tlog.b", { t:bt }) + " (" + tt("tlog.hit", { c:cardLabel(h.b[2]), t:h.bt }) + ")"
+      : tt("tlog.b", { t:bt }) + " (" + tt("tlog.stand") + ")";
+    return logP + "  ·  " + logB;
+  }
+
+  /* 结算拆解：把「返 600 − 押 400 = 净 200」摊到每个注位上，一眼能对账。
+       res=p → 闲 +注、庄 −注、和 −注
+       res=b → 庄 +利润（有佣 ⌊注×95%⌋ / 免佣满赔、庄 6 点则半赔）、闲 −注、和 −注
+       res=t → 闲/庄「退回」、和 +注×8
+       附加注：闲对/庄对中则 +注×11，幸运六中则 +注×12 或 ×20，否则 −注
+     只列真正下了注的注位；金额用 fmtAmt 精确整数（战绩才缩写，见 DERIVED 指南 §7）。 */
+  function brkText(st, bs){
+    var segs = [];
+    var money = function(d){ return (d > 0 ? "+" : (d < 0 ? "−" : "")) + fmtAmt(Math.abs(d)); };
+    var add = function(lbl, v){ segs.push(lbl + " " + v); };
+    if (bs.p > 0) add(tt("brk.p"), st.res === "t" ? tt("brk.push") : money(st.res === "p" ? bs.p : -bs.p));
+    if (bs.b > 0){
+      if (st.res === "t"){
+        add(tt("brk.b"), tt("brk.push"));
+      } else if (st.res === "b"){
+        /* 庄赢但派彩少于注额 ⇒ 规则性地少赔，必须写清是哪一条，否则「庄 +100」看起来像算错：
+             免佣台庄 6 点赢 = 0.5:1（半赔）；有佣台 = 抽水 5%（⌊注×95%⌋）。
+           判据用「利润 < 注额」而不是「点数 == 6」，这样再加别的台型规则也自动带提示。 */
+        var bNote = (st.bProfit < bs.b) ? tt(st.cf ? "brk.b6" : "brk.cm") : "";
+        segs.push(tt("brk.b") + " " + money(st.bProfit) + bNote);
+      } else {
+        add(tt("brk.b"), money(-bs.b));
+      }
+    }
+    if (bs.t > 0) add(tt("brk.t"), money(st.res === "t" ? bs.t * PAY_T : -bs.t));
+    if (bs.pp > 0) add(tt("brk.pp"), st.ppWin ? money(bs.pp * PAY_PAIR) : money(-bs.pp));
+    if (bs.bp > 0) add(tt("brk.bp"), st.bpWin ? money(bs.bp * PAY_PAIR) : money(-bs.bp));
+    if (bs.l6 > 0) add(tt("brk.l6"), st.l6Rate ? money(bs.l6 * st.l6Rate) : money(-bs.l6));
+    add(tt("brk.net"), money(st.net));
+    return segs.join("  ·  ");
+  }
+  /* 补牌记录 + 结算拆解：拆解单独包一层 span，可以比主体大一号、加粗、金色 */
+  function setTlog(main, brk){
+    tlogEl.textContent = main || "";
+    if (!brk) return;
+    var s = document.createElement("span");
+    s.className = "tlog-brk";
+    s.textContent = "  ·  " + brk;
+    tlogEl.appendChild(s);
+  }
+  /* 记住这一手的原料再渲染：切语言时用同一份 h/st/bs 重拼，中文/英文都不会残留 */
+  function renderTlog(h, st, bs){
+    _tlogState = { h:h, st:st, bs:bs };
+    setTlog(handLog(h), brkText(st, bs));
+  }
+  /* 胜负金额行（+200 / 退还 400 / −400）同样是拼好的字符串，切语言必须重拼 */
+  function renderVwin(st){
+    _vwinState = st;
+    if (st.net > 0){
+      vwinEl.className = "vwin show";
+      vwinEl.textContent = tt("verdict.win", { n: fmtAmt(st.net) });
+    } else if (st.net === 0){
+      vwinEl.className = "vwin show push";
+      vwinEl.textContent = tt("verdict.push", { n: fmtAmt(st.total) });
+    } else {
+      vwinEl.className = "vwin show lose";
+      vwinEl.textContent = tt("verdict.lose", { n: fmtAmt(-st.net) });
+    }
+  }
+
+  // 播放一手：4 张底牌 → 亮两边点数 → 逐张补牌（时序与旧版逐帧一致）
+  async function playHand(h){
+    var i = 0, n = h.plays.length;
+    for (; i < 4 && i < n; i++) await dealCard(h.plays[i].side, h.plays[i].code);
+    popTotal(pTotalEl, handTotal(h.p.slice(0, 2)));
+    popTotal(bTotalEl, handTotal(h.b.slice(0, 2)));
+    for (; i < n; i++){
+      var pl = h.plays[i];
+      await dealCard(pl.side, pl.code);
+      popTotal(pl.side === "p" ? pTotalEl : bTotalEl,
+               handTotal(pl.side === "p" ? h.p : h.b));
+    }
+  }
+
+  /* 结算并落盘。opts.silent：刷新恢复时不播音效、不留看牌等待 */
+  function applySettle(h, opts){
+    opts = opts || {};
+    var st = settleOf(h, h.bet);
+    // 双保险：先把「已结算」写进存档，再动余额。三件事在同一个同步块里做完，
+    // 浏览器不可能在中间插进一次刷新，所以不存在"半结算"状态。
+    h.settled = true; saveHand(h);
+
+    lastResult = st.res;
+    // 结算后摘掉发牌瞬间的 pop 放大：赢家尺寸由 .side.won .total(1.25) 接管，
+    // 输家回到 1.0，不再停在 1.14 倍直到下一局
+    pTotalEl.classList.remove("pop"); bTotalEl.classList.remove("pop");
+    renderTlog(h, st, h.bet);
+    renderVerdictText();
+    renderVwin(st);
+    if (st.res !== "t"){
+      (st.res === "p" ? sideP : sideB).classList.add("won");
+      Array.prototype.forEach.call((st.res === "p" ? pCards : bCards).children, function(c){
+        c.classList.add("hot");
+      });
+    }
+
+    if (st.credit > 0){
+      credits += st.credit;
+      if (st.net > 0){
+        statWon += st.net;
+        if (st.net > statMaxWin){ statMaxWin = st.net; lsSave(LS.maxwin, statMaxWin); }
+        setWin(st.net);
+        if (!opts.silent) playSfx("win");
+      } else {
+        setWin(0);
+      }
+    } else {
+      setWin(0);
+    }
+    // 注额留在注位上（初版行为）：下一手直接再按「发牌」就按同样注额继续扣注，
+    // 结算/扣注都以 h.bet 快照为准，注位数字只是「下一手的模板」，不涉及钱。
+    trackPeak();
+    persist();
+    updateHUD();
+
+    // 路纸
+    road.push(st.res);
+    if (road.length > 48) road = road.slice(-48);
+    try{ localStorage.setItem(LS.road, JSON.stringify(road)); }catch(e){}
+    renderRoad(true);
+
+    clearHand();       // 这手到此为止，下次刷新不该把它当成"未结算"
+
+    // 收尾：留出看牌时间，再判断破产 / 续玩
+    clearTimeout(_settleT);
+    _settleT = setTimeout(function(){
+      dealing = false;
+      dealBtn.disabled = false;
+      updateHUD();
+      checkBroke();
+    }, opts.silent ? 0 : (st.net > 0 ? 900 : 620));
+  }
+
+  /* 刷新恢复：把上一手按存档原样摆回桌面；若它还没结算，就地补结算（一分不差）。
+     这条路径同时也是"账实相符"的兜底：钱已扣、牌已定，绝不能因为刷新就不了了之。 */
+  function resumeHand(){
+    var h = loadHand();
+    if (!h) return;
+    if (!shoe.length){
+      // 牌靴存档缺失（被清掉 / 版本不符）：这手已无牌可补，把扣掉的注额原额退回
+      credits += betSum(h.bet);
+      persist(); updateHUD();
+      clearHand();
+      setHintKey("msg.void");
+      return;
+    }
+    clearTable();
+    // 静态还原牌面（不放动画）：刷新后要的是"回到牌桌"，不是又看一遍发牌
+    h.plays.forEach(function(pl){
+      var el = cardNode(pl.code);
+      el.classList.remove("deal");
+      el.classList.add("up");
+      (pl.side === "p" ? pCards : bCards).appendChild(el);
+    });
+    popTotal(pTotalEl, h.pt); popTotal(bTotalEl, h.bt);
+    if (h.settled === true){
+      // 余额已落地（刷新正好卡在结算后）：只补回牌面与结果文字，绝不重复派彩
+      var st0 = settleOf(h, h.bet);
+      lastResult = st0.res;
+      renderTlog(h, st0, h.bet);
+      renderVerdictText();
+      setWin(0);
+      clearHand();
+      return;
+    }
+    applySettle(h, { silent:true });
+    setHintKey("msg.resume");
+  }
+
+  async function doDeal(){
+    if (dealing) return;
+    var total = betSum();
+    if (total < 1){ setHintKey("msg.nobet"); return; }
+    if (total > credits){ showNotEnough(); return; }
+
+    dealing = true;
+    dealBtn.disabled = true;
+    setHint("");
+    // 注意：这里不要提前清裁决文字。清桌统一在扣注之后（clearTable）做，
+    // 万一洗牌拿不到熵、整手取消，桌面应原样保留上一局，而不是清一半。
+
+    // 牌靴不足：先洗牌（要熵）；洗不出来就整手取消，一分不扣
+    if (shoe.length < CUT_CARD){
+      setHintKey("msg.shuffle");
+      try {
+        await reshuffle();
+        setHint("");            // 洗完了就撤掉「正在洗牌」，别让一句进行中的提示挂着
+      } catch(e){
+        setHintKey("msg.norand");
+        refreshSrcBtn();
+        dealing = false; dealBtn.disabled = false;
+        updateHUD();
+        return;
+      }
+    }
+
+    // 牌与注额先落盘：从这一刻起，刷新只会「接着把这一手播完」，不会吞注额、也不会换牌靴
+    var h = drawHand();
+    h.bet = { p:bet.p, b:bet.b, t:bet.t, pp:bet.pp, bp:bet.bp, l6:bet.l6 };
+    // 台面模式在这里定格：这一手之后无论怎么切台型，结算口径都按发牌时的 cf 走
+    h.cf = commFree ? 1 : 0;
+    h.settled = false;
+    saveShoe();
+    saveHand(h);
+
+    // 扣注
+    credits -= total;
+    statLost += total;
+    statHands += 1;
+    persist();
+    updateHUD();
+    // 顺序很重要：先把上一局结果置空、再清桌，裁决区才会走「发牌中…」分支；
+    // 反过来写会让 clearTable() 用旧 lastResult 重新渲染一遍「庄家胜」，一路挂到本局开牌。
+    lastResult = null;
+    clearTable();
+
+    await playHand(h);
+    applySettle(h);
+  }
+  dealBtn.addEventListener("click", function(){ doDeal(); });
+
+  /* =====================================================================
+   *  路纸
+   * ===================================================================== */
+  function renderRoad(markNew){
+    renderRoadWall(markNew);            // 大路 + 三条衍生路（同一份 bacc_road 数据）
+    roadGrid.innerHTML = "";
+    if (!road.length){
+      var e = document.createElement("div");
+      e.className = "road-empty";
+      e.textContent = (curLang === "zh") ? "还没有开牌记录" : "No hands yet";
+      roadGrid.appendChild(e);
+      roadStat.textContent = "—";
+      return;
+    }
+    road.forEach(function(r, i){
+      var d = document.createElement("span");
+      d.className = "rd " + r + (markNew && i === road.length - 1 ? " new" : "");
+      d.textContent = (r === "b") ? tt("side.bShort") : (r === "p") ? tt("side.pShort") : tt("side.tShort");
+      roadGrid.appendChild(d);
+    });
+    var cb = 0, cp = 0, ct = 0;
+    road.forEach(function(r){ if (r === "b") cb++; else if (r === "p") cp++; else ct++; });
+    roadStat.textContent = tt("roads.stat", { b:cb, p:cp, t:ct, n:road.length });
+  }
+
+  /* =====================================================================
+   *  路纸墙：大路 + 大眼仔 / 小路 / 曱甴路（纯渲染，不参与概率与结算）
+   * ---------------------------------------------------------------------
+   *  大路模型：同一结果继续往下叠（最多 6 行），第 7 手起沿底行向右延伸（长龙）；
+   *  换边开新列。和局不开新列，只在上一格上记一条绿斜线。
+   *  三条衍生路由同一份模型推导：把「往前第 k 列的长度」与「再前一列的长度」逐行比对，
+   *  两边都还有这一格（齐）画红圈，只有一边有（跳）画蓝点。
+   *  k = 1 / 2 / 3 分别对应大眼仔 / 小路 / 曱甴路，起始行 = 起始列 = k。
+   * ===================================================================== */
+  function buildBigRoad(seq){
+    var runs = [], cells = [], used = {}, cur = null;
+    seq.forEach(function(res){
+      if (res === "t"){ if (cur) cur.ties++; return; }
+      if (cur && cur.res === res){
+        var logR = cur.logR + 1, r = logR, c = cur.c;
+        if (r > 5){                          // 长龙：超过 6 行就沿底行往右接一格
+          r = 5; c = cur.c + 1;
+          while (used[c + ",5"]) c++;
+        }
+        var run = cur.run;
+        cur = { res:res, c:c, r:r, logR:logR, run:run, ties:0 };
+        runs[run].len = logR + 1;
+      } else {
+        runs.push({ len:1 });
+        cur = { res:res, c:(cur ? cur.c + 1 : 0), r:0, logR:0, run:runs.length - 1, ties:0 };
+      }
+      used[cur.c + "," + cur.r] = 1;
+      cells.push(cur);
+    });
+    var cols = 0;
+    cells.forEach(function(x){ if (x.c + 1 > cols) cols = x.c + 1; });
+    return { runs:runs, cells:cells, cols:cols };
+  }
+  function derivedMark(model, cell, k){
+    var runIdx = cell.run, row = cell.logR;
+    if (runIdx < k + 1 || row < k) return null;          // 前面还没有可比的两列
+    var a = model.runs[runIdx - k].len > row;
+    var b = model.runs[runIdx - k - 1].len > row;
+    return (a === b) ? "r" : "b";
+  }
+  function paintRoad(el, model, kind, k, markNew){
+    if (!el) return;
+    el.innerHTML = "";
+    if (!model.cells.length){
+      el.style.gridTemplateColumns = "";
+      var e = document.createElement("div");
+      e.className = "rb-empty";
+      e.textContent = tt("rb.empty");
+      el.appendChild(e);
+      return;
+    }
+    el.style.gridTemplateColumns = "repeat(" + model.cols + ", var(--cell))";
+    model.cells.forEach(function(cell, i){
+      var mark = (kind === "big") ? cell.res : derivedMark(model, cell, k);
+      if (!mark) return;
+      var d = document.createElement("i");
+      if (kind === "big"){
+        d.className = "bcell " + cell.res + (cell.ties ? " tie" : "");
+        d.title = tt(cell.res === "b" ? "side.bShort" : "side.pShort") + (cell.ties ? " · " + tt("rb.tieN", { n:cell.ties }) : "");
+      } else {
+        d.className = "rcell " + mark;
+        d.title = tt(mark === "r" ? "rb.same" : "rb.diff");
+      }
+      d.style.gridColumn = String(cell.c + 1);
+      d.style.gridRow = String(cell.r + 1);
+      if (markNew && i === model.cells.length - 1) d.classList.add("new");
+      el.appendChild(d);
+    });
+  }
+  function renderRoadWall(markNew){
+    var model = buildBigRoad(road);
+    paintRoad(bigRoadEl, model, "big", 0, markNew);
+    paintRoad(bebRoadEl, model, "d", 1, markNew);
+    paintRoad(srRoadEl,  model, "d", 2, markNew);
+    paintRoad(crRoadEl,  model, "d", 3, markNew);
+  }
+
+  /* =====================================================================
+   *  银行卡
+   * ===================================================================== */
+  var cardBalEl = $("cardBal"), cardAmt = $("cardAmt");
+  var bankCardEl = $("bankCard"), bcOpenBtn = $("bcOpen"), bcCloseBtn = $("bcClose");
+  var BC_OPEN_KEY = "bacc_bank_open";
+  // 展开 / 收起：收起后只剩一个圆形卡标按钮，状态记在本地（下次进来保持上次的样子）
+  function setBankOpen(open, save){
+    if (!bankCardEl) return;
+    bankCardEl.classList.toggle("collapsed", !open);
+    if (bcOpenBtn) bcOpenBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    if (save){ try { localStorage.setItem(BC_OPEN_KEY, open ? "1" : "0"); }catch(e){} }
+  }
+  var bankOpen = (function(){
+    try { return localStorage.getItem(BC_OPEN_KEY) !== "0"; }catch(e){ return true; }
+  })();
+  setBankOpen(bankOpen, false);
+  if (bcOpenBtn) bcOpenBtn.addEventListener("click", function(){ setBankOpen(true, true); });
+  if (bcCloseBtn) bcCloseBtn.addEventListener("click", function(){ setBankOpen(false, true); });
+
+  /* ---------- 银行卡放大到「填满珠盘路右侧那段空白」 ----------
+     右侧空档宽度随视口变化（2560 下 515px、1920 下 308px），写死尺寸只能对上一种屏幕，
+     所以用 zoom 整体等比缩放（zoom 连字号/圆角/内边距一起放大，是真正的等比例）。
+     k = 可用宽度 / 卡片基准宽度(170 × 页面 zoom)，夹在 1–3：
+       · 下限 1：比原来还小就没意义；
+       · 上限 3：卡高 243×3=729 仍矮于桌面(1033)，且卡顶 1047-729=318 > 音量浮层底 237。
+     回落档（≤1663，卡片回到文档流）不做缩放，清掉内联 zoom。 */
+  var bankEl = $("bankCard"), barEl = bankEl ? bankEl.parentNode : null;
+  var pageEl = document.querySelector(".page"), roadCardEl = $("roadCard");
+  function fitBankCard(){
+    if (!bankEl || !barEl || !roadCardEl || !pageEl) return;
+    if (getComputedStyle(barEl).position !== "absolute"){ bankEl.style.zoom = ""; return; }
+    var pz = parseFloat(getComputedStyle(pageEl).zoom) || 1;
+    var avail = pageEl.getBoundingClientRect().right - roadCardEl.getBoundingClientRect().right - 30;
+    var k = avail / (170 * pz);
+    k = Math.max(1, Math.min(3, k));
+    bankEl.style.zoom = (Math.round(k * 1000) / 1000);
+  }
+  fitBankCard();
+  /* resize 会连续触发，用 rAF 合并一次，避免每帧都写 zoom 触发重排 */
+  var bankFitPend = false;
+  window.addEventListener("resize", function(){
+    if (bankFitPend) return;
+    bankFitPend = true;
+    requestAnimationFrame(function(){ bankFitPend = false; fitBankCard(); });
+  });
+
+  /* ---------- 路纸墙：收起 / 展开（横向手风琴，状态记本地） ---------- */
+  var roadBookEl = $("roadBook"), rbToggleBtn = $("rbToggle");
+  var RB_OPEN_KEY = "bacc_roadbook_open";
+  function setRoadbookOpen(open, save){
+    if (!roadBookEl) return;
+    roadBookEl.classList.toggle("collapsed", !open);
+    if (rbToggleBtn){
+      rbToggleBtn.textContent = open ? "\u25be" : "\u25b8";
+      rbToggleBtn.title = open ? "收起路纸 / Collapse" : "展开路纸 / Expand";
+      rbToggleBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    }
+    if (save){ try { localStorage.setItem(RB_OPEN_KEY, open ? "1" : "0"); }catch(e){} }
+  }
+  var rbOpen = (function(){
+    try { return localStorage.getItem(RB_OPEN_KEY) !== "0"; }catch(e){ return true; }
+  })();
+  setRoadbookOpen(rbOpen, false);
+  if (rbToggleBtn) rbToggleBtn.addEventListener("click", function(){
+    setRoadbookOpen(roadBookEl.classList.contains("collapsed"), true);
+  });
+  function renderCard(){
+    cardBalEl.textContent = fmtAmt(cardBalance);
+    // 收起态看不到卡面数字，把余额挂到圆钮的悬浮提示上
+    if (bcOpenBtn) bcOpenBtn.title = tt("bc.title") + " " + fmtAmt(cardBalance);
+  }
+  Array.prototype.forEach.call(document.querySelectorAll(".bc-q"), function(b){
+    b.addEventListener("click", function(){
+      var v = b.getAttribute("data-amt");
+      if (v === "all"){
+        cardAmt.value = "";
+        cardAmt.dataset.all = "1";
+      } else {
+        cardAmt.value = String(parseFloat(v) || 0);
+        delete cardAmt.dataset.all;
+      }
+    });
+  });
+  function amtValue(){
+    if (cardAmt.dataset.all === "1") return -1;     // -1 = 全部
+    var v = parseInt(cardAmt.value, 10);
+    return isFinite(v) ? Math.max(0, v) : 0;
+  }
+  $("cardDep").addEventListener("click", function(){
+    if (dealing) return;
+    var v = amtValue();
+    var amt = (v < 0) ? credits : Math.min(v, credits);
+    if (amt < 1) return;
+    credits -= amt; cardBalance += amt;
+    cardAmt.value = ""; delete cardAmt.dataset.all;
+    persist(); updateHUD();
+    playSfx("chip");
+  });
+  $("cardWd").addEventListener("click", function(){
+    if (dealing) return;
+    var v = amtValue();
+    var amt = (v < 0) ? cardBalance : Math.min(v, cardBalance);
+    if (amt < 1) return;
+    cardBalance -= amt; credits += amt;
+    cardAmt.value = ""; delete cardAmt.dataset.all;
+    persist(); updateHUD();
+    playSfx("chip");
+  });
+
+  /* =====================================================================
+   *  破产 / 积分不足 / 重新开始
+   * ===================================================================== */
+  var bkMask = $("bkMask"), ncMask = $("ncMask"), ncDetail = $("ncDetail");
+  var rescueMask = $("rescueMask"), rescueAmt = $("rescueAmt");
+  var _ncVisible = false, _bkVisible = false;
+
+  function renderNcDetail(){
+    if (ncDetail) ncDetail.textContent = tt("nc.detail", { bet: fmtAmt(betSum()), cr: fmtAmt(credits) });
+  }
+  function showNotEnough(){
+    if (!ncMask) return;
+    _ncVisible = true;
+    renderNcDetail();
+    ncMask.classList.add("show");
+  }
+  function dismissNotEnough(){
+    _ncVisible = false;
+    if (ncMask) ncMask.classList.remove("show");
+  }
+  function showBankruptDialog(){
+    if (!bkMask) return;
+    _bkVisible = true;
+    bkMask.classList.add("show");
+    setTimeout(function(){
+      bkMask.classList.add("crack");
+      setTimeout(function(){ bkMask.classList.add("broken"); }, 170);
+    }, 280);
+  }
+  function dismissBankruptDialog(){
+    if (!bkMask) return;
+    _bkVisible = false;
+    bkMask.classList.remove("show", "crack", "broken");
+  }
+  function checkBroke(){
+    if (dealing) return;
+    if (credits >= 1){ if (_bkVisible) dismissBankruptDialog(); return; }
+    if (cardBalance >= 1){
+      if (rescueMask){
+        rescueAmt.textContent = fmtAmt(cardBalance);
+        rescueMask.classList.add("show");
+      }
+      return;
+    }
+    if (!brokeFlag){
+      brokeFlag = true;
+      // 破产次数是全局的（与老虎机共用 slot_broke）：先对齐对方可能已记的更高值，再 +1
+      statBroke = Math.max(statBroke, Math.floor(lsLoad(LS.broke, 0))) + 1;
+      lsSave(LS.broke, statBroke);
+      renderStats();
+    }
+    showBankruptDialog();
+  }
+  $("rescueYes").addEventListener("click", function(){
+    credits += cardBalance; cardBalance = 0;
+    persist(); updateHUD();
+    rescueMask.classList.remove("show");
+  });
+  $("rescueNo").addEventListener("click", function(){
+    rescueMask.classList.remove("show");
+    checkBroke();
+  });
+
+  var resetMask = $("resetMask");
+  $("resetBtn").addEventListener("click", function(){
+    if (dealing) return;
+    $("resetAmount").textContent = fmtAmt(credits);
+    resetMask.classList.add("show");
+  });
+  $("resetCancel").addEventListener("click", function(){ resetMask.classList.remove("show"); });
+  $("resetConfirm").addEventListener("click", function(){
+    resetMask.classList.remove("show");
+    credits = START_CREDITS;
+    bet.p = bet.b = bet.t = bet.pp = bet.bp = bet.l6 = 0;
+    brokeFlag = false;
+    persist(); updateHUD();
+    dismissBankruptDialog();
+    lastResult = null;
+    clearTable();
+    setWin(0);
+  });
+  if (ncMask) ncMask.addEventListener("click", function(){ if (_ncVisible) dismissNotEnough(); });
+  if (bkMask) bkMask.addEventListener("click", function(){ if (_bkVisible) dismissBankruptDialog(); });
+
+  /* =====================================================================
+   *  键盘
+   * ===================================================================== */
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape"){
+      toggleVolPop(false);
+      if (srcPop) srcPop.classList.remove("show");
+      if (_ncVisible){ dismissNotEnough(); return; }
+      if (_bkVisible){ dismissBankruptDialog(); return; }
+      return;
+    }
+    if (e.code !== "Space") return;
+    var ae = document.activeElement;
+    if (ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA")) return;
+    e.preventDefault();
+    if (_ncVisible){ dismissNotEnough(); return; }
+    if (_bkVisible){ dismissBankruptDialog(); return; }
+    if (rescueMask && rescueMask.classList.contains("show")) return;
+    if (resetMask && resetMask.classList.contains("show")) return;
+    doDeal();
+  });
+
+  /* =====================================================================
+   *  共通钱袋：另一个标签页改了积分 / 银行卡时同步过来
+   *  两个游戏共用 slot_credits / slot_card。若老虎机开在另一个标签页里，它内存中
+   *  还留着旧余额，下一次下注就会把本页刚赢的分覆盖掉。storage 事件只送到"别的"
+   *  标签页，所以在这里吸收新值，页面就不会拿着过期余额去写盘。
+   * ===================================================================== */
+  function syncWalletFromStore(){
+    var changed = false;
+    var cv = lsLoad(LS.credits, null);
+    if (cv != null && Math.floor(cv) !== credits){
+      credits = Math.max(0, Math.floor(cv)); changed = true;
+    }
+    var bv = lsLoad(LS.card, null);
+    if (bv != null && Math.floor(bv) !== cardBalance){
+      cardBalance = Math.max(0, Math.floor(bv)); changed = true;
+    }
+    var pv = lsLoad(LS.peak, null);
+    if (pv != null && Math.floor(pv) > statPeak){
+      statPeak = Math.floor(pv); changed = true;
+    }
+    var kv = lsLoad(LS.broke, null);
+    if (kv != null && Math.floor(kv) > statBroke){
+      statBroke = Math.floor(kv); changed = true;
+      // 这次破产是对方页面记的账：把 brokeFlag 举起来，别在本页再记一遍
+      if (credits < 1 && cardBalance < 1) brokeFlag = true;
+    }
+    return changed;
+  }
+  window.addEventListener("storage", function(ev){
+    if (!ev || !ev.key) return;
+    if (ev.key !== LS.credits && ev.key !== LS.card && ev.key !== LS.peak && ev.key !== LS.broke) return;
+    if (syncWalletFromStore()){
+      updateHUD();
+      if (!dealing) checkBroke();
+    }
+  });
+  // 切回本标签页时补一次（storage 事件偶尔会丢，比如标签页被冻结期间）
+  document.addEventListener("visibilitychange", function(){
+    if (document.visibilityState !== "visible" || dealing) return;
+    if (syncWalletFromStore()) updateHUD();
+  });
+
+  /* =====================================================================
+   *  file:// + Firefox 内核 ⇒ 本页与老虎机页是**两个独立源**，积分不可能共通。
+   *  这种情况必须明说，否则玩家只会看到"积分没同步"而不是"打开方式不对"。
+   * ===================================================================== */
+  (function warnFileOrigin(){
+    if (location.protocol !== "file:") return;
+    if (!/Firefox|Zen/i.test(navigator.userAgent)) return;      // Chrome/Edge 的 file:// 是共享的，不必吓人
+    try{ if (sessionStorage.getItem("slot_filewarn") === "1") return; }catch(e){}
+    var bar = document.createElement("div");
+    bar.className = "filewarn";
+    bar.innerHTML = '<span>⚠ 当前用 <b>file://</b> 打开：Firefox 内核把本页当成独立站点，' +
+      '读不到老虎机那边的积分（两个页面各有各的存储）。请用 <b>start_casino.py</b> 启动，' +
+      '它会自动改用 <b>http://127.0.0.1:8788</b>，积分与银行卡就真正共通了。<br>' +
+      '<i>Opened via file:// — Firefox treats this page as a separate site, so credits cannot be shared. ' +
+      'Launch with start_casino.py instead (it serves over http://127.0.0.1:8788).</i></span>' +
+      '<button type="button" aria-label="close">×</button>';
+    bar.querySelector("button").addEventListener("click", function(){
+      try{ sessionStorage.setItem("slot_filewarn", "1"); }catch(e){}
+      bar.parentNode && bar.parentNode.removeChild(bar);
+    });
+    document.body.appendChild(bar);
+  })();
+
+  /* =====================================================================
+   *  初始化
+   * ===================================================================== */
+  renderSound();
+  setSrcMode("offline");
+  applyLang(curLang);
+  renderRoad();
+  clearTable();
+  setWin(0);
+  updateHUD();
+  // 首次静默探测一次随机源（不阻塞 UI），有桥就把熵源链路点亮
+  // 首屏就把「随机源 + 端口 + 串口」写进状态行（以前这里只写一句「随机源就绪」，端口信息根本没有）
+  probeSrcLine(useTrng ? "online" : "offline");
+  // 刷新前若有一手没结算完（牌已发、注已扣），在这里把它补完 —— 先恢复再判破产
+  resumeHand();
+  if (credits < 1 && cardBalance < 1) showBankruptDialog();
+
+})();
+</script>
+</body>
+</html>

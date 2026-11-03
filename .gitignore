@@ -1,0 +1,59 @@
+# 离线桥演示用真随机表：H743 硬件 TRNG 采样所得（约 1 MB，= 3920 段，256 字节对齐）。
+# 已随公开仓库分发，供 clone 后离线桥直接演示；如被改坏可删，再让 H743 重采。
+!random_raw.bin
+
+# 运行日志 / Python 缓存
+*.log
+__pycache__/
+*.pyc
+
+# 离线种子池运行时文件（状态 / 审计 / 换表生成的数据表）
+seedpool_state.json
+seedpool_state.json.tmp
+seedpool_audit.jsonl
+seedpool_*.bin
+
+# 临时提交消息文件
+.git_commit_msg.txt
+
+# 文档备份（改 README/docs 前的快照）
+.workbuddy/
+
+# H743 熵快照：这是离线随机链的种子材料，等同于密钥，不随仓库分发
+# （start_casino.py 会在缺失时自动重采；换机/克隆后第一次跑即生成）
+h743_entropy.json
+h743_entropy.json.tmp
+h743_entropy.json.state
+h743_entropy.json.state.tmp
+
+# 渲染核对用的临时截图 / 中间 SVG（Edge 无头截图，随手删）
+_*.png
+_*.svg
+
+# 一人一份发号用的快照目录与台账（等同密钥材料，绝不入库）
+snapshots/
+ledger.jsonl
+
+# 最小固件的本地构建目录（产物已由 firmware/prebuilt/ 提供）
+build-dongle/
+_dongle_sample.bin
+
+# 开发文档与开发记录（不随公开仓库分发）
+docs/
+random_raw_hist.csv
+wallet_seed.json
+
+# 开发 / 验证脚本与测试（非运行必需，属开发过程，不入库）
+analyze_bin.py
+calibrate_pay.py
+contrib.py
+rng_tests.py
+rtp_sim.py
+source_parity.py
+tune_math.py
+test_*.js
+test_dual_source.py
+firmware/rng_dongle/test_dongle.py
+
+# 完整 GUI 固件备份（本项目只用最小固件 rng_dongle，不随公开仓库分发）
+firmware/backup/

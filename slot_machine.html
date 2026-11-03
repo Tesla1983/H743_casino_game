@@ -1,0 +1,3663 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lucky Sevens · 老虎机</title>
+<style>
+  :root{
+    --gold:#f5c542; --gold-d:#b8860b; --gold-l:#ffe680;
+    --red:#e23b3b; --green:#6ef08a;
+    --ink:#eae2f5; --muted:#9a8fb0;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+    min-height:100%;
+    background:
+      radial-gradient(1100px 760px at 50% -15%, #3a1d63 0%, transparent 58%),
+      radial-gradient(820px 760px at 112% 118%, #3f0f30 0%, transparent 55%),
+      #07040c;
+    font-family:"Segoe UI",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    color:var(--ink);overflow:auto;
+    padding:26px;
+  }
+  .stage{transform-origin:center center;}
+
+  /* ---------- page wrapper ---------- */
+  .page{display:flex;flex-direction:column;align-items:center;gap:24px;width:fit-content;max-width:94vw;}
+
+  /* ---------- rules card ---------- */
+  .rules{
+    width:100%;max-width:100%;
+    background:linear-gradient(160deg,#241638,#140d20);
+    border:1px solid rgba(245,197,66,.22);
+    border-radius:18px;padding:18px 22px 24px;
+    box-shadow:0 18px 50px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.06);
+    font-size:13px;line-height:1.7;color:#d9cdeb;
+  }
+  .rules h2{margin:0 0 10px;font-size:17px;letter-spacing:3px;color:var(--gold);
+    text-shadow:0 0 9px rgba(245,197,66,.35);}
+  .rules h3{margin:16px 0 6px;font-size:13.5px;color:#ffd76a;letter-spacing:1px;}
+  .rules p{margin:6px 0;}
+  .rules ul{margin:6px 0;padding-left:20px;}
+  .rules li{margin:3px 0;}
+  .rules b{color:#fff0c8;font-weight:700;}
+  .rules table{border-collapse:collapse;width:100%;table-layout:fixed;margin:8px 0;font-size:12.5px;}
+  .rules th,.rules td{border:1px solid rgba(255,255,255,.13);padding:5px 8px;text-align:center;}
+  .rules th{background:rgba(245,197,66,.12);color:#ffe680;font-weight:700;}
+  .rules td.sym{text-align:center;vertical-align:middle;width:54px;}
+  .rules td .symicon{width:40px;height:40px;display:inline-block;vertical-align:middle;
+    filter:drop-shadow(0 2px 3px rgba(0,0,0,.6));}
+  .rules svg.scico{width:18px;height:18px;display:inline-block;vertical-align:-3px;margin:0 2px;
+    filter:drop-shadow(0 1px 2px rgba(0,0,0,.6));}
+  .rules .tag{display:inline-block;padding:1px 8px;border-radius:8px;font-size:11px;font-weight:700;}
+  .rules .tag.wild{background:linear-gradient(#ff7ad9,#7a5cff);color:#1a0a2e;}
+  .rules .tag.scat{background:linear-gradient(#ff9d2e,#c43b00);color:#fff3c0;margin-left:2px;}
+  .rules .note{color:#968bad;font-size:11.5px;}
+
+  .machine{display:flex;align-items:flex-end;gap:16px;zoom:1.12;flex-wrap:wrap;justify-content:center;
+    position:relative;--bank-w:248px;}
+  /* 玩家档案 / 老虎机 / JACKPOT 三张主卡在页面正中：银行卡用绝对定位移出常规流，
+     不占宽度、不参与居中计算；它悬浮在三卡组合的右侧，底部对齐。 */
+
+  /* ---------- jackpot card（与柜机并排，配色/发光沿用 rules + marquee） ---------- */
+  .jackpot{
+    align-self:stretch;width:172px;flex:0 0 auto;position:relative;overflow:hidden;
+    display:flex;flex-direction:column;align-items:center;
+    padding:14px 12px 16px;border-radius:20px;
+    background:linear-gradient(165deg,#2b1a42 0%,#180f26 55%,#0c0714 100%);
+    border:1px solid rgba(245,197,66,.30);
+    box-shadow:0 18px 48px rgba(0,0,0,.55), 0 0 42px rgba(245,197,66,.10),
+      inset 0 1px 0 rgba(255,255,255,.07);
+  }
+  .jackpot::before{
+    content:"";position:absolute;inset:5px;border-radius:15px;pointer-events:none;
+    border:1px solid rgba(245,197,66,.12);
+  }
+  .jp-bulbs{position:relative;width:100%;height:8px;display:flex;align-items:center;
+    justify-content:space-between;padding:0 2px;}
+  .jp-title{margin-top:12px;font-weight:900;font-size:14px;letter-spacing:3px;color:var(--gold-l);
+    text-shadow:0 0 8px rgba(245,197,66,.85),0 0 18px rgba(255,140,20,.5);}
+  .jp-sub{font-size:10.5px;letter-spacing:1px;color:#a896c4;margin-top:3px;}
+  .jp-body{flex:1;width:100%;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:10px;padding:8px 0;}
+  /* 7 图标：放大 1.25 倍（38 → 47.5px） */
+  .jp-coin{width:47.5px;height:47.5px;filter:drop-shadow(0 2px 7px rgba(0,0,0,.65));}
+  /* JACKPOT 数字 = 全页最亮的一处（视觉焦点）。原来的光晕被每位窗口的 inset 遮罩压暗，
+     这里提亮字色+加强外层光晕，同时减轻 .jp-dg 的暗化，让它是页面上唯一"发光"的数字。 */
+  .jp-val{display:flex;align-items:center;justify-content:center;gap:1px;
+    font-size:22px;font-weight:900;color:#fffbe8;
+    text-shadow:0 0 10px rgba(255,222,120,1),0 0 24px rgba(255,150,30,.72),0 2px 0 #6b3d00;}
+  /* 7 位机械翻滚轮：每位一个窗口，内部 0-9 竖列靠 translateY 滚动 */
+  .jp-dg{position:relative;display:inline-block;width:.76em;height:1.2em;overflow:hidden;border-radius:3px;
+    background:linear-gradient(180deg,rgba(0,0,0,.30),rgba(0,0,0,.02) 46%,rgba(0,0,0,.30));}
+  .jp-dg::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:3px;
+    box-shadow:inset 0 2px 4px rgba(0,0,0,.55), inset 0 -2px 4px rgba(0,0,0,.55);}
+  .jp-reel{display:block;transition:transform .55s cubic-bezier(.18,.85,.25,1);}
+  .jp-reel i{display:block;height:1.2em;line-height:1.2em;font-style:normal;text-align:center;}
+  .jp-sep{width:.28em;text-align:center;opacity:.9;}
+  .jackpot.payout{animation:jpPayout .7s ease-out 3;}
+  @keyframes jpPayout{
+    0%,100%{box-shadow:0 18px 48px rgba(0,0,0,.55),0 0 42px rgba(245,197,66,.10),inset 0 1px 0 rgba(255,255,255,.07);}
+    50%{box-shadow:0 0 70px rgba(255,200,60,.95),0 0 120px rgba(255,140,20,.5),inset 0 0 40px rgba(255,200,60,.45);}
+  }
+  .jp-foot{font-size:10px;color:#8f80ab;letter-spacing:.4px;text-align:center;line-height:1.55;}
+  .jp-foot b{color:#ffd76a;}
+  .jp-freeze{display:none;font-size:10px;letter-spacing:.4px;color:#8fb6ff;
+    text-align:center;line-height:1.55;text-shadow:0 0 8px rgba(120,170,255,.45);}
+  /* 免费转期间：奖池暂停累积（灯泡停闪 + 整卡转冷 + 数字变暗） */
+  .jackpot.frozen{filter:saturate(.45) brightness(.9);
+    border-color:rgba(120,170,255,.40);
+    box-shadow:0 18px 48px rgba(0,0,0,.55), 0 0 34px rgba(90,150,255,.20), inset 0 1px 0 rgba(255,255,255,.05);}
+  .jackpot.frozen .bulb{animation-play-state:paused;background:#7f8fac;
+    box-shadow:0 0 6px 1px rgba(120,150,200,.5);}
+  .jackpot.frozen .jp-title{color:#aec8f0;text-shadow:0 0 8px rgba(120,170,255,.55);}
+  .jackpot.frozen .jp-val{opacity:.55;}
+  .jackpot.frozen .jp-foot{display:none;}
+  .jackpot.frozen .jp-freeze{display:block;}
+  /* 派发瞬间压过冻结态，让金光脉冲正常爆炸 */
+  .jackpot.frozen.payout{filter:none;border-color:rgba(245,197,66,.30);}
+  .jackpot.frozen.payout .bulb{animation-play-state:running;}
+  .jackpot.frozen.payout .jp-val{opacity:1;}
+
+  /* ---------- JACKPOT 派发资格徽标（最大注才亮） ---------- */
+  .jp-elig{
+    margin-top:9px;width:100%;padding:5px 6px;border-radius:9px;text-align:center;
+    font-size:10px;font-weight:700;letter-spacing:.3px;line-height:1.45;
+    background:rgba(255,255,255,.045);color:#8b7ea6;
+    border:1px solid rgba(255,255,255,.10);
+    transition:background .2s, color .2s, border-color .2s;
+  }
+  .jp-elig.ok{
+    background:linear-gradient(#ffd857,#e8a300);color:#3a2200;
+    border-color:#ffd857;animation:eligPulse 1.6s ease-in-out infinite;
+  }
+  @keyframes eligPulse{
+    0%,100%{box-shadow:0 0 10px rgba(255,200,60,.45);}
+    50%{box-shadow:0 0 22px rgba(255,200,60,.9);}
+  }
+  .jackpot.frozen .jp-elig{display:none;}
+  .jp-foot b.hot{color:#ff9d6a;}
+
+  /* ---------- JACKPOT 全屏美元雨（独立 canvas，可整块移除） ---------- */
+  #usdRain{
+    position:fixed;top:0;left:0;width:100%;height:100%;
+    z-index:9999;pointer-events:none;display:none;
+  }
+  #usdRain.on{display:block;}
+
+  /* ---------- 破产：所有彩灯停闪变灰 + 所有数字去色变暗 ---------- */
+  body.bankrupt .bulb{animation-play-state:paused;background:#7f8fac;
+    box-shadow:0 0 6px 1px rgba(120,150,200,.5);}
+  body.bankrupt .meter .val,
+  body.bankrupt .jp-val,
+  body.bankrupt .pl-num,
+  body.bankrupt .steplbl b{filter:grayscale(1);opacity:.55;}
+  body.bankrupt .marquee .title,
+  body.bankrupt .jp-title,
+  body.bankrupt .jp-sub,
+  body.bankrupt .pl-lbl{filter:grayscale(1);opacity:.6;text-shadow:none;}
+
+  /* ---------- player card（左侧，与右侧 jackpot 同款对称） ---------- */
+  .player{
+    align-self:stretch;width:172px;flex:0 0 auto;position:relative;overflow:hidden;
+    display:flex;flex-direction:column;align-items:center;
+    padding:14px 12px 16px;border-radius:20px;
+    background:linear-gradient(165deg,#2b1a42 0%,#180f26 55%,#0c0714 100%);
+    border:1px solid rgba(245,197,66,.30);
+    box-shadow:0 18px 48px rgba(0,0,0,.55), 0 0 42px rgba(245,197,66,.10),
+      inset 0 1px 0 rgba(255,255,255,.07);
+  }
+  .player::before{
+    content:"";position:absolute;inset:5px;border-radius:15px;pointer-events:none;
+    border:1px solid rgba(245,197,66,.12);
+  }
+  /* 4 组指标用 space-evenly 均匀铺满整张卡片高度（卡片很高，center+固定 gap 会挤在中上部） */
+  .pl-body{flex:1;width:100%;display:flex;flex-direction:column;justify-content:space-evenly;
+    gap:6px;padding:8px 0;}
+  .pl-stat{text-align:center;}
+  /* 累计赢/输两列并排：卡片内容宽只有 ~148px，竖排会顶到「重新开始」按钮。
+     .pl-body 是 align-items:center，必须显式撑满宽度，否则 .pl-duo 收缩到内容宽，
+     两列各只剩 ~45px，「99.99萬」的「萬」会被 CJK 换行规则挤到第二行。 */
+  .pl-duo{display:flex;justify-content:space-between;gap:8px;width:100%;align-self:stretch;}
+  .pl-duo-item{flex:1 1 0;min-width:0;text-align:center;}
+  .pl-num.sm{font-size:15px;line-height:1.2;}
+  .pl-num.win{color:#9fe8b0;text-shadow:0 0 5px rgba(80,230,130,.28);}
+  .pl-num.lost{color:#efb0b0;text-shadow:0 0 5px rgba(255,90,90,.22);}
+  .pl-lbl{font-size:10px;letter-spacing:1px;color:#9a8fb0;}
+  /* 玩家档案数字：全页唯一"不发光的数字"——压到比 HUD 更暗，
+     确保视觉焦点只落在 JACKPOT 上（原先双层光晕比奖池还扎眼） */
+  .pl-num{font-size:22px;font-weight:900;color:#e9dcc0;font-variant-numeric:tabular-nums;
+    line-height:1.25;white-space:nowrap;
+    text-shadow:0 0 5px rgba(245,197,66,.22);}
+  .pl-num.warn{color:#e79a9a;text-shadow:0 0 5px rgba(255,80,80,.25);}
+  .pl-reset{
+    position:relative;overflow:hidden;
+    width:100%;padding:8px 10px;border-radius:12px;cursor:pointer;
+    font-weight:800;font-size:12px;letter-spacing:1px;font-family:inherit;
+    color:#1a0a2e;background:linear-gradient(#ffd76a,#e2a90f);
+    border:1px solid rgba(255,255,255,.35);
+    box-shadow:0 6px 16px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.5);
+    transition:transform .12s ease, filter .12s ease;
+  }
+  .pl-reset .rs-txt{position:relative;z-index:2;display:block;
+    transition:transform .4s cubic-bezier(.35,.1,.25,1), opacity .4s ease;}
+  /* 悬停时文字上滑切换：原标签上移淡出，备用标签从下方滑入（沿用 Uiverse 的 text-swap） */
+  .pl-reset .rs-alt{position:absolute;left:0;top:0;width:100%;height:100%;z-index:2;
+    display:flex;align-items:center;justify-content:center;pointer-events:none;
+    transform:translateY(100%);transition:transform .4s cubic-bezier(.35,.1,.25,1);}
+  .pl-reset:hover .rs-txt{transform:translateY(-100%);opacity:0;}
+  .pl-reset:hover .rs-alt{transform:translateY(0);}
+  .pl-reset .rs-draw{position:absolute;inset:0;z-index:1;pointer-events:none;}
+  /* 四角描边：悬停时从四角向两侧描出金线（沿用 Uiverse 的边框生长动画），
+     颜色/尺寸保持不变，仅叠加描边动效 */
+  .pl-reset::before, .pl-reset::after,
+  .pl-reset .rs-draw::before, .pl-reset .rs-draw::after{
+    content:"";position:absolute;background:#fff2bf;
+    box-shadow:0 0 6px rgba(255,240,180,.9);
+    transition:all .35s cubic-bezier(.35,.1,.25,1);
+  }
+  .pl-reset::before{top:0;right:0;width:0;height:2px;}      /* 上边：从右向左生长 */
+  .pl-reset::after{bottom:0;left:0;width:0;height:2px;}     /* 下边：从左向右生长 */
+  .pl-reset .rs-draw::before{top:0;right:0;width:2px;height:0;}   /* 右边：从上向下 */
+  .pl-reset .rs-draw::after{bottom:0;left:0;width:2px;height:0;}  /* 左边：从下向上 */
+  .pl-reset:hover::before, .pl-reset:hover::after{width:100%;}
+  .pl-reset:hover .rs-draw::before, .pl-reset:hover .rs-draw::after{height:100%;}
+  .pl-reset:hover{filter:brightness(1.08);}
+  .pl-reset:active{transform:translateY(1px);}
+
+  /* ---------- 确认弹窗（重新开始） ---------- */
+  .mask{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
+    background:rgba(4,2,8,.74);}
+  .mask.show{display:flex;}
+  .modal{width:min(92vw,368px);border-radius:18px;padding:20px 22px;
+    background:linear-gradient(160deg,#2b1a42,#140d20);
+    border:1px solid rgba(245,197,66,.30);
+    box-shadow:0 24px 64px rgba(0,0,0,.72), inset 0 1px 0 rgba(255,255,255,.07);}
+  .modal h3{margin:0 0 10px;font-size:16px;letter-spacing:2px;color:var(--gold);
+    text-shadow:0 0 9px rgba(245,197,66,.35);}
+  .modal p{margin:0 0 10px;font-size:13px;line-height:1.7;color:#d9cdeb;}
+  .modal p b{color:#fff0c8;}
+  .modal .m-amt{font-size:13px;color:#9a8fb0;margin-bottom:16px;}
+  .modal .m-amt b{color:#ffd76a;font-size:16px;}
+  .modal-btns{display:flex;gap:10px;justify-content:flex-end;}
+  .modal-btns button{padding:8px 18px;border-radius:10px;font-weight:700;font-size:13px;
+    cursor:pointer;font-family:inherit;border:1px solid rgba(255,255,255,.18);}
+  .modal-btns button:disabled{opacity:.38;cursor:not-allowed;filter:grayscale(.55);}
+  .m-cancel{background:#241638;color:#d9cdeb;}
+  .m-cancel:hover{background:#2f1e47;}
+  .m-ok{background:linear-gradient(#ff7a7a,#c43030);color:#fff;border-color:rgba(255,255,255,.3);}
+  .m-ok:hover{filter:brightness(1.07);}
+  .m-ok.rescue-ok{background:linear-gradient(#ffd76a,#e2a90f);color:#1a0a2e;border-color:rgba(255,255,255,.35);}
+
+  /* ---------- 破产弹窗：出现 → 裂缝 → 裂开坠落 ---------- */
+  .bk-mask{
+    position:fixed;inset:0;z-index:9500;display:none;
+    align-items:center;justify-content:center;
+    background:rgba(4,2,8,0);
+    pointer-events:none;                 /* 纯视觉，不挡住「重新开始」按钮 */
+    transition:background .3s ease;
+  }
+  .bk-mask.show{display:flex;background:rgba(4,2,8,.62);}
+  .bk-stage{position:relative;width:min(86vw,420px);height:176px;}
+  .bk-half{
+    position:absolute;inset:0;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+    background:linear-gradient(160deg,#2b1a42,#140d20);
+    border:1px solid rgba(245,197,66,.32);
+    border-radius:16px;
+    box-shadow:0 24px 64px rgba(0,0,0,.78), inset 0 1px 0 rgba(255,255,255,.06);
+    transform-origin:50% 100%;                 /* 以底边中点为轴，张开成 V 字 */
+    transition:transform .6s cubic-bezier(.3,.05,.25,1), opacity .6s ease;
+  }
+  /* 两半用同一锯齿线切开，拼起来是完整卡片 */
+  .bk-l{clip-path:polygon(0 0,52% 0,48% 14%,55% 27%,47% 41%,54% 56%,46% 70%,52% 84%,48% 100%,0 100%);}
+  .bk-r{clip-path:polygon(52% 0,100% 0,100% 100%,48% 100%,52% 84%,46% 70%,54% 56%,47% 41%,55% 27%,48% 14%);}
+  .bk-title{
+    font-size:27px;font-weight:900;letter-spacing:5px;color:#ff8f8f;
+    text-shadow:0 0 14px rgba(255,80,80,.65),0 0 34px rgba(255,40,40,.35);
+  }
+  .bk-sub{font-size:12px;color:#9a8fb0;letter-spacing:1px;}
+  .bk-crack{
+    position:absolute;left:50%;top:-6px;bottom:-6px;width:3px;transform:translateX(-50%) rotate(1.5deg);
+    opacity:0;border-radius:3px;
+    background:linear-gradient(#fff,#ffd76a 38%,#ff6a00);
+    filter:blur(.35px) drop-shadow(0 0 9px rgba(255,180,60,.95));
+    transition:opacity .16s ease;
+  }
+  @keyframes bkIn{0%{transform:scale(.86);opacity:0}100%{transform:scale(1);opacity:1}}
+  .bk-mask.show .bk-stage{animation:bkIn .28s ease-out;}
+  .bk-mask.crack .bk-crack{opacity:1;}
+  /* 裂开后：以上半部分张开成 V 字，底边保持相连，等用户点一下或按空格才收 */
+  .bk-mask.broken .bk-l{transform:rotate(-7deg);}
+  .bk-mask.broken .bk-r{transform:rotate(7deg);}
+  .bk-mask.broken .bk-crack{opacity:0;transition:opacity .28s ease;}
+
+  /* ---------- 积分不足弹窗：同破产卡外观，但不裂开，点一下/空格才收 ---------- */
+  .nc-mask{
+    position:fixed;inset:0;z-index:9400;display:none;
+    align-items:center;justify-content:center;
+    background:rgba(4,2,8,0);
+    pointer-events:none;                 /* 纯视觉，不挡按钮 */
+    transition:background .3s ease;
+  }
+  .nc-mask.show{display:flex;background:rgba(4,2,8,.55);}
+  .nc-card{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:11px;
+    width:min(86vw,420px);padding:26px 28px;
+    background:linear-gradient(160deg,#2b1a42,#140d20);
+    border:1px solid rgba(245,197,66,.32);
+    border-radius:16px;
+    box-shadow:0 24px 64px rgba(0,0,0,.78), inset 0 1px 0 rgba(255,255,255,.06);
+    text-align:center;
+  }
+  .nc-mask.show .nc-card{animation:bkIn .28s ease-out;}
+  .nc-title{
+    font-size:25px;font-weight:900;letter-spacing:5px;color:#ffd76a;
+    text-shadow:0 0 14px rgba(245,180,40,.6),0 0 34px rgba(255,140,20,.32);
+  }
+  .nc-sub{font-size:13px;color:#cfc2e2;letter-spacing:.6px;}
+  .nc-sub b{color:#ffd76a;}
+  .nc-hint{font-size:11px;color:#8f84a8;letter-spacing:.4px;line-height:1.5;}
+
+  /* ---------- 银行卡（Visa 风格卡面，可存可取储蓄账户；可收起，收起后只剩圆形卡标按钮） ---------- */
+  .bankcard{display:flex;flex-direction:column;gap:8px;width:var(--bank-w,248px);
+    position:absolute;left:100%;bottom:0;margin-left:16px;}
+  .bc-panel{display:flex;flex-direction:column;gap:8px;position:relative;}
+  /* 收起按钮：坐在卡片右上角、压着边框外侧半出（-11px = 半径，正好一半在卡外）。
+     必须挂在 .bc-panel 上，不能放 .bc-face 里——那里 overflow:hidden 会把出界部分裁掉。 */
+  .bc-collapse{
+    position:absolute;right:-11px;top:-11px;z-index:4;
+    width:22px;height:22px;padding:0;border-radius:50%;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    font-family:inherit;font-size:14px;font-weight:700;line-height:1;
+    color:#fff;background:rgba(12,6,22,.78);
+    border:1px solid rgba(255,255,255,.45);
+    box-shadow:0 2px 8px rgba(0,0,0,.55);
+    transition:background .15s, transform .12s;}
+  .bc-collapse:hover{background:rgba(12,6,22,.95);border-color:rgba(255,255,255,.7);}
+  .bc-collapse:active{transform:scale(.94);}
+  /* 收起态：圆形卡标按钮（穿与卡面同一套渐变色，一眼认得出是那张卡） */
+  .bc-mini{
+    display:none;width:72.5px;height:72.5px;padding:0;border-radius:50%;cursor:pointer;
+    align-items:center;justify-content:center;
+    background-image:radial-gradient(circle 210px at 9% 80.3%,
+      rgba(55,60,245,1) 0%, rgba(234,161,15,.9) 100.2%);
+    border:1px solid rgba(255,255,255,.30);
+    box-shadow:0 10px 24px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.28),
+      0 0 0 3px rgba(245,197,66,.16);
+    transition:transform .12s, filter .15s, box-shadow .15s;}
+  .bc-mini:hover{filter:brightness(1.09);box-shadow:0 10px 26px rgba(0,0,0,.6),
+    inset 0 1px 0 rgba(255,255,255,.3), 0 0 0 3px rgba(245,197,66,.34);}
+  .bc-mini:active{transform:scale(.95);}
+  .bc-mini-ico{width:42.5px;height:auto;filter:drop-shadow(0 1px 3px rgba(0,0,0,.45));}
+  /* 收起态：面板只隐身不塌陷（卡片位置不跳动），圆形卡标按钮贴到卡片右上角 */
+  .bankcard.collapsed{width:var(--bank-w,248px);gap:0;pointer-events:none;}
+  .bankcard.collapsed .bc-panel{visibility:hidden;}
+  .bankcard.collapsed .bc-mini{display:flex;position:absolute;right:0;top:0;z-index:5;
+    pointer-events:auto;}
+  /* 卡面：仿 Uiverse visa-card —— 径向蓝金渐变、圆角卡片、右上角卡组织标、
+     卡号位（放余额）、底部 名称/有效期/安全码 三栏小标签 */
+  .bc-face{position:relative;border-radius:10px;overflow:hidden;height:150px;padding:16px;
+    display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:8px;
+    background-image:radial-gradient(circle 897px at 9% 80.3%,
+      rgba(55,60,245,1) 0%, rgba(234,161,15,.9) 100.2%);
+    border:1px solid rgba(255,255,255,.12);
+    box-shadow:0 12px 30px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.22);}
+  .bc-bank-name{position:absolute;top:13px;left:16px;font-size:11px;font-weight:800;
+    letter-spacing:2px;color:#fff;opacity:.92;text-shadow:0 1px 3px rgba(0,0,0,.45);}
+  .bc-logo{position:absolute;top:0;right:0;display:flex;align-items:center;justify-content:flex-end;
+    padding:12px 16px;pointer-events:none;}
+  .bc-logo-svg{height:30px;width:auto;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4));}
+  .bc-num{width:100%;font-family:"Courier New",ui-monospace,monospace;font-size:22px;font-weight:700;
+    letter-spacing:2px;color:#fff;line-height:1.1;font-variant-numeric:tabular-nums;
+    text-shadow:0 1px 4px rgba(0,0,0,.35);}
+  .bc-meta{width:100%;display:flex;gap:10px;align-items:flex-end;}
+  .bc-mi{display:flex;flex-direction:column;min-width:0;}
+  .bc-mi-name{width:60%;}
+  .bc-mi-mid{width:30%;}
+  .bc-mi-end{width:10%;}
+  .bc-ml{font-size:8px;letter-spacing:1.5px;color:#e2e2e2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .bc-ctrl{display:flex;flex-direction:column;gap:6px;}
+  .bc-amt{display:flex;gap:6px;}
+  .bc-q{flex:1;padding:6px 0;border-radius:8px;cursor:pointer;font-weight:700;font-size:12px;
+    color:#1a0a2e;background:linear-gradient(#ffd76a,#e2a90f);border:1px solid rgba(255,255,255,.35);
+    font-family:inherit;transition:filter .12s ease, transform .12s ease;}
+  .bc-q:hover{filter:brightness(1.08);}
+  .bc-q:active{transform:translateY(1px);}
+  .bc-q:disabled{opacity:.4;cursor:not-allowed;filter:none;}
+  .bc-in{flex:1.4;min-width:0;padding:6px 8px;border-radius:8px;font-family:inherit;font-size:12px;
+    color:#ffe9a8;background:rgba(10,6,18,.6);border:1px solid rgba(245,197,66,.4);text-align:center;}
+  .bc-in::placeholder{color:#9a8fb0;}
+  .bc-in:disabled{opacity:.5;cursor:not-allowed;}
+  .bc-actions{display:flex;gap:6px;}
+  .bc-dep,.bc-wd{flex:1;padding:8px 0;border-radius:9px;cursor:pointer;font-weight:800;font-size:12px;
+    letter-spacing:1px;font-family:inherit;border:1px solid transparent;
+    transition:filter .12s ease, transform .12s ease;}
+  .bc-dep{color:#1a0a2e;background:linear-gradient(#9dffb9,#36c46a);border-color:rgba(255,255,255,.35);}
+  .bc-wd{color:#fff;background:linear-gradient(#ff9a6a,#d8502a);border-color:rgba(255,255,255,.3);}
+  .bc-dep:hover,.bc-wd:hover{filter:brightness(1.08);}
+  .bc-dep:active,.bc-wd:active{transform:translateY(1px);}
+  .bc-dep:disabled,.bc-wd:disabled{opacity:.4;cursor:not-allowed;filter:none;}
+
+  @media (max-width:920px){
+    .machine{flex-direction:column;align-items:center;gap:14px;}
+    .bankcard{position:static;left:auto;margin-left:0;}   /* 竖排时银行卡回到正常流 */
+    .jackpot,.player,.bankcard{align-self:center;width:min(100%,600px);}
+    .jp-body{flex-direction:row;justify-content:center;gap:16px;}
+    .pl-body{flex-direction:row;justify-content:center;gap:14px 20px;flex-wrap:wrap;}
+    /* 窄屏 .pl-body 转横排：撤掉撑满宽度，赢/输两列收拢居中，不再被 space-between 拉到两端 */
+    .pl-duo{width:auto;justify-content:center;gap:22px;}
+    .pl-reset{width:auto;align-self:center;padding:8px 26px;}
+    /* 窄屏是流式布局，收起时不能再留整块空白：面板直接塌陷，圆钮回到文档流 */
+    .bankcard.collapsed{width:auto;align-self:center;}
+    .bankcard.collapsed .bc-panel{display:none;}
+    .bankcard.collapsed .bc-mini{position:static;}
+  }
+
+  /* ---------- cabinet ---------- */
+  .cabinet{
+    position:relative;width:690px;padding:16px;border-radius:28px;
+    background:linear-gradient(160deg,#321d48 0%,#1a1128 42%,#0d0914 100%);
+    border:2px solid rgba(245,197,66,.34);
+    box-shadow:
+      0 34px 90px rgba(0,0,0,.72),
+      0 0 70px rgba(120,60,220,.20),
+      inset 0 1px 0 rgba(255,255,255,.09),
+      inset 0 -2px 8px rgba(0,0,0,.7);
+  }
+  .cabinet::before{
+    content:"";position:absolute;inset:6px;border-radius:22px;pointer-events:none;
+    border:1px solid rgba(255,255,255,.05);
+  }
+  /* 柜机列：柜机本体 + 其下方的 SPIN。SPIN 移出卡片、置于柜机下方，
+     避免英语下三个步进器 + SPIN 并排时超出 600px 柜机宽度 */
+  .cab-col{display:flex;flex-direction:column;align-items:stretch;}
+  .cab-col .btn.spin{flex:0 0 auto;width:100%;margin-top:14px;}
+
+  /* ---------- marquee ---------- */
+  .marquee{
+    position:relative;height:54px;margin-bottom:14px;border-radius:14px;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(#40200f,#1b0c07);
+    border:1px solid rgba(245,197,66,.32);
+    box-shadow:inset 0 2px 12px rgba(0,0,0,.7), 0 0 22px rgba(255,140,20,.12);
+  }
+  .marquee .title{
+    font-weight:900;font-size:23px;letter-spacing:5px;color:#fff8ec;
+    text-shadow:0 0 6px #ffb300,0 0 16px #ff6a00,0 0 26px #ff3d00,0 2px 2px #000;
+  }
+  .bulbs{position:absolute;left:12px;right:12px;height:8px;display:flex;align-items:center;justify-content:space-between;pointer-events:none;}
+  .bulbs.top{top:4px;} .bulbs.bot{bottom:4px;}
+  .bulb{width:6px;height:6px;border-radius:50%;background:#ffd76a;
+    box-shadow:0 0 7px 2px rgba(255,180,40,.85);animation:blink 1.15s infinite;}
+  .bulb:nth-child(2n){animation-delay:.28s;}
+  .bulb:nth-child(3n){animation-delay:.55s;}
+  .bulb:nth-child(4n){animation-delay:.8s;}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+
+  /* ---------- screen / reels ---------- */
+  .screen{
+    position:relative;padding:16px;border-radius:16px;
+    background:linear-gradient(#0a0710,#130c1d);
+    border:1px solid rgba(255,255,255,.06);
+    box-shadow:inset 0 0 34px rgba(0,0,0,.92), inset 0 0 2px rgba(255,255,255,.18);
+  }
+  .screen::after{
+    content:"";position:absolute;inset:0;border-radius:16px;pointer-events:none;
+    background:linear-gradient(115deg,rgba(255,255,255,.10) 0%,rgba(255,255,255,0) 26%,rgba(255,255,255,0) 74%,rgba(255,255,255,.04) 100%);
+  }
+  .reels{display:flex;gap:10px;}
+  .reel{
+    position:relative;width:116px;height:360px;border-radius:12px;overflow:hidden;
+    background:linear-gradient(180deg,#0b0712,#171023 50%,#0b0712);
+    box-shadow:inset 0 0 22px rgba(0,0,0,.95), inset 0 0 1px rgba(255,255,255,.16);
+  }
+  .reel::before,.reel::after{content:"";position:absolute;left:0;right:0;height:86px;z-index:2;pointer-events:none;}
+  .reel::before{top:0;background:linear-gradient(#0a0710,rgba(10,7,16,0));}
+  .reel::after{bottom:0;background:linear-gradient(rgba(10,7,16,0),#0a0710);}
+  .strip{will-change:transform;backface-visibility:hidden;}
+  /* 旋转时不再给 5520px 高的长条加 filter:blur —— paint 级滤镜会逐帧重绘、且停车前移除时
+     还要重新栅格化整条，正是「快到停时掉帧」的来源。滚动本身够快，肉眼已有拖影。 */
+  .cell{height:120px;display:flex;align-items:center;justify-content:center;}
+  .sym{width:78px;height:78px;filter:drop-shadow(0 3px 4px rgba(0,0,0,.65));}
+
+  /* ---------- paylines overlay ---------- */
+  .lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3;overflow:visible;}
+  /* 投注连线：平时完全不显示，只有中奖线（.win）才亮起 */
+  .pline{fill:none;stroke:#ffe14d;stroke-width:4;stroke-linejoin:round;stroke-linecap:round;
+    opacity:0;visibility:hidden;transition:opacity .18s ease;}
+  .pline.win{opacity:1;visibility:visible;filter:drop-shadow(0 0 8px rgba(255,220,60,.95));
+    animation:lineflash .5s ease-in-out 4;}
+  @keyframes lineflash{0%,100%{opacity:.55}50%{opacity:1}}
+
+  /* ---------- HUD ---------- */
+  .hud{display:flex;gap:10px;margin-top:14px;}
+  .meter{
+    flex:1;border-radius:12px;padding:9px 6px;text-align:center;position:relative;
+    background:linear-gradient(#1c1327,#120c1a);
+    border:3px solid rgba(226,169,15,.62);      /* 回退：不支持 mask 时就是加粗的金边 */
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  /* 可动画的角度变量：@property 注册后 <angle> 才能被 keyframes 插值，
+     conic-gradient 的起始角一变，金环就绕圈转 —— 比 hue-rotate 靠谱：
+     hue-rotate 会把金色转成红绿蓝，这里底色始终锁在黄金色域内。 */
+  @property --meter-gold-angle{syntax:"<angle>";initial-value:0deg;inherits:false;}
+  /* 黄金渐变描边（3px）：用 mask 把渐变层内部挖空成"环"，圆角沿用卡片自身 border-radius。
+     border-image 做不到圆角渐变，所以在支持的浏览器里改用这层伪元素。 */
+  @supports ((-webkit-mask-composite:xor) or (mask-composite:exclude)){
+    .meter{border:0;padding:12px 9px;}
+    .meter::before{
+      content:"";position:absolute;inset:0;border-radius:inherit;padding:3px;pointer-events:none;
+      /* 首尾同为暗铜 #5e3400，转到 360° 时无缝衔接；var 带 0deg 兜底，
+         万一浏览器不认 @property，也只是一圈静止的金环，不会整块消失。 */
+      background:conic-gradient(from var(--meter-gold-angle,0deg),
+        #5e3400 0deg, #e2a90f 42deg, #fff6d0 88deg, #ffd76a 132deg,
+        #8a5a00 188deg, #f5c542 248deg, #ffe9a8 300deg, #5e3400 360deg);
+      animation:meterGoldSpin 4s linear infinite;
+      -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+      -webkit-mask-composite:xor;
+      mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+      mask-composite:exclude;
+    }
+    /* 中奖定格：停掉绕圈动画，并把相位锁在一圈纯亮金上。
+       不能只 animation:none 了事 —— 那会退回 0deg 相位，顶部正好压在暗铜
+       #5e3400 上，中奖时反而显得发灰。这组静态渐变最暗只到 #c8890f。 */
+    .meter.win::before{
+      animation:none;
+      background:conic-gradient(from -45deg,
+        #fff6d0 0deg, #ffd76a 55deg, #e8b93a 120deg, #c8890f 180deg,
+        #f5c542 240deg, #ffe9a8 300deg, #fff6d0 360deg);
+    }
+    /* 免费转：卡片出现（.on）时边框同样定格为静态亮金，停止绕圈流动 */
+    .meter.free.on::before{
+      animation:none;
+      background:conic-gradient(from -45deg,
+        #fff6d0 0deg, #ffd76a 55deg, #e8b93a 120deg, #c8890f 180deg,
+        #f5c542 240deg, #ffe9a8 300deg, #fff6d0 360deg);
+    }
+  }
+  @keyframes meterGoldSpin{ to{ --meter-gold-angle:360deg; } }
+  @media (prefers-reduced-motion: reduce){
+    .meter::before{animation:none;}
+  }
+  .meter .label{font-size:10px;letter-spacing:2px;color:var(--muted);}
+  /* 这套 10px + 2px 字距是为英文大写（CREDITS/LINES/BET/LINE…）定的：大写字母笔画简单，
+     宽字距是装饰节奏。换成汉字后 10px 让笔画落到 1px 以下（发灰变细），
+     2px 字距比汉字本身还宽，两个字被推散、显得又小又孤立 —— 中文单独给度量并提亮。 */
+  html[lang="zh-CN"] .meter .label{font-size:11.5px;letter-spacing:.5px;font-weight:600;color:#b7a8d2;}
+  .meter .val{font-size:22px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums;
+    color:var(--gold);text-shadow:0 0 10px rgba(245,197,66,.4);
+    transition:transform .26s cubic-bezier(.2,1.35,.4,1), color .2s ease, text-shadow .2s ease;}
+  /* 中奖：数字放大 1.25 并转成高亮绿，一直保持到玩家继续（下注时 setWin(0) 摘掉 .win）才缩回。
+     卡片 padding 有 12px，放大后上下各多出约 3px，正好吃在留白里，不会顶到金边。 */
+  .meter.win .val{color:#9dffb9;
+    text-shadow:0 0 16px rgba(110,240,138,.95), 0 0 34px rgba(60,220,110,.55);
+    transform:scale(1.25);}
+  /* 每局中奖再补一记短促爆亮，随后回落到上面的常亮高亮 */
+  .meter.hit .val{animation:winValGlow 1.1s ease-out;}
+  @keyframes winValGlow{
+    0%{filter:brightness(2.1) saturate(1.4);}
+    100%{filter:none;}
+  }
+  .meter.hit{animation:meterpop .5s ease;}
+  @keyframes meterpop{0%{transform:scale(1)}40%{transform:scale(1.08)}100%{transform:scale(1)}}
+  .meter.free{display:none;}
+  .meter.free.on{display:block;}
+  .meter.free .val{color:#7fd0ff;text-shadow:0 0 12px rgba(120,200,255,.6);}
+  /* 免费转激活时数字放大 1.25×，与中奖卡片同款（保留蓝色高亮） */
+  .meter.free.on .val{transform:scale(1.25);}
+
+  /* ---------- controls ---------- */
+  .controls{display:flex;gap:14px;margin-top:20px;align-items:stretch;justify-content:center;}
+  .btn{
+    flex:1;height:54px;border-radius:14px;cursor:pointer;
+    border:1px solid rgba(245,197,66,.32);
+    background:linear-gradient(#2b1a10,#190f08);color:var(--gold);
+    font-size:19px;font-weight:800;letter-spacing:2px;
+    box-shadow:0 6px 16px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08);
+    transition:transform .08s, filter .18s;
+  }
+  .btn:hover{filter:brightness(1.16);}
+  .btn:active{transform:translateY(2px) scale(.99);}
+  .btn.spin{
+    /* 内部面板 = 黄金光带，可横向流动；外层 = 静态暗金包边（两层各管各的）。
+       光带 90deg 且首尾同色（#ffd76a），配合 background-size:200% + repeat-x，
+       动画跑满一个周期正好衔接，不会有接缝；配色全部留在亮金区间，
+       避免暗块从深棕文字下方扫过导致看不清。 */
+    background-image:
+      linear-gradient(90deg,
+        #ffd76a 0%, #fffbe4 12%, #ffe066 26%, #f0b100 38%,
+        #fff3bc 50%, #ffcf3d 62%, #e8ad00 74%, #fffbe4 88%, #ffd76a 100%),
+      linear-gradient(160deg,#d9a63a 0%,#9a6408 30%,#5e3400 55%,#b07a10 80%,#cf9c36 100%);
+    background-size:200% 100%, 100% 100%;
+    background-position:0 0, 0 0;
+    background-repeat:repeat-x, no-repeat;
+    background-origin:padding-box, border-box;
+    background-clip:padding-box, border-box;
+    border:3px solid transparent;
+    color:#3a2200;font-size:20px;letter-spacing:4px;
+    box-shadow:0 10px 26px rgba(245,180,20,.40),
+               0 0 20px rgba(255,200,70,.30),
+               inset 0 1px 0 rgba(255,255,255,.6);
+    display:flex;align-items:center;justify-content:center;gap:9px;
+    position:relative;
+  }
+  /* 悬停：黄金光带整体向左滚（200% = 恰好一个渐变周期，循环无缝）。
+     2.6s -> 1.3s：流速翻倍，光带更明显地"跑起来"。 */
+  .btn.spin:hover{animation:spinGoldFlow 1.3s linear infinite;}
+  @keyframes spinGoldFlow{
+    from{background-position:0 0, 0 0;}
+    to  {background-position:200% 0, 0 0;}
+  }
+  /* 不可用时不必再跑流光 */
+  .btn.spin:disabled:hover,
+  .btn.spin.short:hover{animation:none;}
+  @media (prefers-reduced-motion: reduce){
+    .btn.spin:hover{animation:none;}
+  }
+  /* 积分不足：按钮保持可点（点了弹提示），但明显变暗 */
+  .btn.spin.short{filter:saturate(.28) brightness(.6);cursor:not-allowed;}
+  /* SPIN 按钮里的「空格」快捷键提示 */
+  .kb-space{
+    font:inherit;font-size:11px;font-weight:800;letter-spacing:0;line-height:1.5;
+    padding:2px 7px;border-radius:6px;
+    background:rgba(58,34,0,.16);color:#4a2c00;
+    border:1px solid rgba(58,34,0,.32);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.45);
+  }
+  .btn.small{flex:0 0 62px;font-size:24px;line-height:1;}
+  .btn:disabled{opacity:.4;cursor:not-allowed;filter:grayscale(.5);}
+  /* 无边框版：去掉长方形卡片底与描边，三组步进器直接悬浮在柜机背景上 */
+  .stepgrp{display:flex;align-items:center;justify-content:center;gap:6px;padding:0;flex:1 1 0;min-width:0;min-height:44px;
+    background:none;border:0;position:relative;}
+  /* 「已达最大值」小徽标：默认藏在组上方（不占布局、不撑高卡片），到顶时淡入上浮。
+     暗金底 + 金字，跟 HUD 卡的深紫底金边同族，只做状态提示不抢焦点。 */
+  .max-tag{
+    position:absolute;left:50%;top:-12px;z-index:3;
+    padding:1px 7px;border-radius:999px;white-space:nowrap;
+    font-size:9.5px;font-weight:800;letter-spacing:.6px;line-height:1.5;
+    color:#ffd76a;text-shadow:0 0 6px rgba(255,190,60,.55);
+    background:linear-gradient(180deg,rgba(58,40,8,.96),rgba(28,18,2,.96));
+    border:1px solid rgba(245,197,66,.55);
+    box-shadow:0 3px 10px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.10);
+    opacity:0;pointer-events:none;
+    transform:translate(-50%,3px) scale(.92);
+    transition:opacity .18s ease, transform .18s ease;
+  }
+  /* 提示只在"点 ▲ 抵达顶部"的瞬间浮出，2s 后淡出（.max-flash 由 JS 临时挂上）；
+     .at-max 则是常驻状态：只负责 ▲ 压暗 + 数值提亮，安静地表明没有更高档位（标签颜色不变）。 */
+  .stepgrp.max-flash .max-tag{opacity:1;transform:translate(-50%,0) scale(1);}
+  /* 到顶后 ▲ 压暗（仍可点，只是视觉上表明没有更高档位），标签也提亮一档呼应 */
+  .stepgrp.at-max .btn.small:last-of-type{opacity:.42;}
+  /* 到顶只提亮"数值"，标签颜色保持三组统一（不再随到顶变金，避免面额/线数/每线三组颜色不一致） */
+  .stepgrp.at-max .steplbl b{color:#ffd76a;}
+  /* 步进按钮：圆形 + 三角形图标（▲ 增加 / ▼ 减少）。宽度仍锁 34px，
+     与三卡片等宽等距的既有布局完全兼容（只把高度从 44 收到 34 做成正圆）。 */
+  .stepgrp .btn.small{flex:0 0 34px;width:34px;height:34px;padding:0;border-radius:50%;
+    display:inline-flex;align-items:center;justify-content:center;font-size:0;}
+  .stepgrp .btn.small .tri{width:12px;height:12px;display:block;fill:currentColor;
+    stroke:currentColor;stroke-width:1.4;stroke-linejoin:round;pointer-events:none;}
+  /* 圆形按钮的悬停高光：沿用 .btn 的亮化，再补一圈金色外发光 */
+  .stepgrp .btn.small:hover{filter:brightness(1.18);
+    box-shadow:0 6px 18px rgba(245,197,66,.22), inset 0 1px 0 rgba(255,255,255,.10);}
+  .steplbl{font-size:12px;color:#cbb8e6;white-space:nowrap;}
+  .steplbl b{color:var(--gold);font-size:14px;}
+
+  /* ---------- 猜大小 按钮行（自动转已移除：真机无 autoplay） ---------- */
+  .featrow{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:12px;flex-wrap:wrap;}
+  .btn.feat{padding:6px 14px;border-radius:9px;font-size:12px;font-weight:800;letter-spacing:1px;
+    color:#1a0a2e;background:linear-gradient(#ffd76a,#e2a90f);border:1px solid rgba(255,255,255,.35);
+    cursor:pointer;font-family:inherit;transition:filter .12s ease, transform .12s ease;}
+  .btn.feat:hover{filter:brightness(1.08);}
+  .btn.feat:active{transform:translateY(1px);}
+  .btn.feat:disabled{opacity:.4;cursor:not-allowed;filter:none;}
+  .btn.feat.on{background:linear-gradient(#ff9a6a,#d8502a);color:#fff;border-color:rgba(255,255,255,.3);}
+  .btn.feat.gamble{background:linear-gradient(#c98bff,#7a4fd0);color:#fff;border-color:rgba(255,255,255,.3);}
+  /* 这一行只剩它一个：.btn 基础是 flex:1 会被拉成通栏，这里收成居中的胶囊键 */
+  .featrow .btn.gamble{flex:0 0 auto;width:auto;height:40px;padding:0 18px;border-radius:11px;
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;}
+  .featrow .btn.gamble .gm-ico{width:13px;height:18px;flex:0 0 auto;line-height:0;}
+  .featrow .btn.gamble .gm-ico svg{width:100%;height:100%;display:block;}
+  /* 可押注时高亮：金边 + 外发光 + 呼吸，图标带光；不可用时保持压暗（.btn.feat:disabled 已给 opacity） */
+  .featrow .btn.gamble:not(:disabled){
+    border-color:rgba(255,235,170,.9);
+    box-shadow:0 0 0 2px rgba(255,215,106,.35), 0 0 20px rgba(201,139,255,.75),
+               inset 0 1px 0 rgba(255,255,255,.35);
+    animation:gambleReady 1.5s ease-in-out infinite;
+  }
+  .featrow .btn.gamble:not(:disabled) .gm-ico{filter:drop-shadow(0 0 4px rgba(255,215,106,.85));}
+  @keyframes gambleReady{
+    0%,100%{transform:none;      filter:brightness(1);}
+    50%    {transform:translateY(-1px) scale(1.04); filter:brightness(1.14);}
+  }
+  /* 猜大小弹窗：红/黑双键 + 结果行 */
+  .gm-btns button{flex:1;font-weight:800;}
+  #gmRed{background:linear-gradient(#ff8a8a,#c83030);color:#fff;border-color:rgba(255,255,255,.3);}
+  #gmBlack{background:linear-gradient(#4a4a66,#20202e);color:#fff;border-color:rgba(255,255,255,.3);}
+  .gm-result{margin-top:8px;min-height:18px;text-align:center;font-size:12px;color:#a294bd;letter-spacing:.5px;}
+  /* 翻牌开奖：真机 Double-up 的「翻一张牌猜红黑」，牌面花色决定输赢 */
+  .gm-stage{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px;min-height:96px;}
+  .gm-card{width:62px;height:86px;flex:0 0 auto;perspective:640px;}
+  .gm-card-inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;
+    transition:transform .42s cubic-bezier(.3,.9,.25,1);}
+  .gm-card.down .gm-card-inner{transform:rotateY(180deg);}   /* 默认扣着，只看牌背 */
+  .gm-face{position:absolute;inset:0;border-radius:9px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+    backface-visibility:hidden;-webkit-backface-visibility:hidden;
+    border:2px solid rgba(255,255,255,.14);background:#1a1028;}
+  .gm-front{background:linear-gradient(160deg,#fffdf6,#ece4d4);border-color:rgba(0,0,0,.28);
+    box-shadow:0 8px 18px rgba(0,0,0,.55), inset 0 0 0 2px rgba(255,255,255,.75);
+    transition:box-shadow .3s ease, border-color .3s ease;}
+  .gm-rank{font-family:Georgia,"Times New Roman",serif;font-size:20px;font-weight:900;line-height:1;}
+  .gm-suit{font-size:24px;line-height:1;margin-top:3px;}
+  .gm-card.red .gm-rank,.gm-card.red .gm-suit{color:#d3262b;}
+  .gm-card.red .gm-front{border-color:#ff6a6a;box-shadow:0 0 22px rgba(255,70,70,.6), inset 0 0 0 2px rgba(255,255,255,.75);}
+  .gm-card.black .gm-rank,.gm-card.black .gm-suit{color:#15151d;}
+  .gm-card.black .gm-front{border-color:#cfd6e6;box-shadow:0 0 20px rgba(190,205,235,.45), inset 0 0 0 2px rgba(255,255,255,.75);}
+  .gm-back{transform:rotateY(180deg);border-color:rgba(245,197,66,.5);
+    background:repeating-linear-gradient(45deg,#3a2260 0 6px,#2b1a48 6px 12px);}
+  .gm-back span{font-size:24px;font-weight:900;color:#c9a7ff;text-shadow:0 0 12px rgba(180,140,255,.7);}
+  .gm-verdict{font-size:17px;font-weight:900;letter-spacing:1px;opacity:0;transform:translateY(5px);
+    transition:opacity .24s ease, transform .24s ease;font-variant-numeric:tabular-nums;}
+  .gm-verdict.show{opacity:1;transform:none;}
+  .gm-verdict.win{color:#9dffb9;text-shadow:0 0 14px rgba(110,255,165,.55);}
+  .gm-verdict.lose{color:#ff8f8f;text-shadow:0 0 14px rgba(255,80,80,.5);}
+  .gm-verdict.cash{color:#ffe9a8;text-shadow:0 0 12px rgba(245,197,66,.45);}
+  /* 👆 指针：跟着鼠标 / 手指 / 键盘焦点在三个按钮之间移动 */
+  #gambleMask .modal{position:relative;}
+  .gm-point{position:absolute;left:0;top:0;margin-left:-9px;font-size:17px;line-height:1;
+    opacity:0;pointer-events:none;user-select:none;
+    transition:left .17s cubic-bezier(.3,.9,.25,1), top .17s cubic-bezier(.3,.9,.25,1), opacity .17s ease;
+    filter:drop-shadow(0 3px 5px rgba(0,0,0,.7));}
+  .gm-point.on{opacity:.96;}
+  .gm-point.tap{animation:gmPointTap .42s cubic-bezier(.2,1.4,.4,1);}
+  @keyframes gmPointTap{0%{transform:translateY(0) scale(1);}45%{transform:translateY(5px) scale(1.16);}100%{transform:translateY(0) scale(1);}}
+
+  .srcrow{display:flex;align-items:center;gap:10px;margin-top:10px;}
+  /* ---------- 左上角：去玩百家乐（与右上角工具条同款按钮语言，fixed 不受 zoom 影响） ---------- */
+  .homelink{
+    position:fixed;top:14px;left:20px;z-index:70;
+    display:inline-flex;align-items:center;gap:8px;
+    padding:7px 14px;border-radius:11px;text-decoration:none;
+    font-size:12.5px;font-weight:800;letter-spacing:1px;
+    color:var(--gold);background:linear-gradient(#2b1a10,#190f08);
+    border:1px solid rgba(245,197,66,.32);
+    box-shadow:0 6px 16px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08);
+    transition:filter .15s ease, transform .08s ease, box-shadow .15s ease;
+  }
+  .homelink:hover{filter:brightness(1.18);
+    box-shadow:0 8px 22px rgba(245,197,66,.22), inset 0 1px 0 rgba(255,255,255,.10);}
+  .homelink:active{transform:translateY(1px);}
+  .homelink .hl-ico{width:26px;height:17px;display:block;}
+  .homelink .hl-arrow{opacity:.75;font-weight:900;}
+
+  /* file:// + Firefox 内核时提示"两页不同源"，见 warnFileOrigin() */
+  .filewarn{position:fixed;left:0;right:0;bottom:0;z-index:9999;display:flex;align-items:center;gap:12px;
+    padding:8px 14px;background:#3a1420;border-top:1px solid rgba(200,162,74,.55);color:#ffe9b8;
+    font-size:12.5px;line-height:1.45;box-shadow:0 -6px 18px rgba(0,0,0,.45);}
+  .filewarn span{flex:1;}
+  .filewarn b{color:#f5c542;}
+  .filewarn i{color:#e8c07a;font-style:normal;font-size:11.5px;opacity:.85;}
+  .filewarn button{flex:none;background:none;border:1px solid rgba(200,162,74,.45);color:#ffe9b8;
+    border-radius:6px;width:26px;height:26px;font-size:16px;line-height:1;cursor:pointer;}
+  /* 间距用 margin 而非 flex gap：老浏览器不支持 flex gap 会导致两个按钮贴死/重叠 */
+  .langrow{display:flex;justify-content:flex-end;align-items:center;margin-top:6px;}
+  .langrow > *{flex:0 0 auto;}                 /* 任何子项都不允许被压缩（压缩会让喇叭按钮溢出压到 EN） */
+  .langrow > * + *{margin-left:14px;}
+  .langrow .btn.small{min-width:46px;font-size:13px;padding:2px 9px;letter-spacing:1px;}
+  /* 顶部工具条：喇叭 + EN 已移出柜机卡片，固定到网页右上角，无底框（纯按钮悬浮）。
+     用 fixed 而非 absolute/sticky —— fixed 相对视口定位，页面缩放(zoom)与滚动都不影响它。 */
+  .topbar{position:fixed;top:14px;right:20px;z-index:70;margin-top:0;}
+  /* 喇叭按钮做成更紧凑的图标按钮：显式覆盖 .btn.small 的 flex:0 0 62px 固定基准 */
+  .volwrap .btn.small{flex:0 0 38px;width:38px;min-width:38px;padding:2px 0;}
+
+  /* ---------- 音量浮层（点喇叭展开）：与百家乐同款，只留一根竖直滑杆 ---------- */
+  .volwrap{position:relative;display:flex;align-items:center;}
+  .vol-pop{
+    /* 工具条在页面顶部，浮层必须向下展开（原先向上展开会直接顶出视口外）；
+       right:0 让浮层右缘与喇叭按钮对齐，向左延伸，不会越出屏幕右边界 */
+    position:absolute;right:0;top:calc(100% + 13px);padding:8px;border-radius:12px;
+    display:none;z-index:45;
+    background:linear-gradient(160deg,#2b1a42,#140d20);
+    border:1px solid rgba(245,197,66,.30);
+    box-shadow:0 16px 40px rgba(0,0,0,.72), inset 0 1px 0 rgba(255,255,255,.06);
+  }
+  .vol-pop.show{display:block;}
+  .vol-pop::after{content:"";position:absolute;right:14px;top:-6px;width:10px;height:10px;
+    background:#2b1a42;border-left:1px solid rgba(245,197,66,.30);
+    border-top:1px solid rgba(245,197,66,.30);transform:rotate(45deg);}   /* 14px = 38px 喇叭按钮中心 */
+  /* 竖直滑杆：4px 细轨 + 14px 金色圆钮 / 纯金填充，0% 在底、100% 在顶 */
+  .vol-slider{position:relative;width:52px;height:148px;margin:0 auto;padding:12px 0;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;touch-action:none;-webkit-user-select:none;user-select:none;
+    outline:none;}
+  .vol-slider:focus-visible .vol-track{box-shadow:0 0 0 2px rgba(245,197,66,.38);}
+  .vol-track{position:relative;width:4px;height:100%;border-radius:3px;
+    background:rgba(255,255,255,.14);}
+  .vol-fill{position:absolute;left:0;right:0;bottom:0;height:100%;border-radius:3px;
+    background:#ffd76a;}
+  .vol-knob{position:absolute;left:50%;width:14px;height:14px;border-radius:50%;
+    transform:translate(-50%,50%);
+    background:radial-gradient(circle at 35% 30%,#fff6d0,#e2a90f);
+    border:1px solid #7a4a00;
+    box-shadow:0 0 8px rgba(255,200,60,.8), 0 2px 4px rgba(0,0,0,.6);
+    transition:box-shadow .15s;}
+  .vol-slider.drag .vol-knob{box-shadow:0 0 12px rgba(255,200,60,.95), 0 2px 4px rgba(0,0,0,.6);}
+  .srcbtn{
+    flex:0 0 auto;padding:7px 12px;border-radius:10px;cursor:pointer;
+    border:1px solid rgba(245,197,66,.28);
+    background:linear-gradient(#1c1327,#120c1a);color:#c9b8e0;
+    font-size:12px;letter-spacing:.5px;font-weight:600;
+    transition:filter .15s;
+  }
+  .srcbtn:hover{filter:brightness(1.15);}
+  .srcbtn.on{color:#3a2200;background:linear-gradient(#ffd857,#e8a300);border-color:#ffd857;}
+  .srcmsg{font-size:11px;color:#8f84a8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+  /* ---------- 随机源选择菜单 ---------- */
+  .srcwrap{position:relative;flex:0 0 auto;}
+  .src-pop{
+    position:absolute;left:0;top:calc(100% + 8px);width:258px;z-index:50;display:none;padding:6px;
+    border-radius:12px;
+    background:linear-gradient(160deg,#241638,#140d20);
+    border:1px solid rgba(245,197,66,.30);
+    box-shadow:0 16px 40px rgba(0,0,0,.72), inset 0 1px 0 rgba(255,255,255,.06);
+  }
+  .src-pop.show{display:block;}
+  .src-opt{
+    display:flex;align-items:center;gap:9px;width:100%;padding:9px 10px;border-radius:9px;
+    background:none;border:0;cursor:pointer;text-align:left;font-family:inherit;
+    color:#d9cdeb;font-size:12.5px;transition:background .12s;
+  }
+  .src-opt:hover{background:rgba(245,197,66,.10);}
+  .src-opt.cur{background:rgba(245,197,66,.16);color:#fff0c8;}
+  .so-dot{width:7px;height:7px;border-radius:50%;background:#5d5470;flex:0 0 auto;}
+  .so-dot.on{background:#6ef08a;box-shadow:0 0 8px rgba(110,240,138,.85);}
+  .so-dot.off{background:#8a4040;}
+  .so-name{flex:1;}
+  .so-state{font-size:10.5px;color:#8f84a8;white-space:nowrap;}
+  .src-opt.cur .so-state{color:#ffd76a;}
+  /* 外部熵源（STM32H743 硬件 RNG）状态行：不是可选项，只做只读展示 */
+  .src-ent{
+    display:flex;align-items:center;gap:9px;margin:4px 2px 2px;padding:8px 10px;
+    border-top:1px solid rgba(255,255,255,.07);border-radius:0 0 9px 9px;
+    color:#a396bb;font-size:11.5px;
+  }
+  .src-ent .so-state{font-size:10.5px;color:#8f84a8;max-width:150px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .src-ent.on .so-state{color:#9ef0b4;}
+
+  /* ---------- responsive ---------- */
+  /* 整体（机器+卡片）同步缩放，保证两者始终等宽对齐 */
+  @media (max-width:900px){ .page{zoom:.92;} }
+  @media (max-width:680px){ .page{zoom:.76;} }
+  @media (max-width:500px){ .page{zoom:.6;} }
+  /* 窄屏时工具条自己不受 .page 的 zoom 影响，需要单独收一档：
+     贴边更近 + 按钮缩小，避免压到柜机卡片右上角的内容 */
+  @media (max-width:960px){
+    .topbar{top:8px;right:10px;}
+    .homelink{top:8px;left:10px;padding:5px 10px;font-size:11px;}
+    .homelink .hl-ico{width:22px;height:15px;}
+    .topbar .btn.small{min-width:38px;font-size:12px;padding:1px 6px;}
+    .topbar .volwrap .btn.small{flex:0 0 32px;width:32px;min-width:32px;}
+    .vol-pop{padding:7px;}
+    .vol-pop::after{right:11px;}
+  }
+
+  /* ---------- 中文小标签统一度量（置于样式表末尾，压过各处原始定义） ----------
+     页面里 10–10.5px 的「字段标签」原是按英文大写定的：大写字母笔画简单，
+     宽字距当装饰。汉字在这个尺寸笔画落到 1px 以下（发灰显细），宽字距反而
+     把两三个字推散。这里给中文统一一套度量：+1px / 600 字重 / 收紧字距 /
+     提亮一档（仍明显弱于数值的金色，保持「标签为辅、数字为主」的层次）。 */
+  html[lang="zh-CN"] .pl-lbl,
+  html[lang="zh-CN"] .steplbl .sl-name{font-size:11px;letter-spacing:.3px;font-weight:600;color:#b7a8d2;}
+  html[lang="zh-CN"] .jp-sub{font-size:11.5px;letter-spacing:.5px;font-weight:600;color:#b7a8d2;}
+</style>
+</head>
+<body>
+
+<!-- 左上角：去玩百家乐（与百家乐页的「回到老虎机」互为往返） -->
+<a class="homelink" href="baccarat.html" title="去玩百家乐 / Play baccarat">
+  <span class="hl-arrow" aria-hidden="true">&#8594;</span>
+  <svg class="hl-ico" viewBox="0 0 30 20" aria-hidden="true">
+    <g transform="rotate(-8 7.5 10)">
+      <rect x="1" y="1" width="13" height="18" rx="2.5" fill="#fffdf6" stroke="#1a0a2e" stroke-opacity=".45" stroke-width="1.2"/>
+      <text x="7.5" y="13.6" text-anchor="middle" font-size="9" font-family="Georgia,serif" fill="#d3262b">&#9829;</text>
+    </g>
+    <g transform="rotate(8 21.5 10)">
+      <rect x="15" y="1" width="13" height="18" rx="2.5" fill="#fffdf6" stroke="#1a0a2e" stroke-opacity=".45" stroke-width="1.2"/>
+      <text x="21.5" y="13.6" text-anchor="middle" font-size="9" font-family="Georgia,serif" fill="#15151d">&#9824;</text>
+    </g>
+  </svg>
+  <span data-i18n="nav.bacc">百家乐</span>
+</a>
+
+<!-- 顶部工具条：音量 + 语言。已移出柜机卡片，固定在网页右上角 -->
+<div class="langrow topbar">
+  <div class="volwrap">
+    <button class="btn small" id="soundBtn" type="button" title="音量 / Volume"
+            aria-haspopup="true" aria-expanded="false"></button>
+    <div class="vol-pop" id="volPop">
+      <!-- 音量：只有一根上下（竖直）滑杆。拖动 / 点击轨道 / 滚轮 / 键盘都能调 -->
+      <div class="vol-slider" id="volSlider" role="slider" tabindex="0"
+           aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100"
+           aria-valuenow="100" aria-label="音量 / Volume">
+        <div class="vol-track">
+          <i class="vol-fill" id="volFill"></i>
+          <b class="vol-knob" id="volKnob"></b>
+        </div>
+      </div>
+    </div>
+  </div>
+  <button class="btn small" id="langBtn" type="button" title="切换语言 / Switch language">EN</button>
+</div>
+
+<!-- ============ SVG 符号精灵 ============ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="gGold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff3b0"/><stop offset=".5" stop-color="#f5c542"/><stop offset="1" stop-color="#a9760a"/>
+    </linearGradient>
+    <linearGradient id="gDiamond" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#eafcff"/><stop offset=".5" stop-color="#4fd6ff"/><stop offset="1" stop-color="#1b86b8"/>
+    </linearGradient>
+    <radialGradient id="gCherry" cx="35%" cy="30%" r="75%">
+      <stop offset="0" stop-color="#ff6a6a"/><stop offset="1" stop-color="#a80f0f"/>
+    </radialGradient>
+    <linearGradient id="gLemon" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff8a8"/><stop offset="1" stop-color="#e8b800"/>
+    </linearGradient>
+    <linearGradient id="gStar" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d9a8ff"/><stop offset="1" stop-color="#8a2be2"/>
+    </linearGradient>
+    <linearGradient id="gWild" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff"/><stop offset=".5" stop-color="#ff7ad9"/><stop offset="1" stop-color="#7a5cff"/>
+    </linearGradient>
+    <radialGradient id="gScat" cx="50%" cy="40%" r="65%">
+      <stop offset="0" stop-color="#fff6c0"/><stop offset=".6" stop-color="#ff9d2e"/><stop offset="1" stop-color="#c43b00"/>
+    </radialGradient>
+
+    <symbol id="sym-seven" viewBox="0 0 100 100">
+      <text x="50" y="79" text-anchor="middle" font-family="Arial Black,Arial,sans-serif"
+        font-size="88" font-weight="900" fill="url(#gGold)" stroke="#6e4300" stroke-width="2">7</text>
+    </symbol>
+    <symbol id="sym-diamond" viewBox="0 0 100 100">
+      <polygon points="50,12 79,41 50,90 21,41" fill="url(#gDiamond)"/>
+      <polygon points="50,12 79,41 50,41" fill="#dffaff" opacity=".85"/>
+      <polygon points="50,12 21,41 50,41" fill="#f2ffff" opacity=".85"/>
+      <polygon points="21,41 79,41 50,90" fill="#1c7ea8" opacity=".5"/>
+      <polygon points="50,12 79,41 50,41" fill="none" stroke="#eafcff" stroke-width="1"/>
+    </symbol>
+    <symbol id="sym-bell" viewBox="0 0 100 100">
+      <path d="M50 14 C33 14 27 31 27 47 L23 68 Q50 62 77 68 L73 47 C73 31 67 14 50 14 Z" fill="url(#gGold)"/>
+      <rect x="43" y="69" width="14" height="11" rx="4" fill="#a9760a"/>
+      <circle cx="50" cy="84" r="6" fill="#c9920f"/>
+      <rect x="19" y="65" width="62" height="6" rx="3" fill="#e6b800"/>
+    </symbol>
+    <symbol id="sym-bar" viewBox="0 0 100 100">
+      <rect x="10" y="30" width="80" height="40" rx="9" fill="#151515" stroke="#f5c542" stroke-width="3"/>
+      <text x="50" y="59" text-anchor="middle" font-family="Arial Black,Arial,sans-serif"
+        font-size="28" font-weight="900" fill="#f5c542" letter-spacing="2">BAR</text>
+    </symbol>
+    <symbol id="sym-cherry" viewBox="0 0 100 100">
+      <path d="M50 24 C52 40 42 54 37 66" stroke="#1f7a1f" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path d="M50 24 C58 40 67 52 64 66" stroke="#1f7a1f" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path d="M50 24 C57 17 67 16 73 21" stroke="#1f7a1f" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <circle cx="35" cy="71" r="16" fill="url(#gCherry)"/>
+      <circle cx="65" cy="73" r="16" fill="url(#gCherry)"/>
+      <circle cx="30" cy="65" r="4" fill="#ffd5d5" opacity=".85"/>
+      <circle cx="60" cy="67" r="4" fill="#ffd5d5" opacity=".85"/>
+    </symbol>
+    <symbol id="sym-lemon" viewBox="0 0 100 100">
+      <ellipse cx="50" cy="55" rx="33" ry="24" fill="url(#gLemon)"/>
+      <path d="M50 31 C50 24 46 18 39 16" stroke="#3a7d1f" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <ellipse cx="45" cy="47" rx="11" ry="6" fill="#fffbd0" opacity=".7"/>
+    </symbol>
+    <symbol id="sym-star" viewBox="0 0 100 100">
+      <polygon points="50,9 62,38 93,38 68,58 78,89 50,70 22,89 32,58 7,38 38,38"
+        fill="url(#gStar)" stroke="#6a1fa4" stroke-width="2" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="sym-wild" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="40" fill="url(#gWild)"/>
+      <text x="50" y="64" text-anchor="middle" font-family="Arial Black,Arial,sans-serif"
+        font-size="46" font-weight="900" fill="#2a0a4a" stroke="#fff" stroke-width="1.5">W</text>
+    </symbol>
+    <symbol id="sym-scatter" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="38" fill="url(#gScat)"/>
+      <g stroke="#fff3c0" stroke-width="4" stroke-linecap="round">
+        <line x1="50" y1="10" x2="50" y2="26"/><line x1="50" y1="74" x2="50" y2="90"/>
+        <line x1="10" y1="50" x2="26" y2="50"/><line x1="74" y1="50" x2="90" y2="50"/>
+        <line x1="21" y1="21" x2="33" y2="33"/><line x1="67" y1="67" x2="79" y2="79"/>
+        <line x1="79" y1="21" x2="67" y2="33"/><line x1="33" y1="67" x2="21" y2="79"/>
+      </g>
+      <text x="50" y="58" text-anchor="middle" font-family="Arial Black,Arial,sans-serif"
+        font-size="26" font-weight="900" fill="#7a2b00">SC</text>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="page">
+<div class="stage">
+  <div class="machine">
+    <div class="player" id="playerCard">
+      <div class="jp-bulbs">
+        <i class="bulb"></i><i class="bulb"></i><i class="bulb"></i><i class="bulb"></i>
+        <i class="bulb"></i><i class="bulb"></i><i class="bulb"></i><i class="bulb"></i>
+      </div>
+      <div class="jp-title">PLAYER</div>
+      <div class="jp-sub" data-i18n="pl.sub">玩家档案</div>
+      <div class="pl-body">
+        <div class="pl-stat">
+          <div class="pl-lbl" data-i18n="pl.peak">最高盈利</div>
+          <div class="pl-num" id="peakVal">0</div>
+        </div>
+        <div class="pl-stat">
+          <div class="pl-lbl" data-i18n="pl.maxwin">单次最高中奖</div>
+          <div class="pl-num" id="maxWinVal">0</div>
+        </div>
+        <div class="pl-stat pl-duo">
+          <div class="pl-duo-item">
+            <div class="pl-lbl" data-i18n="pl.won">累计赢分</div>
+            <div class="pl-num sm win" id="wonVal">0</div>
+          </div>
+          <div class="pl-duo-item">
+            <div class="pl-lbl" data-i18n="pl.lost">累计输分</div>
+            <div class="pl-num sm lost" id="lostVal">0</div>
+          </div>
+        </div>
+        <div class="pl-stat">
+          <div class="pl-lbl" data-i18n="pl.broke">破产次数</div>
+          <div class="pl-num" id="brokeVal">0</div>
+        </div>
+      </div>
+      <button class="pl-reset" id="resetBtn" type="button">
+        <span class="rs-txt" data-i18n="pl.reset">重新开始</span>
+        <span class="rs-alt" data-i18n="pl.resetAlt" aria-hidden="true">新游戏</span>
+        <span class="rs-draw" aria-hidden="true"></span>
+      </button>
+    </div>
+    <div class="cab-col">
+    <div class="cabinet">
+      <div class="marquee">
+        <div class="bulbs top">
+          <i class="bulb"></i><i class="bulb"></i><i class="bulb"></i><i class="bulb"></i><i class="bulb"></i>
+          <i class="bulb"></i><i class="bulb"></i><i class="bulb"></i><i class="bulb"></i><i class="bulb"></i>
+        </div>
+        <div class="title">LUCKY SEVENS</div>
+        <div class="bulbs bot">
+          <i class="bulb"></i><i class="bulb"></i><i class="bulb"></i><i class="bulb"></i><i class="bulb"></i>
+          <i class="bulb"></i><i class="bulb"></i><i class="bulb"></i><i class="bulb"></i><i class="bulb"></i>
+        </div>
+      </div>
+
+      <div class="screen">
+        <div class="reels" id="reels">
+          <div class="reel"><div class="strip"></div></div>
+          <div class="reel"><div class="strip"></div></div>
+          <div class="reel"><div class="strip"></div></div>
+          <div class="reel"><div class="strip"></div></div>
+          <div class="reel"><div class="strip"></div></div>
+        </div>
+        <svg id="lines" class="lines"></svg>
+      </div>
+
+      <div class="hud">
+        <div class="meter"><div class="label" data-i18n="hud.credits">CREDITS</div><div class="val" id="credits">20000</div></div>
+        <div class="meter"><div class="label" data-i18n="hud.lines">LINES</div><div class="val" id="lineCount">9</div></div>
+        <div class="meter"><div class="label" data-i18n="hud.bet">BET(每线)</div><div class="val" id="bet">1</div></div>
+        <div class="meter"><div class="label" data-i18n="hud.total">TOTAL(总注)</div><div class="val" id="total">9</div></div>
+        <div class="meter" id="winMeter"><div class="label" data-i18n="hud.win">WIN</div><div class="val" id="win">0</div></div>
+        <div class="meter free" id="freeMeter"><div class="label" data-i18n="hud.free">FREE</div><div class="val" id="free">0</div></div>
+      </div>
+      <div class="controls">
+        <div class="stepgrp" id="grpLines">
+          <span class="max-tag" data-i18n="bet.max">已达最大值</span>
+          <button class="btn small" id="lineDown" aria-label="减少线数"><svg class="tri" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 9.6 1.4 3.4h9.2z"/></svg></button>
+          <span class="steplbl" data-i18n="lbl.lines">线数</span>
+          <button class="btn small" id="lineUp" aria-label="增加线数"><svg class="tri" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2.4 10.6 8.6H1.4z"/></svg></button>
+        </div>
+        <div class="stepgrp" id="grpDenom">
+          <span class="max-tag" data-i18n="bet.max">已达最大值</span>
+          <button class="btn small" id="denomDown" aria-label="降低面额"><svg class="tri" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 9.6 1.4 3.4h9.2z"/></svg></button>
+          <span class="steplbl"><span data-i18n="lbl.denom">面额</span> <b id="denom">×1</b></span>
+          <button class="btn small" id="denomUp" aria-label="提高面额"><svg class="tri" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2.4 10.6 8.6H1.4z"/></svg></button>
+        </div>
+        <div class="stepgrp" id="grpPerLine">
+          <span class="max-tag" data-i18n="bet.max">已达最大值</span>
+          <button class="btn small" id="betDown" aria-label="降低每线币数"><svg class="tri" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 9.6 1.4 3.4h9.2z"/></svg></button>
+          <span class="steplbl"><span data-i18n="lbl.perline">每线</span> <b id="coin">1</b></span>
+          <button class="btn small" id="betUp" aria-label="提高每线币数"><svg class="tri" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2.4 10.6 8.6H1.4z"/></svg></button>
+        </div>
+      </div>
+
+      <div class="srcrow">
+        <div class="srcwrap">
+          <button class="srcbtn" id="srcBtn" type="button" aria-haspopup="true" aria-expanded="false">随机源：H743 离线 ▾</button>
+          <div class="src-pop" id="srcPop">
+            <button class="src-opt" type="button" data-mode="trng">
+              <i class="so-dot" id="dotTrng"></i>
+              <span class="so-name" data-i18n="src.opt.trng">H743 在线 · 串口直供</span>
+              <span class="so-state" id="stateTrng" data-i18n="src.state.check">检测中…</span>
+            </button>
+            <button class="src-opt" type="button" data-mode="offline">
+              <i class="so-dot" id="dotOffline"></i>
+              <span class="so-name" data-i18n="src.opt.offline">H743 离线 · 熵快照</span>
+              <span class="so-state" id="stateOffline" data-i18n="src.state.check">检测中…</span>
+            </button>
+            <!-- 熵源链路：只读展示当前这条随机链的物理来源（H743 直供 / H743 混流 / 快照） -->
+            <div class="src-ent" id="srcEnt" title="">
+              <i class="so-dot" id="dotEnt"></i>
+              <span class="so-name" data-i18n="src.ent.title">熵源链路</span>
+              <span class="so-state" id="stateEnt">—</span>
+            </div>
+          </div>
+        </div>
+        <span class="srcmsg" id="srcMsg"></span>
+      </div>
+    </div>
+      <div class="featrow">
+        <button class="btn feat gamble" id="gambleBtn" type="button" disabled>
+          <span class="gm-ico" aria-hidden="true"><svg viewBox="0 0 14 19">
+            <rect x="0.7" y="0.7" width="12.6" height="17.6" rx="2.4" fill="#fffdf6" stroke="#1a0a2e" stroke-opacity=".45" stroke-width="1.2"/>
+            <text x="7" y="13.6" text-anchor="middle" font-size="10" font-family="Georgia,serif" fill="#d3262b">&#9829;</text>
+          </svg></span>
+          <span data-i18n="gm.btn">猜大小</span>
+          <span class="gm-ico" aria-hidden="true"><svg viewBox="0 0 14 19">
+            <rect x="0.7" y="0.7" width="12.6" height="17.6" rx="2.4" fill="#fffdf6" stroke="#1a0a2e" stroke-opacity=".45" stroke-width="1.2"/>
+            <text x="7" y="13.6" text-anchor="middle" font-size="10" font-family="Georgia,serif" fill="#15151d">&#9824;</text>
+          </svg></span>
+        </button>
+      </div>
+      <button class="btn spin" id="spinBtn" type="button">
+        <span data-i18n="btn.spin">SPIN</span><kbd class="kb-space" data-i18n="btn.space">空格</kbd>
+      </button>
+    </div>
+
+    <div class="jackpot" id="jackpotCard">
+      <div class="jp-bulbs">
+        <i class="bulb"></i><i class="bulb"></i><i class="bulb"></i><i class="bulb"></i>
+        <i class="bulb"></i><i class="bulb"></i><i class="bulb"></i><i class="bulb"></i>
+      </div>
+      <div class="jp-title">JACKPOT</div>
+      <div class="jp-sub" data-i18n="jp.sub">累积奖金池</div>
+      <div class="jp-body">
+        <svg class="jp-coin" viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="43" fill="url(#gGold)" stroke="#b8860b" stroke-width="3"/>
+          <circle cx="50" cy="50" r="35" fill="none" stroke="rgba(120,70,0,.45)" stroke-width="2"/>
+          <text x="50" y="68" text-anchor="middle" font-size="48" font-weight="900"
+                fill="#7a4a00" font-family="Segoe UI,sans-serif">7</text>
+        </svg>
+        <div class="jp-val" id="jackpotVal"></div>
+      </div>
+      <div class="jp-foot" data-i18n="jp.foot">每笔投注累积 <b>1.5%</b><br><b class="hot">必须最大注</b> + 五连 7 才派发</div>
+      <div class="jp-elig" id="jpElig"></div>
+      <div class="jp-freeze" data-i18n="jp.frozen">免费转中 · 奖池暂停累积</div>
+    </div>
+
+    <!-- ==================== 银行卡（可收起：收起后只剩一个圆形卡标按钮） ==================== -->
+    <div class="bankcard" id="bankCard">
+      <button class="bc-mini" id="bcOpen" type="button"
+              aria-label="展开银行卡 / Open bank card" aria-expanded="false" title="展开银行卡 / Open">
+        <svg class="bc-mini-ico" viewBox="0 0 64 40" aria-hidden="true">
+          <circle cx="26" cy="20" r="13" fill="#eb001b"/>
+          <circle cx="38" cy="20" r="13" fill="#f79e1b"/>
+          <path d="M32 8.5A13 13 0 0 1 32 31.5A13 13 0 0 0 32 8.5Z" fill="#ff5f00"/>
+        </svg>
+      </button>
+      <div class="bc-panel" id="bcPanel">
+        <button class="bc-collapse" id="bcClose" type="button"
+                aria-label="收起银行卡 / Collapse bank card" title="收起 / Collapse">&#8722;</button>
+        <div class="bc-face">
+          <div class="bc-bank-name" data-i18n="bc.title">银行卡</div>
+          <div class="bc-logo" aria-hidden="true">
+            <svg class="bc-logo-svg" viewBox="0 0 64 40">
+              <!-- 拟真 Mastercard 卡组织标：左红 / 右橙黄 / 交叠处橙 -->
+              <circle cx="26" cy="20" r="13" fill="#eb001b"/>
+              <circle cx="38" cy="20" r="13" fill="#f79e1b"/>
+              <path d="M32 8.5A13 13 0 0 1 32 31.5A13 13 0 0 0 32 8.5Z" fill="#ff5f00"/>
+            </svg>
+          </div>
+          <div class="bc-num" id="cardBal">0</div>
+          <div class="bc-meta">
+            <div class="bc-mi bc-mi-name"><span class="bc-ml" data-i18n="bc.label">卡内积分</span></div>
+            <div class="bc-mi bc-mi-mid"><span class="bc-ml">H743</span></div>
+            <div class="bc-mi bc-mi-end"><span class="bc-ml">7</span></div>
+          </div>
+        </div>
+        <div class="bc-ctrl">
+          <div class="bc-amt">
+            <button class="bc-q" type="button" data-amt="1000">1000</button>
+            <button class="bc-q" type="button" data-amt="5000">5000</button>
+            <button class="bc-q bc-all" type="button" data-amt="all" data-i18n="bc.all">全部</button>
+            <input class="bc-in" id="cardAmt" type="number" min="0" inputmode="numeric" data-i18n-ph="bc.amtPh" placeholder="自定义"/>
+          </div>
+          <div class="bc-actions">
+            <button class="bc-dep" id="cardDep" type="button" data-i18n="bc.dep">存入 ▲</button>
+            <button class="bc-wd" id="cardWd" type="button" data-i18n="bc.wd">取出 ▼</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+  <div class="rules">
+    <h2 data-i18n="rules.title">玩法规则</h2>
+
+    <h3 data-i18n="rules.basic">基本设定</h3>
+    <ul>
+      <li data-i18n="rules.basic.1"><b>5 个滚轮</b>，每轮一条独立的 64 格虚拟条带，条带决定各符号出现的概率与位置。</li>
+      <li data-i18n="rules.basic.2"><b>9 条中奖线（payline）</b>：横、斜、折线共 9 条，可按档激活其中前 N 条（1 / 3 / 5 / 7 / 9）。</li>
+      <li data-i18n="rules.basic.3">线数越多覆盖越广，但每局总注越高；未激活的线即使凑成连线也不派彩。</li>
+    </ul>
+
+    <h3 data-i18n="rules.bet">下注</h3>
+    <p data-i18n="rules.bet.p">真实机<b>三变量</b>投注模型：<b>总注 = 线数 × 每线币数 × 面额</b>。线数 <b>1 / 3 / 5 / 7 / 9</b>、每线币数 <b>1 / 2 / 3 / 5 / 10</b>、面额 <b>×1 / ×2 / ×5 / ×10 / ×25</b>，分别用「线数 ±」「面额 ±」「每线 ±」三个步进器切换；例如 9 线 × 3 币 × 面额 5 = 总注 135。最大注 9 × 10 × 25 = <b>2250</b>，起始资金 <b>20000</b>。中奖积分直接入账；积分归零时若银行卡里还有余额可取出来继续，<b>积分与卡内都为 0 才算破产</b>；点「重新开始」把积分重置回 20000（卡内余额保留）。</p>
+
+    <h3 data-i18n="rules.pay">符号与赔率</h3>
+    <table>
+      <thead><tr><th data-i18n="th.sym">符号</th><th data-i18n="th.c3">3 连</th><th data-i18n="th.c4">4 连</th><th data-i18n="th.c5">5 连</th><th data-i18n="th.desc">说明</th></tr></thead>
+      <tbody>
+        <tr><td class="sym"><svg class="symicon" viewBox="0 0 100 100"><use href="#sym-seven"/></svg></td><td>31×</td><td>118×</td><td>590×</td><td data-i18n="sym.seven.desc">最稀有，赔率最高</td></tr>
+        <tr><td class="sym"><svg class="symicon" viewBox="0 0 100 100"><use href="#sym-diamond"/></svg></td><td>14×</td><td>58×</td><td>295×</td><td></td></tr>
+        <tr><td class="sym"><svg class="symicon" viewBox="0 0 100 100"><use href="#sym-bell"/></svg></td><td>11×</td><td>31×</td><td>118×</td><td></td></tr>
+        <tr><td class="sym"><svg class="symicon" viewBox="0 0 100 100"><use href="#sym-bar"/></svg></td><td>7×</td><td>17×</td><td>90×</td><td></td></tr>
+        <tr><td class="sym"><svg class="symicon" viewBox="0 0 100 100"><use href="#sym-cherry"/></svg></td><td>7×</td><td>14×</td><td>58×</td><td></td></tr>
+        <tr><td class="sym"><svg class="symicon" viewBox="0 0 100 100"><use href="#sym-lemon"/></svg></td><td>3×</td><td>11×</td><td>47×</td><td></td></tr>
+        <tr><td class="sym"><svg class="symicon" viewBox="0 0 100 100"><use href="#sym-star"/></svg></td><td>3×</td><td>11×</td><td>47×</td><td></td></tr>
+      </tbody>
+    </table>
+    <p class="note" data-i18n="rules.pay.note">"×" 为每条线注的倍数；某条线派彩 = 倍率 × 每条线注。</p>
+
+    <h3 data-i18n="rules.wildscat">百搭与散财</h3>
+    <ul>
+      <li data-i18n="rules.wild"><span class="tag wild">WILD</span> 百搭：可替代任意普通符号完成连线；整条线全为 WILD 时按最高赔率（7）计。另有<b>扩展 WILD</b>：当<b>中间三列</b>的<b>中行</b>出现 WILD 时，该列其余格（除 SCATTER 外）一并变为 WILD 参与连线。</li>
+      <li data-i18n="rules.scat"><span class="tag scat">SCATTER</span> 散财：<b>不进中奖线</b>，也<b>不会被 WILD 替代</b>；在连线判定中它充当<b>终止符</b>——某条线从最左滚轮连续数符号时，数到 SC 即停止（例如 <b>7‑7‑SC‑7 只算 2 连 7</b>，不足 3 连<b>不派彩</b>，也不会把 SC 当百搭接上）。只要画面<b>任意位置</b>出现 ≥3 个，即触发 <b>15 次免费转（线奖 ×3）</b>，并额外派彩（× 总注）：3 个=2×、4 个=9×、5 个=46×。</li>
+    </ul>
+
+    <h3 data-i18n="rules.lines">连线规则</h3>
+    <p data-i18n="rules.lines.p">每条线从滚轮 0（最左）开始，向右连续相同符号才计入；被不同符号或 SCATTER 打断即停止。连续 3/4/5 个即按上表派彩，多条线可同时中奖并累加。</p>
+    <p class="note" data-i18n="rules.lines.note">关键：连线必须<b>紧贴最左连续</b>——若第 1、2 格是不同普通图案（都不是 WILD），即使后面 3 格相同也不中奖。例：<b>A‑B‑C‑C‑C</b> 只算 1 连 A，计数在 reel 1 就已中断；只有 <b>WILD</b> 能替身桥接过去。</p>
+
+    <h3 data-i18n="rules.free">免费转（Free Spins）</h3>
+    <p data-i18n="rules.free.p">触发条件：画面<b>任意位置</b>出现 <b>≥3 个</b> <svg class="scico" viewBox="0 0 100 100"><use href="#sym-scatter"/></svg><b>SCATTER</b>（<b>不要求连线</b>、不要求在同一行，WILD 不能替代）。触发后自动连转 <b>15 次</b>，期间<b>不扣积分</b>，且所有<b>线奖 ×3</b>（scatter 派彩不乘）；免费转中再次凑齐 ≥3 个 SCATTER 可叠加更多免费转，赢取的积分正常入账。</p>
+
+    <h3 data-i18n="rules.jp">累积奖金池（JACKPOT）</h3>
+    <p data-i18n="rules.jp.p">机器右侧的 <b>JACKPOT</b> 是累积奖池：每笔下注按注额的 <b>1.5%</b> 注入池中，越玩越大。当<b>同时满足</b>下列两个条件时，整池一次性派给玩家，并重置回初始池底（<b>1,250,000</b>）：</p>
+    <ul data-i18n="rules.jp.ul"><li><b>最大注</b>：9 线 × 10 币 × 面额 25（总注 2250）；</li><li><b>五连 7</b>：任意一条激活线上从左连续出现 5 个 <b>7</b>（<b>WILD</b> 可替身；5 个全为 WILD 时按 7 计）。</li></ul>
+    <p class="note" data-i18n="rules.jp.note">免费转期间注额被冻结：若触发免费转时正好是最大注，则整个免费转过程同样具备派发资格。本机为<b>单级、本机</b>奖池（非联网多级）；池子达到 <b>300 万</b>「必出上限」后，下一局<b>无条件</b>派发。</p>
+
+    <h3 data-i18n="rules.gm">猜大小（Gamble）</h3>
+    <p data-i18n="rules.gm.p"><b>何时可用</b>：只有<b>基础局</b>中奖后才会出现——旋转按钮上方的「<b>猜大小</b>」按钮亮起即可点击。<b>免费转</b>期间的奖金、触发免费转的那一局、以及 <b>JACKPOT</b> 派发<b>不可押注</b>。</p>
+    <ul data-i18n="rules.gm.ul"><li><b>押注额</b> = 本局全部奖金（已封顶后的金额），系统自动全额押上，不需要自己填数（若奖金已存入银行卡导致积分不足，则按当前积分押注）；</li><li><b>玩法</b>：每轮<b>翻开一张扑克牌</b>，你猜它的<b>花色是红还是黑</b>——<b>红 ♥♦</b>（红桃 / 方块）或 <b>黑 ♠♣</b>（黑桃 / 梅花），各 <b>50/50</b>（一副牌 26 红 26 黑）。猜中该笔奖金<b>翻倍</b>（押注 ×2），猜错则<b>全部没收</b>；牌翻开后右侧用大字显示 <b>猜中 +X</b> 或 <b>猜错 −X</b>。牌面的<b>点数（A~K）只是装饰</b>，不参与输赢判定。</li><li><b>连猜</b>：猜中后两个按钮会变成「<b>继续押 红 / 继续押 黑</b>」——再选一色，就是把翻倍后的整笔奖金<b>押下一轮</b>，最多连猜 <b>5 轮</b>（到第 5 轮自动结算入袋）；</li><li><b>随时离场</b>：点「<b>收下离场</b>」立即结束，当前奖金直接归你，不再冒险。</li></ul>
+    <p class="note" data-i18n="rules.gm.note">随机性说明：开红开黑由板子随机源的字节最低位（<b>pos[0] &amp; 1</b>）决定，本身严格 50/50，<b>不使用浏览器随机数</b>；取随机失败（桥接断开）时本轮<b>取消</b>，奖金原地不动。数学上单轮期望为 <b>100%</b>（不改变 RTP，只放大波动），连猜 N 轮后仍是公平游戏，但赢到手的概率按 1/2<sup>N</sup> 递减。</p>
+
+    <h3 data-i18n="rules.limits">封顶与结算</h3>
+    <ul data-i18n="rules.limits.ul"><li><b>单局封顶</b>：任何一局的<b>普通派彩</b>上限为 <b>5000 × 总注</b>（最大注 2250 时即 11,250,000），超出部分<b>不计</b>；<b>JACKPOT 整池另派、不受封顶限制</b>。</li><li><b>结算与档案</b>：中奖当场入账，并记入左侧档案的「累计赢分 / 单次最高中奖」；每笔下注记入「累计输分」，下注作废会<b>等额回退</b>。积分与卡内都空时判为破产，点「重新开始」把积分重置为 <b>20000</b>（卡内余额保留）。</li><li><b>最高盈利</b>：按（积分 ＋ 卡内）的历史最高值减去<b>固定的 20000 基线</b>计——<b>起始资金不计入盈利</b>，每次「重新开始」送的 20000 也不累加门槛；存/取款只是钱包与卡之间转账，不改变总资产，也就不会刷新记录。</li></ul>
+    <p class="note" data-i18n="rules.limits.note">注：银行卡与积分之间「存入 / 取出」只是两个钱包之间搬运，<b>不影响</b>「累计赢分 / 累计输分」统计；奖池注入按<b>实际下注额</b> 1.5% 计算，与积分从哪个钱包出无关。<br><b>资金共通</b>：积分与银行卡是<b>全局钱袋</b>，与<b>百家乐</b>游戏页共用同一笔钱，两个游戏之间可以随意换着玩；「最高盈利」与「破产次数」同为全局记录（钱袋一起空才算一次破产）。</p>
+
+        <h3 data-i18n="rules.rand">随机源</h3>
+    <p data-i18n="rules.rand.p">滚轮停位由随机字节映射到 <b>0–63</b> 决定（每局取 <b>5 字节</b> = 5 个滚轮的停位）。两种来源：<b>H743 在线 · 串口直供</b>——直接向 STM32H743 的片上 TRNG 要新字节；<b>H743 离线 · 熵快照</b>（默认）——用这颗芯片某次采到的 <b>4096 B</b> 物理熵当种子，喂给 <b>ChaCha20 DRBG</b> 扩展成字节流，不占串口，可与在线源同时运行。</p>
+
+    <h3 data-i18n="rules.rtp">RTP（Return to Player，玩家回报率 / 返奖率）</h3>
+    <p data-i18n="rules.rtp.p">指<b>长期</b>来看，玩家每投入 100 元平均能拿回的金额。例如 RTP ≈ 95% 表示：在海量 spin 之后，玩家每投 100 元平均拿回约 95 元，赌场（或本机）长期保留约 5 元。它不是单局胜率，而是数学期望意义上的返还比例。本机经蒙特卡洛仿真标定，<b>9 线全开时 RTP ≈ 93.8%</b>（基础线奖约 67.6%、免费转线奖约 24.3%、scatter 派彩约 1.9%）。<b>线数会影响 RTP</b>：只开前 5 线时实测约 <b>91.2%</b>，因为前 5 条线的价值分布不同于后 4 条。</p>
+    <p class="note" data-i18n="rules.rtp.note">说明：以上数字由 rtp_sim.py 蒙特卡洛模拟得出（300 万次基础转，已计入免费转链、扩展 WILD 与 5000× 单局封顶）：命中率约 <b>32.4%</b>（约 1/3.1），波动率约 <b>4.4 × 总注</b>。与页面赔率表、条带、payline 完全一致。</p>
+  </div>
+
+</div><!-- /.page -->
+
+<!-- 重新开始确认弹窗 -->
+<div class="mask" id="resetMask">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="resetTitle">
+    <h3 id="resetTitle" data-i18n="reset.title">重新开始？</h3>
+    <p data-i18n="reset.body">将清空当前积分，并重置为初始 20000 积分。JACKPOT 奖池与历史统计不受影响。</p>
+    <div class="m-amt"><span data-i18n="reset.amountLbl">当前积分</span>：<b id="resetAmount">0</b></div>
+    <div class="modal-btns">
+      <button class="m-cancel" id="resetCancel" type="button" data-i18n="reset.cancel">取消</button>
+      <button class="m-ok" id="resetConfirm" type="button" data-i18n="reset.confirm">确认清空</button>
+    </div>
+  </div>
+</div>
+
+<!-- 破产弹窗（出现 → 裂缝 → 裂开坠落） -->
+<div class="bk-mask" id="bkMask">
+  <div class="bk-stage">
+    <div class="bk-half bk-l">
+      <div class="bk-title" data-i18n="bk.title">你已经破产了</div>
+      <div class="bk-sub" data-i18n="bk.sub">点「重新开始」领取 20000 积分</div>
+    </div>
+    <div class="bk-half bk-r">
+      <div class="bk-title" data-i18n="bk.title">你已经破产了</div>
+      <div class="bk-sub" data-i18n="bk.sub">点「重新开始」领取 20000 积分</div>
+    </div>
+    <div class="bk-crack"></div>
+  </div>
+</div>
+
+<!-- 积分不足弹窗（同款卡片，不裂开，点任意处/空格收起） -->
+<div class="nc-mask" id="ncMask">
+  <div class="nc-card">
+    <div class="nc-title" data-i18n="nc.title">积分不足</div>
+    <div class="nc-sub" id="ncDetail"></div>
+    <div class="nc-hint" data-i18n="nc.hint">用「线数 ±」或「每线 ±」调低注额后再旋转</div>
+  </div>
+</div>
+
+<!-- 卡内余额续玩提示：现金归零但卡里还有钱，不算破产，询问是否取出继续 -->
+<div class="mask" id="rescueMask">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rescueTitle">
+    <h3 id="rescueTitle" data-i18n="rescue.title">积分用完了</h3>
+    <p data-i18n="rescue.body">你的银行卡里还有积分。是否取出卡内余额继续游戏？</p>
+    <div class="m-amt"><span data-i18n="rescue.amtLbl">卡内余额</span>：<b id="rescueAmt">0</b></div>
+    <div class="modal-btns">
+      <button class="m-cancel" id="rescueNo" type="button" data-i18n="rescue.no">暂不</button>
+      <button class="m-ok rescue-ok" id="rescueYes" type="button" data-i18n="rescue.yes">取出继续</button>
+    </div>
+  </div>
+</div>
+
+<!-- 猜大小（Gamble）：押上本轮奖金，红/黑 50% 翻倍或没收 -->
+<div class="mask" id="gambleMask">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="gmTitle">
+    <h3 id="gmTitle" data-i18n="gm.title">猜大小</h3>
+    <p data-i18n="gm.body">翻出一张<b>扑克牌</b>，猜它的<b>花色是红还是黑</b>：<b>红</b>＝♥♦，<b>黑</b>＝♠♣。猜中翻倍，猜错没收。</p>
+    <div class="m-amt"><span data-i18n="gm.stake">本轮押注</span>：<b id="gmStake">0</b> · <span data-i18n="gm.round">第</span> <b id="gmRound">1</b> <span data-i18n="gm.of">/ 5</span></div>
+    <div class="modal-btns gm-btns">
+      <button class="m-cancel" id="gmRed" type="button" data-i18n="gm.red">红 ♥♦</button>
+      <button class="m-ok" id="gmBlack" type="button" data-i18n="gm.black">黑 ♠♣</button>
+    </div>
+    <div class="gm-stage" id="gmStage" aria-live="polite">
+      <div class="gm-card down" id="gmCard">
+        <div class="gm-card-inner">
+          <div class="gm-face gm-front">
+            <span class="gm-rank" id="gmRank">?</span>
+            <span class="gm-suit" id="gmSuit">?</span>
+          </div>
+          <div class="gm-face gm-back"><span>?</span></div>
+        </div>
+      </div>
+      <div class="gm-verdict" id="gmVerdict"></div>
+    </div>
+    <div class="gm-result" id="gmResult"></div>
+    <div class="modal-btns" style="margin-top:12px">
+      <button class="m-cancel" id="gmCash" type="button" data-i18n="gm.cash">收下离场</button>
+    </div>
+    <div class="gm-point" id="gmPoint" aria-hidden="true">&#128070;</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* =====================================================================
+   *  真实化老虎机模型
+   *  - 每个滚轮一条独立的 64 格虚拟条带（REEL_COUNTS 决定各符号数量/分布）
+   *  - 真随机字节 -> 滚轮停位（byte % 64），条带本身决定符号
+   *  - 9 条 payline，wild 百搭，scatter 任意位置触发免费转
+   *  这些常量与 rtp_sim.py 保持一致，RTP 由该脚本标定到 ~95%
+   * ===================================================================== */
+  var WILD = "wild", SCAT = "scatter";
+  var SYM_ORDER = ["seven","diamond","bell","bar","cherry","lemon","star","wild","scatter"];
+
+  // 每轮 64 格、各符号数量（总数须=64）。越靠右 7 略多 -> 制造"差一点"的悬念。
+  var REEL_COUNTS = [
+    {seven:2,diamond:3,bell:4,bar:6,cherry:15,lemon:16,star:14,wild:2,scatter:2},
+    {seven:2,diamond:3,bell:5,bar:7,cherry:14,lemon:15,star:13,wild:3,scatter:2},
+    {seven:3,diamond:4,bell:5,bar:7,cherry:14,lemon:14,star:12,wild:3,scatter:2},
+    {seven:2,diamond:3,bell:5,bar:7,cherry:14,lemon:15,star:14,wild:2,scatter:2},
+    {seven:3,diamond:4,bell:6,bar:8,cherry:14,lemon:14,star:12,wild:1,scatter:2}
+  ];
+
+  // 确定性地把 COUNTS 铺成 64 格条带（与 Python 端算法一致）
+  // 旧实现按 idx 顺序写 (idx*13 + k*7)%64，后写覆盖先写 -> seven/diamond 被 star 整片吃掉。
+  // 现改为：先展开成 64 格多重集，再用与 64 互质的步长 31 均匀落位（i*31 mod 64 是全排列），
+  // 保证每格恰好落一个符号、无覆盖，实际条带严格等于 REEL_COUNTS。
+  function buildReel(counts){
+    var bag = [];
+    SYM_ORDER.forEach(function(sym){
+      var n = counts[sym] || 0;
+      for (var i=0;i<n;i++) bag.push(sym);
+    });
+    var STEP = 31;                       // gcd(31,64)=1 -> 均匀铺满 64 格且不重叠
+    var strip = new Array(64);
+    for (var i=0;i<64;i++) strip[i] = bag[(i*STEP) % 64];
+    return strip;
+  }
+  var REELS = REEL_COUNTS.map(buildReel);
+
+  // 每条线 = 5 个滚轮各自取哪一行(0=上,1=中,2=下)
+  var LINES = [
+    [1,1,1,1,1],[0,0,0,0,0],[2,2,2,2,2],
+    [0,1,2,1,0],[2,1,0,1,2],
+    [0,0,1,2,2],[2,2,1,0,0],
+    [1,0,0,0,1],[1,2,2,2,1]
+  ];
+  var LINES_N = LINES.length;
+
+  // 每条线 3/4/5 连的赔率（× betPerLine）；7 最稀有赔最高。
+  // 2026-11 加入「扩展 WILD」后重新标定（赔率整体下调，RTP 拉回 ~93.8%）；与 rtp_sim.py 保持一致。
+  var PAY = {
+    seven:[31,118,590], diamond:[14,58,295], bell:[11,31,118],
+    bar:[7,17,90], cherry:[7,14,58], lemon:[3,11,47], star:[3,11,47]
+  };
+  var SCAT_PAY = {3:2, 4:9, 5:46};   // × 总 bet
+  var FREE_TRIGGER = 15;             // 3+ scatter -> 15 次免费转（真机常见 10~15）
+  var FREE_MULT = 3;                 // 免费转期间线奖 ×3（真机常见 2~5 倍乘数）
+
+  var ROW_H = 120;
+  var LAND_N = 40;            // 停稳后中行所在 cell 索引 (LAND_N+1)
+  // 真实机三变量投注模型：总注 = 线数 × 每线币数 × 面额
+  var COIN_TIERS  = [1,2,3,5,10];        // 每线币数（真机通常 1~10）
+  var DENOM_TIERS = [1,2,5,10,25];       // 面额 / credit 价值（等价于 1¢~25¢ 机台）
+  var LINE_TIERS  = [1,3,5,7,9];         // 可选激活线数（前 N 条预置 payline 被结算）
+  var START_CREDITS = 20000;             // 起始资金：最大注 2250 → 约 9 手，最小注 2 万手
+
+  // ---------- 存档工具（localStorage）：刷新页面不丢进度 ----------
+  // ⚠ slot_credits / slot_card / slot_profit 三个键是【全局钱袋】：百家乐 baccarat.html
+  //   也读写同一组键（见那边的 LS 定义），两个游戏共用同一笔积分与银行卡。
+  //   要改键名必须两个页面一起改，否则钱就分成两半了。
+  var LS_CREDITS = "slot_credits", LS_JACKPOT = "slot_jackpot", LS_CARD = "slot_card";
+  function lsLoad(key, dflt){
+    try { var v = parseFloat(localStorage.getItem(key)); if (isFinite(v)) return v; } catch(e){}
+    return dflt;
+  }
+  function lsSave(key, v){ try { localStorage.setItem(key, String(v)); } catch(e){} }
+
+  /* ---------------- 一次性存档迁移 ----------------
+     Firefox / Zen 给每个 file:// 页面分配**独立源**（privacy.file_unique_origin），
+     所以本页与百家乐页各有一份 localStorage，互相读不到（Chrome 内核的 file:// 反而是
+     共享的，容易看走眼）。现在两页都从 http://127.0.0.1:8788 打开（start_casino.py 起
+     这个静态服务），同源之后 localStorage 才真正共用。玩家在 file:// 时代攒下的存档
+     由 wallet_seed.json 搬进来：只补"当前源里还没有"的键，且只做一次。 */
+  (function importSeed(){
+    try{
+      if (localStorage.getItem("slot_seed_done") === "1") return;
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", "wallet_seed.json?t=" + Date.now(), false);   // 同步：必须赶在下面读存档之前
+      xhr.send(null);
+      if (xhr.status !== 200) return;
+      var seed = JSON.parse(xhr.responseText);
+      Object.keys(seed).forEach(function(k){
+        if (k.charAt(0) === "_") return;                             // _comment/_source 只是说明
+        if (localStorage.getItem(k) === null) localStorage.setItem(k, String(seed[k]));
+      });
+      localStorage.setItem("slot_seed_done", "1");
+    }catch(e){ /* 仍用 file:// 打开时读不到种子（跨源被拦），照常用本页自己的存档 */ }
+  })();
+
+  var credits = (function(){
+    var v = lsLoad(LS_CREDITS, START_CREDITS);
+    // 不再"低于最小注就白送起始资金"：破产后刷新必须保持 0，只有玩家点「重新开始」
+    // 才回到起始资金。未存过档时 lsLoad 返回默认值 START_CREDITS，新玩家仍照常 20000。
+    return Math.max(0, Math.floor(v));
+  })();
+  // 下注档位也持久化（越界/脏数据回落默认），刷新后保持上次的线数/币数/面额
+  var coinIdx = (function(){
+    var v = lsLoad("slot_coinIdx", 0);
+    return (v >= 0 && v < COIN_TIERS.length) ? Math.floor(v) : 0;
+  })();
+  var denomIdx = (function(){
+    var v = lsLoad("slot_denomIdx", 0);
+    return (v >= 0 && v < DENOM_TIERS.length) ? Math.floor(v) : 0;
+  })();
+  var lineIdx = (function(){
+    var v = lsLoad("slot_lineIdx", LINE_TIERS.length - 1);
+    return (v >= 0 && v < LINE_TIERS.length) ? Math.floor(v) : LINE_TIERS.length - 1;
+  })();
+  var spinning = false;
+  // 结算展示阶段（本 bug 的核心）：滚轮刚停、刚算出「本局中奖多少」的这段时间，
+  // 积分可能还是 0（本局注已扣、奖金刚加上或本来就是 0 奖），此时**绝不能**判破产。
+  // 只有等这一手彻底落定（含最后一轮是否中奖）后才允许看积分值判定破产。
+  var settling = false;
+  var _settleT = null;                    // 落定定时器（新一局开始时要清掉，避免提前解除 settling）
+  var SETTLE_HOLD_MS = 420;               // 无中奖：落定后再等这么久才判破产（让最后停轮稳定）
+  var SETTLE_HOLD_WIN_MS = 900;           // 有中奖：留足时间看清中奖金额，再判
+  var freeSpinsLeft = 0;
+  // 免费转冻结：触发那一手锁定线数/每线注，期间所有派彩按快照值（真实机规则）
+  var frozenLines = 0, frozenCoin = 0, frozenDenom = 0;
+
+  var strips = Array.prototype.slice.call(document.querySelectorAll(".strip"));
+  var creditsEl = document.getElementById("credits");
+  var betEl = document.getElementById("bet");
+  var totalEl = document.getElementById("total");
+  var linesEl = document.getElementById("lineCount");
+  var coinEl = document.getElementById("coin");
+  var winEl = document.getElementById("win");
+  var winMeter = document.getElementById("winMeter");
+  var _winHitT = null;      // hit 动画的收尾定时器（连中时要先清掉再重排）
+  var freeMeter = document.getElementById("freeMeter");
+  var freeEl = document.getElementById("free");
+  var spinBtn = document.getElementById("spinBtn");
+  var lineUpBtn = document.getElementById("lineUp");
+  var lineDownBtn = document.getElementById("lineDown");
+  var betUpBtn = document.getElementById("betUp");
+  var betDownBtn = document.getElementById("betDown");
+  // 三组步进器容器：到顶时挂 .at-max 显示「已达最大值」
+  var grpLines   = document.getElementById("grpLines");
+  var grpDenom   = document.getElementById("grpDenom");
+  var grpPerLine = document.getElementById("grpPerLine");
+  // 「已达最大值」提示：只在该档点 ▲ 抵达顶部时浮出，2 秒后自动淡出。
+  // 常驻的到顶暗示交给 .at-max（▲ 压暗 + 标签转金），不靠这枚徽标长期占位。
+  function flashMax(grp){
+    if (!grp) return;
+    grp.classList.add("max-flash");
+    clearTimeout(grp._maxT);
+    grp._maxT = setTimeout(function(){ grp.classList.remove("max-flash"); }, 2000);
+  }
+  var denomEl = document.getElementById("denom");
+  var denomUpBtn = document.getElementById("denomUp");
+  var denomDownBtn = document.getElementById("denomDown");
+  var linesSvg = document.getElementById("lines");
+
+  function coinVal(){ return freeSpinsLeft > 0 ? frozenCoin : COIN_TIERS[coinIdx]; }        // 每线币数
+  function denomVal(){ return freeSpinsLeft > 0 ? frozenDenom : DENOM_TIERS[denomIdx]; }   // 面额
+  function activeLines(){ return freeSpinsLeft > 0 ? frozenLines : LINE_TIERS[lineIdx]; }
+  function betPerLine(){ return coinVal() * denomVal(); }        // 每条线注 = 币数 × 面额
+  function betVal(){ return activeLines() * betPerLine(); }      // 总注 = 线数 × 每线注
+
+  /* ---------------- 取停位：H743 在线串口直供 / H743 离线快照+DRBG（仅此两个来源，绝不用浏览器随机） ---------------- */
+  /* 桥接端口可能被占用后顺延（8765~8784），故按候选范围自动探测实际端口 */
+  var TRNG_PORTS = [];
+  for (var _p = 8765; _p <= 8784; _p++) TRNG_PORTS.push(_p);
+  // 两种桥分开缓存：online=板子 TRNG，offline=ChaCha20 DRBG(种子池)
+  var _bridgeCache   = { online: null, offline: null };
+  var _bridgeMissAt  = { online: 0, offline: 0 };  // 上次探测失败时间（冷却用）
+  var BRIDGE_MISS_COOLDOWN = 4000;   // 失败后 4s 内不重扫，避免每局都扫 20 个端口
+  var BRIDGE_TIMEOUT = 600;          // 单端口探测超时
+  var useTrng = false;
+  var srcMode = "offline";           // "offline" | "trng"
+  var _offlineWarned = false;        // 离线桥缺失时只提示一次，避免每局刷屏
+
+  // 带超时的 status 探测：端口无监听但被丢包时，fetch 可能长时间挂住
+  function fetchStatus(base){
+    return new Promise(function(resolve, reject){
+      var done = false;
+      var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+      var timer = setTimeout(function(){
+        if (done) return; done = true;
+        if (ctrl) { try { ctrl.abort(); } catch(e){} }
+        reject(new Error("timeout"));
+      }, BRIDGE_TIMEOUT);
+      var opt = { cache: "no-store" };
+      if (ctrl) opt.signal = ctrl.signal;
+      fetch(base + "/status", opt)
+        .then(function(r){ if (!r.ok) throw 0; return r.json(); })
+        .then(function(j){ if (done) return; done = true; clearTimeout(timer); resolve(j); })
+        .catch(function(e){ if (done) return; done = true; clearTimeout(timer); reject(e); });
+    });
+  }
+
+  // 并行探测全部候选端口，任一匹配立即返回；失败后进入冷却期
+  function probeBridge(wantMode, force){
+    wantMode = wantMode || "online";
+    if (_bridgeCache[wantMode]) return Promise.resolve(_bridgeCache[wantMode]);
+    if (!force && Date.now() - _bridgeMissAt[wantMode] < BRIDGE_MISS_COOLDOWN){
+      return Promise.reject(new Error("cooldown"));
+    }
+    var jobs = TRNG_PORTS.map(function(port){
+      var base = "http://127.0.0.1:" + port;
+      return fetchStatus(base).then(function(j){
+        // 字段判定沿用 buffered/reconnects（离线桥也已补齐这两个字段）
+        if (j && typeof j.buffered === "number" && "reconnects" in j
+            && (j.mode || "online") === wantMode){
+          return { base: base, st: j };
+        }
+        return null;
+      }).catch(function(){ return null; });
+    });
+    return new Promise(function(resolve, reject){
+      var settled = false, pending = jobs.length;
+      jobs.forEach(function(job){
+        job.then(function(hit){
+          if (settled) return;
+          if (hit){
+            settled = true;
+            _bridgeCache[wantMode] = hit;
+            _bridgeMissAt[wantMode] = 0;
+            resolve(hit);
+            return;
+          }
+          if (--pending === 0){
+            settled = true;
+            _bridgeMissAt[wantMode] = Date.now();
+            reject(new Error("no bridge"));
+          }
+        });
+      });
+    });
+  }
+  /* 把"固件 DRBG 输出的均匀字节(0..255)"映射到滚轮停位 0..63。
+   * 映射链：片上 TRNG →(播种)→ ChaCha20 DRBG(固件侧 ra6e2_drbg.c) →字节流→
+   *         这里 mapUniform → 停位。
+   * 256 % n == 0 时直接取模无偏（n=64 满足：每 4 个字节值映射到同一格，概率相等）。
+   * 若将来 n 不整除 256，需改用拒绝采样，否则会有取模偏差。 */
+  // 注意：n 必须整除 256（当前只用于 64），否则 byte%n 会引入模偏；换 n 前先改拒绝采样
+  function mapUniform(byte, n){ return byte % n; }
+
+  // 带超时的 fetch：探测已有超时，但 /rnd 取数此前没有——端口半开时会长时间挂住。
+  // 这里统一加 1.5s 上限，超时即视为该桥失效（上层会清缓存重探，不回退浏览器随机）。
+  function fetchWithTimeout(url, ms){
+    return new Promise(function(resolve, reject){
+      var done = false;
+      var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+      var timer = setTimeout(function(){
+        if (done) return; done = true;
+        if (ctrl) { try { ctrl.abort(); } catch(e){} }
+        reject(new Error("timeout"));
+      }, ms);
+      var opt = { cache: "no-store" };
+      if (ctrl) opt.signal = ctrl.signal;
+      fetch(url, opt)
+        .then(function(r){ if (done) return; done = true; clearTimeout(timer); resolve(r); })
+        .catch(function(e){ if (done) return; done = true; clearTimeout(timer); reject(e); });
+    });
+  }
+
+  // 按桥的模式取停位：online 走板子 TRNG，offline 走 ChaCha20 DRBG 字节流。
+  // 取数失败（超时 / 短数据 / 端口死）时：清除该模式缓存 → 强制重探一次 → 再取；
+  // 仅重连桥，绝不回退浏览器随机。若重探/再取仍失败，则 reject 交上层退还本局。
+  function bridgePositions(mode){
+    mode = mode || "online";
+    function take(){
+      var base = _bridgeCache[mode] ? Promise.resolve(_bridgeCache[mode].base)
+                                   : probeBridge(mode).then(function(x){ return x.base; });
+      return base.then(function(b){
+        // 必须大于在线桥 /rnd 的服务端等待上限(2.0s)：客户端超时若更短，
+        // 桥还在合法等数据时就被 abort，表现为每局必"掉线退还"
+        return fetchWithTimeout(b + "/rnd?n=5", 3000);
+      }).then(function(r){
+        if (!r.ok) throw new Error("http " + r.status);
+        return r.arrayBuffer();
+      }).then(function(ab){
+        var u8 = new Uint8Array(ab);
+        if (u8.length < 5) throw new Error("short");
+        return [mapUniform(u8[0],64), mapUniform(u8[1],64), mapUniform(u8[2],64),
+                mapUniform(u8[3],64), mapUniform(u8[4],64)];
+      });
+    }
+    return take().catch(function(err){
+      delete _bridgeCache[mode];              // 视为该桥失效，下次自动重探
+      _bridgeMissAt[mode] = Date.now();
+      return probeBridge(mode, true).then(function(hit){
+        _bridgeCache[mode] = hit;
+        return take();                        // 重连后重试一次
+      });
+    });
+  }
+  function trngPositions(){ return bridgePositions("online"); }
+
+  // 离线随机源：走 trng_server.py --offline 的 /rnd（内部 ChaCha20 DRBG + 种子池）。
+  // 只认 mode=offline 的桥，避免误连到在线 TRNG 桥
+  function offlinePositions(){
+    return bridgePositions("offline");
+  }
+
+  // 取停位（带自动切源）：先取当前选中的真实源；若该源取数确已断开，
+  // 而另一个真实源已连上，则自动切到它重试——全程绝不使用浏览器随机。
+  // 仅当两个真实源都不可用，才把异常抛给上层做退还 + 掉线提示。
+  async function fetchPositionsSafe(){
+    var primary = useTrng ? "online" : "offline";
+    try {
+      return await bridgePositions(primary);
+    } catch(e){
+      var other = useTrng ? "offline" : "online";
+      var ready = await probeBridge(other, true)
+        .then(function(){ return true; })
+        .catch(function(){ return false; });
+      if (ready){
+        setSrcMode(other === "online" ? "trng" : "offline");
+        refreshSrcBtn();
+        setSrcMsgKey("src.msg.autoSwitch",
+          { mode: other === "online" ? "H743 在线" : "H743 离线" });
+        return await bridgePositions(other);
+      }
+      throw e;
+    }
+  }
+
+  var srcBtn   = document.getElementById("srcBtn");
+  var srcMsg   = document.getElementById("srcMsg");
+  var _lastSrcMsg = null;   // 最后一条随机源消息（键+变量），用于切换语言时重译
+  var srcPop   = document.getElementById("srcPop");
+  var dotTrng  = document.getElementById("dotTrng");
+  var dotOff   = document.getElementById("dotOffline");
+  var stateTrng= document.getElementById("stateTrng");
+  var stateOff = document.getElementById("stateOffline");
+  var srcEntEl = document.getElementById("srcEnt");
+  var dotEnt   = document.getElementById("dotEnt");
+  var stateEnt = document.getElementById("stateEnt");
+  function setSrcMsg(t){ _lastSrcMsg = null; if (srcMsg) srcMsg.textContent = t || ""; }
+  // 走 i18n 的消息：记录键与变量，切换语言时能即时重译
+  // 取 i18n 文案并填充 {占位符}
+  function tt(key, vars){
+    var s = (I18N[curLang] && I18N[curLang][key]);
+    if (s == null) s = key;
+    if (vars){ for (var k in vars){ s = s.split("{" + k + "}").join(vars[k]); } }
+    return s;
+  }
+  function setSrcMsgKey(key, vars){
+    _lastSrcMsg = { key: key, vars: vars || null };
+    if (srcMsg) srcMsg.textContent = tt(key, vars);
+  }
+
+  // 设置随机源模式："offline"（离线 DRBG）| "trng"（板子真随机）
+  function setSrcMode(m){
+    srcMode = (m === "trng") ? "trng" : "offline";
+    useTrng = (srcMode === "trng");
+    _offlineWarned = false;
+    refreshSrcBtn();
+  }
+
+  // 并行探测两种桥，只刷新菜单里的可用状态，不改变当前选择
+  function refreshSrcStatus(){
+    [["online", dotTrng, stateTrng], ["offline", dotOff, stateOff]].forEach(function(t){
+      var mode = t[0], dot = t[1], stateEl = t[2];
+      if (!dot || !stateEl) return;
+      dot.className = "so-dot";
+      stateEl.textContent = (I18N[curLang] && I18N[curLang]["src.state.check"]) || "检测中…";
+      probeBridge(mode, true).then(function(x){
+        var st = x.st || {};
+        var L = I18N[curLang] || {};
+        if (mode === "online"){
+          // 注意：/status.port 是**串口**（H743:COM9 / COM17），不是 HTTP 端口
+          var dev = String(st.port || "").replace(/^H743:/, "");
+          if (st.ok === false){
+            // 桥活着但熵源没连上：绿点会误导，红灯 + 原因
+            dot.className = "so-dot off";
+            stateEl.textContent = L["src.state.noboard"] || "熵源未连";
+            stateEl.title = st.err || "";
+          } else {
+            dot.className = "so-dot on";
+            stateEl.textContent = (st.source === "h743"
+                ? (L["src.state.direct"] || "直供")
+                : (L["src.state.mixed"] || "混流")) + (dev ? (" · " + dev) : "");
+            stateEl.title = "";
+          }
+        } else {
+          dot.className = "so-dot on";
+          var d = st.drbg || {};
+          var seedLabel = (d.seed_from === "os") ? (L["src.state.os"] || "OS CSPRNG")
+                        : d.certified_only ? (L["src.state.snapshot"] || "熵快照")
+                        : (L["src.state.pool"] || "种子池");
+          stateEl.textContent = seedLabel
+            + (d.reseeds ? (" · " + d.reseeds + (L["src.state.reseeds"] || " 次重播种")) : "");
+          stateEl.title = "";
+        }
+        renderEntropyState(st);
+      }).catch(function(){
+        dot.className = "so-dot off";
+        stateEl.textContent = (I18N[curLang] && I18N[curLang]["src.state.none"]) || "未启动";
+      });
+    });
+  }
+
+  // 熵源链路：只读展示当前这条随机链的物理来源
+  //   在线 + source=h743 → H743 串口直供
+  //   在线 → H743 串口直供（本工程只服务这一块板子）
+  //   离线              → H743 熵快照（or 无 H743 时退回种子池）
+  function renderEntropyState(st){
+    if (!srcEntEl || !dotEnt || !stateEnt) return;
+    var L = I18N[curLang] || {};
+    var ent = st && st.entropy;
+    dotEnt.className = "so-dot";
+    srcEntEl.classList.remove("on");
+    stateEnt.title = (ent && ent.last_error) ? ent.last_error : "";
+    if (!st){                                       // 老版本桥没有该字段
+      stateEnt.textContent = "—";
+      return;
+    }
+    if (st.mode === "offline"){
+      var d = st.drbg || {};
+      if (d.seed_from === "os"){
+        dotEnt.classList.add("on");
+        srcEntEl.classList.add("on");
+        stateEnt.textContent = (L["src.ent.os"] || "OS CSPRNG · 不可复现")
+                             + (d.reseeds ? (" · " + d.reseeds + (L["src.state.reseeds"] || " 次")) : "");
+        return;
+      }
+      if (d.seeded_with_h743){
+        dotEnt.classList.add("on");
+        srcEntEl.classList.add("on");
+        var snap = (ent && ent.snapshot) ? ent.snapshot.bytes : 0;
+        var sn = (ent && ent.snapshot) || {};
+        // 血统标记：菜单只有 258px 宽，正文只放"指纹前 8 位 + 第几代"，
+        // 端口/采集时间/完整 sha256/重播种次数放 title（悬停可见）
+        var tag = (sn.sha256 ? (" " + String(sn.sha256).slice(0, 8)) : "")
+                + (ent && ent.generation ? (" · 第" + ent.generation + "代") : "");
+        stateEnt.textContent = (snap ? (L["src.ent.snapshot"] || "快照") : (L["src.ent.h743seed"] || "H743 播种")) + tag;
+        stateEnt.title = (sn.port ? ("采自 " + sn.port + "（" + (sn.created_iso || "?") + "）") : "")
+                       + (snap ? ("   快照 " + snap + " B") : "")
+                       + (sn.sha256 ? ("   sha256 " + sn.sha256 + "…") : "")
+                       + (ent && ent.generation ? ("   第 " + ent.generation + " 代") : "")
+                       + (d.reseeds ? ("   已重播种 " + d.reseeds + " 次") : "");
+      } else {
+        dotEnt.classList.add("off");
+        stateEnt.textContent = L["src.ent.pool"] || "种子池（无 H743）";
+      }
+      return;
+    }
+    if (st.source === "h743"){
+      dotEnt.classList.add("on");
+      srcEntEl.classList.add("on");
+      stateEnt.textContent = (L["src.ent.direct"] || "串口直供") + " "
+                           + String(st.port || "").replace(/^H743:/, "");
+      return;
+    }
+    if (!ent || ent.mode === "off" || ent.enabled === false){
+      dotEnt.classList.add("off");
+      stateEnt.textContent = L["src.ent.off"] || "未启用";
+      return;
+    }
+    if (ent.available){
+      dotEnt.classList.add("on");
+      srcEntEl.classList.add("on");
+      var wh = st.whiten || {};
+      stateEnt.textContent = (L["src.ent.mix"] || "混流") + (ent.port ? (" · " + ent.port) : "")
+                           + (wh.reseeds ? (" · " + wh.reseeds) : "");
+    } else {
+      dotEnt.classList.add("off");
+      stateEnt.textContent = ent.degraded ? (L["src.ent.degraded"] || "未接入 · 单源运行")
+                                          : (L["src.ent.wait"] || "探测中…");
+    }
+  }
+
+  // 选中的随机源是否已连上（缓存命中即视为就绪）
+  function selectedBridgeReady(){
+    return !!_bridgeCache[useTrng ? "online" : "offline"];
+  }
+  function otherBridgeReady(){
+    var m = useTrng ? "offline" : "online";
+    var c = _bridgeCache[m];
+    // 在线桥"活着但板子未连"不算就绪，否则提示会误导用户去重复启动桥
+    return !!c && !(m === "online" && c.st && c.st.ok === false);
+  }
+  // 确保选中的桥已就绪：缓存命中直接放行；否则强制探测一次。
+  // 不回退浏览器随机——未就绪就返回 false，由调用方拦下旋转。
+  function ensureSelectedReady(){
+    var m = useTrng ? "online" : "offline";
+    var c = _bridgeCache[m];
+    if (c){
+      // 在线模式还要求板子真正在线（/status 的 ok）：桥活着但板子没连上时，
+      // 放行只会导致每局取数掉线退还——这里拦下并提示切到可用源
+      if (m === "online" && c.st && c.st.ok === false){
+        delete _bridgeCache[m];      // 缓存的是"板子离线"的过期状态，强制重探
+        return probeBridge(m, true).then(function(x){
+          return !(x.st && x.st.ok === false);
+        }).catch(function(){ return false; });
+      }
+      return Promise.resolve(true);
+    }
+    return probeBridge(m, true).then(function(){ return true; }).catch(function(){ return false; });
+  }
+  function shakeSpin(){
+    if (!spinBtn) return;
+    spinBtn.animate([{transform:"translateX(0)"},{transform:"translateX(-5px)"},
+      {transform:"translateX(5px)"},{transform:"translateX(0)"}], {duration:260});
+  }
+  // 随机源未就绪：拦下旋转并提示（绝不用浏览器随机）
+  function notifySourceBlocked(){
+    var my = useTrng ? "online" : "offline";
+    var cm = _bridgeCache[my];
+    if (otherBridgeReady()){
+      setSrcMsgKey(useTrng ? "src.msg.trngNeedSwitch" : "src.msg.offlineNeedSwitch");
+    } else if (useTrng && cm && cm.st && cm.st.ok === false){
+      // 在线桥在跑、缺的是板子——别再说"桥未就绪"误导用户去重启桥
+      setSrcMsgKey("src.msg.boardMissing");
+    } else {
+      setSrcMsgKey("src.msg.bothBlock");
+    }
+    shakeSpin();
+  }
+  // 取数中途来源掉线：本局退还，不回退浏览器随机
+  function notifySourceDrop(){
+    setSrcMsgKey(useTrng ? "src.msg.trngDrop" : "src.msg.offlineDrop");
+    shakeSpin();
+  }
+
+  function toggleSrcPop(show){
+    if (!srcPop) return;
+    var will = (show != null) ? show : !srcPop.classList.contains("show");
+    srcPop.classList.toggle("show", will);
+    if (srcBtn) srcBtn.setAttribute("aria-expanded", will ? "true" : "false");
+    if (will) refreshSrcStatus();
+  }
+
+  if (srcBtn) srcBtn.addEventListener("click", function(e){ e.stopPropagation(); toggleSrcPop(); });
+
+  // 菜单项：自由选择随机源
+  Array.prototype.forEach.call(document.querySelectorAll(".src-opt"), function(opt){
+    opt.addEventListener("click", function(e){
+      e.stopPropagation();
+      var m = opt.getAttribute("data-mode");
+      toggleSrcPop(false);
+      setSrcMode(m);
+      setSrcMsgKey("src.msg.connecting");
+      probeBridge(m === "trng" ? "online" : "offline", true).then(function(x){
+        var j = x.st || {};
+        var port = x.base.split(":").pop();
+        setSrcMsgKey(m === "trng" ? "src.msg.trngReady" : "src.msg.offlineReady",
+                     { p: port, c: (j.port ? " · " + String(j.port).replace(/^H743:/, "") : "") });
+      }).catch(function(){
+        // 选中的桥不可用：保留选择，旋转时会被闸门拦下（绝不用浏览器随机），并明确告知
+        setSrcMsgKey(m === "trng" ? "src.msg.trngMissing" : "src.msg.offlineMissing");
+      });
+    });
+  });
+
+  // 点外部 / Esc 收起
+  document.addEventListener("click", function(e){
+    if (!srcPop || !srcPop.classList.contains("show")) return;
+    if (srcPop.contains(e.target) || (srcBtn && srcBtn.contains(e.target))) return;
+    toggleSrcPop(false);
+  });
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape") toggleSrcPop(false);
+  });
+  // 启动即后台预探测，并按"实际就绪"自动选定默认随机源：
+  // 优先板子真随机（在线且板子已连 ok:true），其次离线 DRBG；都没有则保持默认离线。
+  // 这样插着板子时默认即用真随机，无需手动切换——解决"默认离线后切不到在线"的困惑。
+  setTimeout(function(){
+    var pOff = probeBridge("offline", true);
+    var pOn  = probeBridge("online", true);
+    Promise.allSettled([pOff, pOn]).then(function(r){
+      var offOk = r[0].status === "fulfilled";
+      var onHit = r[1].status === "fulfilled" ? r[1].value : null;
+      var onOk  = !!(onHit && onHit.st && onHit.st.ok === true);
+      if (onOk)        setSrcMode("trng");
+      else if (offOk)  setSrcMode("offline");
+      refreshSrcStatus();
+    });
+  }, 500);
+
+  /* ---------------- 中英文切换（i18n） ---------------- */
+  var I18N = {
+    zh: {
+      "nav.bacc":"百家乐",
+      "hud.credits":"积分", "hud.lines":"线数", "hud.bet":"每线注", "hud.total":"总注",
+      "hud.win":"中奖", "hud.free":"免费转",
+      "jp.sub":"累积奖金池", "jp.foot":"每笔投注累积 <b>1.5%</b><br><b class='hot'>必须最大注</b> + 五连 7 才派发",
+      "jp.elig.ok":"★ 已达最大注 · 可派发",
+      "jp.elig.no":"需最大注 {l} 线 × {c} 币 × 面额 {d}",
+      "jp.frozen":"免费转中 · 奖池暂停累积",
+      "pl.sub":"玩家档案", "pl.peak":"最高盈利", "pl.maxwin":"单次最高中奖",
+      "pl.won":"累计赢分", "pl.lost":"累计输分", "pl.broke":"破产次数", "pl.reset":"重新开始", "pl.resetAlt":"新游戏",
+      "bc.title":"银行卡", "bc.label":"卡内积分", "bc.dep":"存入 ▲", "bc.wd":"取出 ▼", "bc.all":"全部", "bc.amtPh":"自定义",
+      "gm.btn":"猜大小", "gm.title":"猜大小", "gm.body":"翻出一张<b>扑克牌</b>，猜它的<b>花色是红还是黑</b>：<b>红</b>＝♥♦，<b>黑</b>＝♠♣。猜中翻倍，猜错没收。",
+      "gm.stake":"本轮押注", "gm.round":"第", "gm.of":"/ 5", "gm.red":"红 ♥♦", "gm.black":"黑 ♠♣",
+      "gm.cash":"收下离场", "gm.flipping":"开奖中…", "gm.err":"取随机失败，本轮取消",
+      "gm.redGo":"继续押 红 ♥♦", "gm.blackGo":"继续押 黑 ♠♣",
+      "gm.tapHint":"按 红/黑 ＝ 押上 {amt} 开牌；按「收下离场」＝ 不押，奖金直接入袋",
+      "gm.winBig":"猜中 +{amt}", "gm.loseBig":"猜错 −{amt}",
+      "gm.nextHint":"猜中翻倍：可继续押 {amt}，或收下离场", "gm.overHint":"奖金已没收，本局结束",
+      "gm.maxHint":"已达 5 轮上限，{amt} 已入袋", "gm.cashHint":"未押注，奖金按原额入袋（本局不计输赢）", "gm.cashVerdict":"已收下 {amt}", "gm.close":"关闭",
+      "gm.win":"开 {side} · 赢 +{amt}", "gm.lose":"开 {side} · 输 -{amt}", "gm.maxout":"已达连猜上限",
+      "rescue.title":"积分用完了", "rescue.body":"你的银行卡里还有积分。是否取出卡内余额继续游戏？",
+      "rescue.amtLbl":"卡内余额", "rescue.yes":"取出继续", "rescue.no":"暂不",
+      "vol.title":"音量", "vol.hint":"拖到最左即关闭音效",
+      "reset.title":"重新开始？",
+      "reset.body":"将清空当前积分，并重置为初始 20000 积分。JACKPOT 奖池与历史统计不受影响。",
+      "reset.amountLbl":"当前积分", "reset.cancel":"取消", "reset.confirm":"确认清空",
+      "bk.title":"你已经破产了", "bk.sub":"点「重新开始」领取 20000 积分",
+      "nc.title":"积分不足",
+      "nc.detail":"本局需要 <b>{need}</b> 分 · 当前 <b>{cur}</b> 分",
+      "nc.hint":"用「线数 ±」或「每线 ±」调低注额后再旋转",
+      "btn.spin":"旋转", "btn.space":"空格", "lbl.lines":"线数", "lbl.perline":"每线", "lbl.denom":"面额",
+      "bet.max":"已达最大值",
+      "btn.src.offline":"随机源：H743 离线", "btn.src.trng":"随机源：H743 在线",
+      "src.opt.trng":"H743 在线 · 串口直供", "src.opt.offline":"H743 离线 · 熵快照",
+      "src.state.check":"检测中…", "src.state.ok":"可用 · 端口", "src.state.none":"未启动",
+      "src.state.noboard":"熵源未连（检查 CH340 / USB 线）",
+      "src.state.direct":"直供", "src.state.mixed":"混流", "src.state.snapshot":"熵快照",
+      "src.state.pool":"种子池", "src.state.os":"OS CSPRNG", "src.state.reseeds":" 次重播种",
+      "src.ent.title":"熵源链路", "src.ent.ok":"已接入", "src.ent.off":"未启用",
+      "src.ent.degraded":"未接入 · 单源运行", "src.ent.wait":"探测中…",
+      "src.ent.direct":"串口直供", "src.ent.mix":"混流", "src.ent.snapshot":"快照",
+      "src.ent.h743seed":"H743 播种", "src.ent.pool":"种子池（无 H743）",
+      "src.ent.os":"OS CSPRNG · 不可复现",
+      "src.msg.connecting":"连接中…",
+      "src.msg.trngReady":"H743 在线 · 串口直供 · 端口 {p}{c}",
+      "src.msg.offlineReady":"H743 离线 · 熵快照 + DRBG · 端口 {p}",
+      "src.msg.trngMissing":"H743 在线源未就绪（检查 CH340/USB，或运行 start_casino.py）；也可先切到 H743 离线源",
+      "src.msg.offlineMissing":"H743 离线源未就绪（跑 start_casino.py，或 trng_server.py --offline --entropy file）；也可先切到在线源",
+      "src.msg.bothBlock":"两个随机源都未就绪，无法旋转：请双击 start_casino.py 启动离线桥，或接板子运行 trng_server.py（在线桥）",
+      "src.msg.boardMissing":"在线桥已启动，但 H743 串口没响应——检查 CH340/USB 线，或到「随机源」切到 H743 离线源",
+      "src.msg.trngNeedSwitch":"真随机源未就绪，但离线随机源已连上——请到「随机源」切到离线随机源后再旋转",
+      "src.msg.offlineNeedSwitch":"离线随机源未就绪，但真随机源已连上——请到「随机源」切到真随机源后再旋转",
+      "src.msg.trng":"真随机 · {t}",
+      "src.msg.offline":"H743 离线源 · {t}",
+      "src.msg.trngDrop":"真随机源在取数时掉线，本局已退还，未使用浏览器随机",
+      "src.msg.offlineDrop":"离线随机源在取数时掉线，本局已退还，未使用浏览器随机",
+      "src.msg.autoSwitch":"原选中的随机源取数失败，已自动切到 {mode}（不使用浏览器随机）",
+      "rules.title":"玩法规则",
+      "rules.basic":"基本设定",
+      "rules.basic.1":"<b>5 个滚轮</b>，每轮一条独立的 64 格虚拟条带，条带决定各符号出现的概率与位置。",
+      "rules.basic.2":"<b>9 条中奖线（payline）</b>：横、斜、折线共 9 条，可按档激活其中前 N 条（1 / 3 / 5 / 7 / 9）。",
+      "rules.basic.3":"线数越多覆盖越广，但每局总注越高；未激活的线即使凑成连线也不派彩。",
+      "rules.bet":"下注",
+      "rules.bet.p":"真实机<b>三变量</b>投注模型：<b>总注 = 线数 × 每线币数 × 面额</b>。线数 <b>1 / 3 / 5 / 7 / 9</b>、每线币数 <b>1 / 2 / 3 / 5 / 10</b>、面额 <b>×1 / ×2 / ×5 / ×10 / ×25</b>，分别用「线数 ±」「面额 ±」「每线 ±」三个步进器切换；例如 9 线 × 3 币 × 面额 5 = 总注 135。最大注 9 × 10 × 25 = <b>2250</b>，起始资金 <b>20000</b>。中奖积分直接入账；积分归零时若银行卡里还有余额可取出来继续，<b>积分与卡内都为 0 才算破产</b>；点「重新开始」把积分重置回 20000（卡内余额保留）。",
+      "rules.pay":"符号与赔率",
+      "th.sym":"符号", "th.c3":"3 连", "th.c4":"4 连", "th.c5":"5 连", "th.desc":"说明",
+      "sym.seven":"7", "sym.diamond":"钻石", "sym.bell":"铃", "sym.bar":"BAR", "sym.cherry":"樱桃", "sym.lemon":"柠檬", "sym.star":"星星",
+      "sym.seven.desc":"最稀有，赔率最高",
+      "rules.pay.note":"“×” 为每条线注的倍数；某条线派彩 = 倍率 × 每条线注。",
+      "rules.wildscat":"百搭与散财",
+      "rules.wild":"<span class=\"tag wild\">WILD</span> 百搭：可替代任意普通符号完成连线；整条线全为 WILD 时按最高赔率（7）计。",
+      "rules.scat":"<span class=\"tag scat\">SCATTER</span> 散财：<b>不进中奖线</b>，也<b>不会被 WILD 替代</b>；在连线判定中它充当<b>终止符</b>——某条线从最左滚轮连续数符号时，数到 SC 即停止（例如 <b>7-7-SC-7 只算 2 连 7</b>，不足 3 连<b>不派彩</b>，也不会把 SC 当百搭接上）。只要画面<b>任意位置</b>出现 ≥3 个，即触发 <b>15 次免费转（线奖 ×3）</b>，并额外派彩（× 总注）：3 个=2×、4 个=9×、5 个=46×。",
+      "rules.lines":"连线规则",
+      "rules.lines.p":"每条线从滚轮 0（最左）开始，向右连续相同符号才计入；被不同符号或 SCATTER 打断即停止。连续 3/4/5 个即按上表派彩，多条线可同时中奖并累加。",
+      "rules.lines.note":"关键：连线必须<b>紧贴最左连续</b>——若第 1、2 格是不同普通图案（都不是 WILD），即使后面 3 格相同也不中奖。例：<b>A‑B‑C‑C‑C</b> 只算 1 连 A，计数在 reel 1 就已中断；只有 <b>WILD</b> 能替身桥接过去。",
+      "rules.free":"免费转（Free Spins）",
+      "rules.free.p":"触发条件：画面<b>任意位置</b>出现 <b>≥3 个</b> <svg class=\"scico\" viewBox=\"0 0 100 100\"><use href=\"#sym-scatter\"/></svg><b>SCATTER</b>（<b>不要求连线</b>、不要求在同一行，WILD 不能替代）。触发后自动连转 <b>15 次</b>，期间<b>不扣积分</b>，且所有<b>线奖 ×3</b>（scatter 派彩不乘）；免费转中再次凑齐 ≥3 个 SCATTER 可叠加更多免费转，赢取的积分正常入账。",
+      "rules.jp":"累积奖金池（JACKPOT）",
+      "rules.jp.p":"机器右侧的 <b>JACKPOT</b> 是累积奖池：每笔下注按注额的 <b>1.5%</b> 注入池中，越玩越大。当<b>同时满足</b>下列两个条件时，整池一次性派给玩家，并重置回初始池底（<b>1,250,000</b>）：",
+      "rules.jp.ul":"<li><b>最大注</b>：9 线 × 10 币 × 面额 25（总注 2250）；</li><li><b>五连 7</b>：任意一条激活线上从左连续出现 5 个 <b>7</b>（<b>WILD</b> 可替身；5 个全为 WILD 时按 7 计）。</li>",
+      "rules.jp.note":"免费转期间注额被冻结：若触发免费转时正好是最大注，则整个免费转过程同样具备派发资格。本机为<b>单级、本机</b>奖池（非联网多级）；池子达到 <b>300 万</b>「必出上限」后，下一局<b>无条件</b>派发。",
+      "rules.gm":"猜大小（Gamble）",
+      "rules.gm.p":"<b>何时可用</b>：只有<b>基础局</b>中奖后才会出现——旋转按钮上方的「<b>猜大小</b>」按钮亮起即可点击。<b>免费转</b>期间的奖金、触发免费转的那一局、以及 <b>JACKPOT</b> 派发<b>不可押注</b>。",
+      "rules.gm.ul":"<li><b>押注额</b> = 本局全部奖金（已封顶后的金额），系统自动全额押上，不需要自己填数（若奖金已存入银行卡导致积分不足，则按当前积分押注）；</li><li><b>玩法</b>：每轮<b>翻开一张扑克牌</b>，你猜它的<b>花色是红还是黑</b>——<b>红 ♥♦</b>（红桃 / 方块）或 <b>黑 ♠♣</b>（黑桃 / 梅花），各 <b>50/50</b>（一副牌 26 红 26 黑）。猜中该笔奖金<b>翻倍</b>（押注 ×2），猜错则<b>全部没收</b>；牌翻开后右侧用大字显示 <b>猜中 +X</b> 或 <b>猜错 −X</b>。牌面的<b>点数（A~K）只是装饰</b>，不参与输赢判定。</li><li><b>连猜</b>：猜中后两个按钮会变成「<b>继续押 红 / 继续押 黑</b>」——再选一色，就是把翻倍后的整笔奖金<b>押下一轮</b>，最多连猜 <b>5 轮</b>（到第 5 轮自动结算入袋）；</li><li><b>随时离场</b>：点「<b>收下离场</b>」立即结束，当前奖金直接归你，不再冒险。</li>",
+      "rules.gm.note":"随机性说明：开红开黑由板子随机源的字节最低位（<b>pos[0] &amp; 1</b>）决定，本身严格 50/50，<b>不使用浏览器随机数</b>；取随机失败（桥接断开）时本轮<b>取消</b>，奖金原地不动。数学上单轮期望为 <b>100%</b>（不改变 RTP，只放大波动），连猜 N 轮后仍是公平游戏，但赢到手的概率按 1/2<sup>N</sup> 递减。",
+      "rules.limits":"封顶与结算",
+      "rules.limits.ul":"<li><b>单局封顶</b>：任何一局的<b>普通派彩</b>上限为 <b>5000 × 总注</b>（最大注 2250 时即 11,250,000），超出部分<b>不计</b>；<b>JACKPOT 整池另派、不受封顶限制</b>。</li><li><b>结算与档案</b>：中奖当场入账，并记入左侧档案的「累计赢分 / 单次最高中奖」；每笔下注记入「累计输分」，下注作废会<b>等额回退</b>。积分与卡内都空时判为破产，点「重新开始」把积分重置为 <b>20000</b>（卡内余额保留）。</li><li><b>最高盈利</b>：按（积分 ＋ 卡内）的历史最高值减去<b>固定的 20000 基线</b>计——<b>起始资金不计入盈利</b>，每次「重新开始」送的 20000 也不累加门槛；存/取款只是钱包与卡之间转账，不改变总资产，也就不会刷新记录。</li>",
+      "rules.limits.note":"注：银行卡与积分之间「存入 / 取出」只是两个钱包之间搬运，<b>不影响</b>「累计赢分 / 累计输分」统计；奖池注入按<b>实际下注额</b> 1.5% 计算，与积分从哪个钱包出无关。<br><b>资金共通</b>：积分与银行卡是<b>全局钱袋</b>，与<b>百家乐</b>游戏页共用同一笔钱，两个游戏之间可以随意换着玩；「最高盈利」与「破产次数」同为全局记录（钱袋一起空才算一次破产）。",
+      "rules.rand":"随机源",
+      "rules.rand.p":"滚轮停位由随机字节映射到 <b>0–63</b> 决定（每局取 <b>5 字节</b> = 5 个滚轮的停位）。两种来源：<b>H743 在线 · 串口直供</b>——直接向 STM32H743 的片上 TRNG 要新字节；<b>H743 离线 · 熵快照</b>（默认）——用这颗芯片某次采到的 <b>4096 B</b> 物理熵当种子，喂给 <b>ChaCha20 DRBG</b> 扩展成字节流，不占串口，可与在线源同时运行。",
+      "rules.rand.note":"两种来源都需要本机运行 <b>trng_server.py</b>（一键：<b>start_casino.py</b>，会同时起在线 8765 与离线 8770）。桥接服务未连上时本机<b>不允许旋转</b>，需先连上至少一个随机源后再游戏。",
+      "rules.rtp":"RTP（Return to Player，玩家回报率 / 返奖率）",
+      "rules.rtp.p":"指<b>长期</b>来看，玩家每投入 100 元平均能拿回的金额。例如 RTP ≈ 95% 表示：在海量 spin 之后，玩家每投 100 元平均拿回约 95 元，赌场（或本机）长期保留约 5 元。它不是单局胜率，而是数学期望意义上的返还比例。本机经蒙特卡洛仿真标定，<b>9 线全开时 RTP ≈ 93.8%</b>（基础线奖约 67.6%、免费转线奖约 24.3%、scatter 派彩约 1.9%）。<b>线数会影响 RTP</b>：只开前 5 线时实测约 <b>91.2%</b>，因为前 5 条线的价值分布不同于后 4 条。",
+      "rules.rtp.note":"说明：以上数字由 rtp_sim.py 蒙特卡洛模拟得出（300 万次基础转，已计入免费转链、扩展 WILD 与 5000× 单局封顶）：命中率约 <b>32.4%</b>（约 1/3.1），波动率约 <b>4.4 × 总注</b>。与页面赔率表、条带、payline 完全一致。"
+    },
+    en: {
+      "nav.bacc":"Baccarat",
+      "hud.credits":"CREDITS", "hud.lines":"LINES", "hud.bet":"BET/LINE", "hud.total":"TOTAL BET",
+      "hud.win":"WIN", "hud.free":"FREE",
+      "jp.sub":"PROGRESSIVE POOL", "jp.foot":"<b>1.5%</b> of each bet<br><b class='hot'>max bet required</b> + five 7s",
+      "jp.elig.ok":"★ MAX BET · ELIGIBLE",
+      "jp.elig.no":"Max bet {l} × {c} × denom {d}",
+      "jp.frozen":"FREE SPINS · POOL PAUSED",
+      "pl.sub":"PLAYER STATS", "pl.peak":"BEST PROFIT", "pl.maxwin":"BEST SINGLE WIN",
+      "pl.won":"TOTAL WON", "pl.lost":"TOTAL LOST", "pl.broke":"TIMES BROKE", "pl.reset":"RESTART", "pl.resetAlt":"new game",
+      "bc.title":"BANK CARD", "bc.label":"CARD BALANCE", "bc.dep":"DEPOSIT ▲", "bc.wd":"WITHDRAW ▼", "bc.all":"ALL", "bc.amtPh":"custom",
+      "gm.btn":"GAMBLE", "gm.title":"Gamble", "gm.body":"A <b>playing card</b> is turned over — guess if its <b>suit is red or black</b>: <b>RED</b> = ♥♦, <b>BLACK</b> = ♠♣. Right doubles, wrong forfeits.",
+      "gm.stake":"Stake", "gm.round":"Round", "gm.of":"/ 5", "gm.red":"RED ♥♦", "gm.black":"BLACK ♠♣",
+      "gm.cash":"Cash out", "gm.flipping":"Flipping…", "gm.err":"RNG failed — round cancelled",
+      "gm.redGo":"CONTINUE RED ♥♦", "gm.blackGo":"CONTINUE BLACK ♠♣",
+      "gm.tapHint":"Red/Black = stake {amt} and draw; Cash out = keep the win without betting",
+      "gm.winBig":"WIN +{amt}", "gm.loseBig":"LOST −{amt}",
+      "gm.nextHint":"Doubled — stake {amt} again, or cash out", "gm.overHint":"Win forfeited — round over",
+      "gm.maxHint":"5-round limit hit — {amt} banked", "gm.cashHint":"No bet placed — the win is banked as-is (no win or loss this round)", "gm.cashVerdict":"Cashed out {amt}", "gm.close":"Close",
+      "gm.win":"{side} · win +{amt}", "gm.lose":"{side} · lose -{amt}", "gm.maxout":"Gamble limit reached",
+      "rescue.title":"Out of credits", "rescue.body":"Your bank card still has credits. Withdraw them and keep playing?",
+      "rescue.amtLbl":"Card balance", "rescue.yes":"Withdraw & play", "rescue.no":"Not now",
+      "vol.title":"Volume", "vol.hint":"Drag to the far left to mute",
+      "reset.title":"Restart?",
+      "reset.body":"This clears your current credits and resets them to 20000. The jackpot and records are kept.",
+      "reset.amountLbl":"Current credits", "reset.cancel":"Cancel", "reset.confirm":"Confirm",
+      "bk.title":"You're bankrupt", "bk.sub":"Hit RESTART to get 20000 credits",
+      "nc.title":"NOT ENOUGH CREDITS",
+      "nc.detail":"This spin needs <b>{need}</b> · you have <b>{cur}</b>",
+      "nc.hint":"Lower Lines or Bet per line, then spin again",
+      "btn.spin":"SPIN", "btn.space":"Space", "lbl.lines":"LINES", "lbl.perline":"BET", "lbl.denom":"DENOM",
+      "bet.max":"MAX",
+      "btn.src.offline":"Source: H743 offline", "btn.src.trng":"Source: H743 online",
+      "src.opt.trng":"H743 online · serial", "src.opt.offline":"H743 offline · snapshot",
+      "src.state.check":"checking…", "src.state.ok":"ok · port", "src.state.none":"not running",
+      "src.state.noboard":"entropy link down (check CH340 / USB)",
+      "src.state.direct":"direct", "src.state.mixed":"mixed", "src.state.snapshot":"snapshot",
+      "src.state.pool":"seed pool", "src.state.os":"OS CSPRNG", "src.state.reseeds":" reseeds",
+      "src.ent.title":"Entropy link", "src.ent.ok":"connected", "src.ent.off":"off",
+      "src.ent.degraded":"absent · single source", "src.ent.wait":"probing…",
+      "src.ent.direct":"serial direct", "src.ent.mix":"mixed", "src.ent.snapshot":"snapshot",
+      "src.ent.h743seed":"H743-seeded", "src.ent.pool":"seed pool (no H743)",
+      "src.ent.os":"OS CSPRNG · not reproducible",
+      "src.msg.connecting":"connecting…",
+      "src.msg.trngReady":"H743 online · serial direct · port {p}{c}",
+      "src.msg.offlineReady":"H743 offline · snapshot + DRBG · port {p}",
+      "src.msg.trngMissing":"H743 online source not ready (check CH340/USB, or run start_casino.py) - you can switch to the offline source meanwhile",
+      "src.msg.offlineMissing":"H743 offline source not ready (run start_casino.py, or trng_server.py --offline --entropy file) - you can switch to the online source meanwhile",
+      "src.msg.bothBlock":"Neither random source is ready - cannot spin. Run start_casino.py to start the offline bridge, or connect the board and run trng_server.py (online bridge).",
+      "src.msg.boardMissing":"Online bridge is up but the H743 serial link is silent - check CH340/USB, or switch to the H743 offline source",
+      "src.msg.trngNeedSwitch":"TRNG not ready, but Offline RNG is connected - switch to Offline RNG in 'Source' before spinning",
+      "src.msg.offlineNeedSwitch":"Offline RNG not ready, but TRNG is connected - switch to TRNG in 'Source' before spinning",
+      "src.msg.trng":"TRNG · {t}",
+      "src.msg.offline":"H743 offline source · {t}",
+      "src.msg.trngDrop":"TRNG dropped while fetching - this spin was refunded, no browser RNG used",
+      "src.msg.offlineDrop":"Offline RNG dropped while fetching - this spin was refunded, no browser RNG used",
+      "src.msg.autoSwitch":"Selected source failed to fetch - auto-switched to {mode} (no browser RNG used)",
+      "rules.title":"How to Play",
+      "rules.basic":"Basic Setup",
+      "rules.basic.1":"<b>5 reels</b>, each with its own independent 64-cell virtual strip that determines the probability and position of each symbol.",
+      "rules.basic.2":"<b>9 paylines</b>: horizontal, diagonal and zigzag; you activate the first N of them by tier (1 / 3 / 5 / 7 / 9).",
+      "rules.basic.3":"More lines cover more ground but raise the total bet per spin; inactive lines pay nothing even if they form a match.",
+      "rules.bet":"Bet",
+      "rules.bet.p":"Real-machine <b>three-lever</b> model: <b>Total Bet = Lines × Coins per Line × Denomination</b>. Lines <b>1 / 3 / 5 / 7 / 9</b>, coins per line <b>1 / 2 / 3 / 5 / 10</b>, denomination <b>×1 / ×2 / ×5 / ×10 / ×25</b>, set with the Lines ±, Denom ± and Bet ± steppers. E.g. 9 lines × 3 coins × denom 5 = total bet 135. Max bet 9 × 10 × 25 = <b>2250</b>, starting bankroll <b>20000</b>. Wins are credited immediately; when credits hit zero you can withdraw from the bank card and keep playing - you are only <b>broke when both are empty</b>, and RESTART resets credits to 20000 (the card balance is kept).",
+      "rules.pay":"Symbols &amp; Payouts",
+      "th.sym":"Symbol", "th.c3":"3-kind", "th.c4":"4-kind", "th.c5":"5-kind", "th.desc":"Note",
+      "sym.seven":"7", "sym.diamond":"Diamond", "sym.bell":"Bell", "sym.bar":"BAR", "sym.cherry":"Cherry", "sym.lemon":"Lemon", "sym.star":"Star",
+      "sym.seven.desc":"Rarest, highest payout",
+      "rules.pay.note":"“×” is a multiple of the per-line bet; a line pays = multiplier × per-line bet.",
+      "rules.wildscat":"Wild &amp; Scatter",
+      "rules.wild":"<span class=\"tag wild\">WILD</span> substitutes for any normal symbol to complete a line; a line of all WILDs pays the top symbol (7). Also <b>Expanding WILD</b>: if a WILD lands on the <b>middle row</b> of the <b>middle three reels</b>, the rest of that reel (except SCATTER) becomes WILD for line evaluation.",
+      "rules.scat":"<span class=\"tag scat\">SCATTER</span> does <b>not</b> appear on paylines and is <b>never</b> replaced by WILD; it acts as a <b>stopper</b> in line evaluation — counting a line from the leftmost reel stops at SC (e.g. <b>7-7-SC-7 counts only as 2×7</b> and pays nothing). Appearing <b>anywhere</b> ≥3 triggers <b>15 Free Spins (line wins ×3)</b> plus a bonus (× total bet): 3=2×, 4=9×, 5=46×.",
+      "rules.lines":"Payline Rules",
+      "rules.lines.p":"Each line starts at reel 0 (leftmost) and counts consecutive identical symbols only; it stops at a different symbol or SCATTER. 3/4/5 in a row pay per the table above; multiple lines can win and add up.",
+      "rules.lines.note":"Key: a line must be <b>unbroken from the left</b> — if reels 0 and 1 show different normal symbols (neither is WILD), even three matching symbols behind them do not pay. E.g. <b>A-B-C-C-C</b> counts only as 1×A; counting already stops at reel 1. Only <b>WILD</b> can substitute to bridge across.",
+      "rules.free":"Free Spins",
+      "rules.free.p":"Trigger: <b>3 or more</b> <svg class=\"scico\" viewBox=\"0 0 100 100\"><use href=\"#sym-scatter\"/></svg><b>SCATTER</b> anywhere on the reels (<b>no payline needed</b>, they may sit on different rows; WILD does not substitute). On trigger, auto-spins <b>15 times</b> at no credit cost, with all <b>line wins ×3</b> (scatter pays are not multiplied); landing ≥3 more SCATTERs during free spins stacks extra free spins, and all wins are credited normally.",
+      "rules.jp":"PROGRESSIVE JACKPOT",
+      "rules.jp.p":"The <b>JACKPOT</b> panel beside the cabinet is a progressive pool: <b>1.5%</b> of every bet is added to it. The whole pool is paid out and reset to its base (1,250,000) when <b>both</b> conditions hold:",
+      "rules.jp.ul":"<li><b>Max bet</b>: 9 lines × 10 coins × denom 25 (total 2250);</li><li><b>Five 7s</b>: 5 consecutive <b>7</b> from the leftmost reel on any active line (<b>WILD</b> substitutes; five WILDs count as 7).</li>",
+      "rules.jp.note":"Bet is frozen during free spins: if the trigger spin was at max bet, eligibility carries through the free spins. This is a <b>single-tier, local</b> jackpot (not a networked multi-tier). Once the pool reaches the <b>3,000,000</b> must-hit cap, it is paid out on the next spin <b>unconditionally</b>.",
+      "rules.gm":"Gamble (Double-Up)",
+      "rules.gm.p":"<b>When available</b>: only after a win on a <b>base game</b> spin — the <b>GAMBLE</b> button above SPIN lights up and can be clicked. Wins during <b>free spins</b>, a spin that triggers free spins, and any <b>JACKPOT</b> payout are <b>not</b> gambleable.",
+      "rules.gm.ul":"<li><b>Stake</b> = the entire win (already capped). The full amount is staked automatically, no amount entry needed (if part of the win was deposited to the bank card and credits are short, only the available credits are staked).</li><li><b>How to play</b>: one <b>playing card</b> is turned over each round — guess whether its <b>suit is red or black</b>: <b>RED ♥♦</b> (hearts / diamonds) or <b>BLACK ♠♣</b> (spades / clubs), <b>50/50</b> (26 red and 26 black in a deck). Guess right and the stake <b>doubles</b> (stake ×2); guess wrong and it is <b>all forfeited</b>. Once the card is turned, a large <b>WIN +X</b> or <b>LOST −X</b> appears beside it. The <b>rank (A–K) is decorative</b> and does not affect the outcome.</li><li><b>Chain</b>: after a win the buttons read <b>CONTINUE RED / CONTINUE BLACK</b> - picking a colour stakes the doubled amount again, up to <b>5 rounds</b>; after round 5 the balance is settled automatically.</li><li><b>Leave anytime</b>: press <b>Cash out</b> to end immediately and keep the current amount.</li>",
+      "rules.gm.note":"Randomness: the red/black outcome comes from the lowest bit of a byte from the board RNG (<b>pos[0] &amp; 1</b>), which is exactly 50/50 — <b>the browser RNG is never used</b>. If fetching randomness fails (bridge down) the round is <b>cancelled</b> and the win is untouched. Each round has an expected return of <b>100%</b> (RTP is unchanged; only variance grows), so chaining N rounds stays fair, but the chance of reaching round N halves each time (1/2<sup>N</sup>).",
+      "rules.limits":"Caps &amp; Settlement",
+      "rules.limits.ul":"<li><b>Per-spin cap</b>: ordinary payouts in a single spin are capped at <b>5,000 × total bet</b> (11,250,000 at the max bet of 2250) and any excess is dropped. The <b>JACKPOT is paid in full on top</b> and is not subject to the cap.</li><li><b>Settlement &amp; stats</b>: wins are credited immediately and recorded in TOTAL WON / BEST WIN; every bet is added to TOTAL LOST, and a voided bet is <b>refunded in full</b>. When credits and the bank card are both empty you are broke; RESTART resets credits to <b>20000</b> and <b>keeps the card balance</b>.</li><li><b>BEST PROFIT</b>: the historical high of (credits + card) minus a <b>fixed 20,000 baseline</b> — <b>starting funds never count as profit</b>, and the 20,000 handed out by RESTART does not raise the bar either; moving money between wallet and card is an internal transfer and never sets a new record.</li>",
+      "rules.limits.note":"Note: depositing to / withdrawing from the bank card is only a transfer between two wallets and <b>does not affect</b> TOTAL WON / TOTAL LOST; the 1.5% jackpot contribution is based on the <b>actual bet amount</b>, regardless of which wallet it came from.<br><b>Shared wallet</b>: credits and the bank card form one casino-wide purse, shared with the <b>Baccarat</b> page - switch between the two games freely. BEST PROFIT and the bankruptcy count are global records too (one bankruptcy = credits and card both empty).",
+      "rules.rand":"Random Source",
+      "rules.rand.p":"Reel stops come from random bytes mapped to <b>0–63</b> (<b>5 bytes</b> per spin = 5 reels). Two origins: <b>H743 online · serial direct</b> — ask the STM32H743 on-chip TRNG for fresh bytes; <b>H743 offline · entropy snapshot</b> (default) — a <b>4096 B</b> physical-entropy sample from the same chip seeds a <b>ChaCha20 DRBG</b> that expands it into a byte stream; no serial port, so it can run alongside the online source.",
+      "rules.rand.note":"Both origins require <b>trng_server.py</b> locally (one-click: <b>start_casino.py</b>, which starts both online 8765 and offline 8770). Without a connected bridge the machine <b>refuses to spin</b> — connect at least one source first.",
+      "rules.rtp":"RTP (Return to Player)",
+      "rules.rtp.p":"The <b>long-run</b> average amount returned to the player per 100 wagered. E.g. RTP ≈ 95% means: after a huge number of spins, the player gets back about 95 per 100 wagered, and the house (or this machine) keeps about 5 in the long run. It is not the odds of winning a single spin, but the expected return. This machine is Monte-Carlo calibrated to <b>RTP ≈ 93.8% with all 9 lines active</b> (≈67.6% line wins, ≈24.3% free spins, ≈1.9% scatter pays). <b>RTP depends on the number of active lines</b>: with only the first 5 lines it measures ≈<b>91.2%</b>, because the first 5 paylines have a different value distribution from the last 4.",
+      "rules.rtp.note":"Note: these figures come from rtp_sim.py Monte Carlo runs (3,000,000 base spins, including the free-spin chain, Expanding WILD and the 5,000× per-spin cap): hit frequency ≈ <b>32.4%</b> (about 1 in 3.1), volatility ≈ <b>4.4 × total bet</b>. They match the page's paytable, strips and paylines exactly."
+    }
+  };
+  var curLang = (function(){ try { return localStorage.getItem("slot_lang") || "zh"; } catch(e){ return "zh"; } })();
+  var langBtn = document.getElementById("langBtn");
+  function applyLang(lang){
+    document.documentElement.lang = (lang === "zh") ? "zh-CN" : "en";
+    document.querySelectorAll("[data-i18n]").forEach(function(el){
+      var k = el.getAttribute("data-i18n");
+      var t = I18N[lang] && I18N[lang][k];
+      if (t != null) el.innerHTML = t;
+    });
+    document.querySelectorAll("[data-i18n-ph]").forEach(function(el){     // 输入框 placeholder 随语言切换
+      var k = el.getAttribute("data-i18n-ph");
+      var t = I18N[lang] && I18N[lang][k];
+      if (t != null) el.setAttribute("placeholder", t);
+    });
+    refreshSrcBtn();
+    if (_lastSrcMsg) setSrcMsgKey(_lastSrcMsg.key, _lastSrcMsg.vars);   // 当前提示随语言重译
+    updateJackpotElig();                                               // 资格徽标随语言重译
+    if (_ncVisible) renderNcDetail();                                  // 积分不足弹窗的金额行随语言重译
+    renderStatNumbers();                                               // 档案数字的单位（萬 vs K/M）随语言切换
+    buildJackpot();                                                    // 奖池逗号分组：中文万分位 / 英文千分位
+    renderCard();                                                      // 卡内余额单位随语言重译
+    updateGambleUI();
+    if (langBtn) langBtn.textContent = (lang === "zh") ? "EN" : "中";
+    try { localStorage.setItem("slot_lang", lang); } catch(e){}
+  }
+  function refreshSrcBtn(){
+    if (!srcBtn) return;
+    var key = "btn.src." + (srcMode === "trng" ? "trng" : "offline");
+    srcBtn.textContent = ((I18N[curLang] && I18N[curLang][key]) || "随机源") + " ▾";
+    srcBtn.classList.toggle("on", srcMode === "trng");
+    Array.prototype.forEach.call(document.querySelectorAll(".src-opt"), function(o){
+      o.classList.toggle("cur", o.getAttribute("data-mode") === srcMode);
+    });
+  }
+  if (langBtn) langBtn.addEventListener("click", function(){
+    curLang = (curLang === "zh") ? "en" : "zh";
+    applyLang(curLang);
+  });
+  applyLang(curLang);
+
+  /* ---------------- 音效开关（规划：后续接入音效资源） ---------------- */
+  // 喇叭图标：ON=有声波，OFF=静音(带叉)。复用 .btn.small 样式，置于 EN 按钮左侧。
+  var SPK_ON  = '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M16 8a4 4 0 0 1 0 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18.5 5.5a7 7 0 0 1 0 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+  var SPK_OFF = '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M16 9l5 6M21 9l-5 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+  var SPK_LOW = '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M16 8a4 4 0 0 1 0 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+
+  var soundBtn = document.getElementById("soundBtn");
+  var volPop   = document.getElementById("volPop");
+  var volSliderEl = document.getElementById("volSlider");
+  var volFillEl   = document.getElementById("volFill");
+  var volKnobEl   = document.getElementById("volKnob");
+  var volTrackEl  = volSliderEl ? volSliderEl.querySelector(".vol-track") : null;
+  var VOL_STEP = 5;                       // 键盘 / 滚轮的单步
+
+  // 主音量 0~100；0 即关闭。兼容旧存档 slot_sound=off
+  var soundVol = (function(){
+    var v = lsLoad("slot_vol", NaN);
+    if (!isFinite(v)){
+      try { if (localStorage.getItem("slot_sound") === "off") return 0; } catch(e){}
+      return 100;
+    }
+    return Math.max(0, Math.min(100, Math.round(v)));
+  })();
+
+  function renderSound(){
+    var on = soundVol > 0;
+    if (soundBtn){
+      soundBtn.innerHTML = !on ? SPK_OFF : (soundVol <= 40 ? SPK_LOW : SPK_ON);
+      soundBtn.setAttribute("aria-pressed", on ? "true" : "false");
+      soundBtn.title = on
+        ? ("音量 " + soundVol + "%（点击调节） / Volume " + soundVol + "%")
+        : "已静音（点击调节） / Muted - click to adjust";
+    }
+    // 竖直滑杆：填充高度与圆钮位置都跟音量走
+    if (volFillEl) volFillEl.style.height = soundVol + "%";
+    if (volKnobEl) volKnobEl.style.bottom = soundVol + "%";
+    if (volSliderEl) volSliderEl.setAttribute("aria-valuenow", String(soundVol));
+  }
+  function setSoundVol(v, save){
+    soundVol = Math.max(0, Math.min(100, Math.round(v)));
+    renderSound();
+    applyJackpotVol();   // 正在播放的 JACKPOT 派发音效实时跟随滑杆
+    if (save) lsSave("slot_vol", soundVol);
+  }
+  // 上下滑杆：按下即跳、拖动跟手；键盘 ↑↓（Shift 加速）与滚轮也能调
+  (function bindVolSlider(){
+    if (!volSliderEl) return;
+    var dragging = false;
+    function volFromY(clientY){
+      var el = volTrackEl || volSliderEl, r = el.getBoundingClientRect();
+      if (!r.height) return soundVol;
+      return Math.max(0, Math.min(100, Math.round((r.bottom - clientY) / r.height * 100)));
+    }
+    volSliderEl.addEventListener("pointerdown", function(e){
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      e.preventDefault();
+      dragging = true;
+      volSliderEl.classList.add("drag");
+      try { volSliderEl.setPointerCapture(e.pointerId); }catch(err){}
+      setSoundVol(volFromY(e.clientY), false);
+    });
+    volSliderEl.addEventListener("pointermove", function(e){
+      if (!dragging) return;
+      setSoundVol(volFromY(e.clientY), false);
+    });
+    function endDrag(e){
+      if (!dragging) return;
+      dragging = false;
+      volSliderEl.classList.remove("drag");
+      try { volSliderEl.releasePointerCapture(e.pointerId); }catch(err){}
+      lsSave("slot_vol", soundVol);                 // 拖动过程只改内存，松手才落盘
+      if (soundVol > 0) playSfx("click");           // 松手试听当前音量（0% 自然不发声）
+    }
+    volSliderEl.addEventListener("pointerup", endDrag);
+    volSliderEl.addEventListener("pointercancel", endDrag);
+    volSliderEl.addEventListener("keydown", function(e){
+      var k = e.key, step = e.shiftKey ? 10 : VOL_STEP, v = soundVol, used = true;
+      if (k === "ArrowUp" || k === "ArrowRight") v += step;
+      else if (k === "ArrowDown" || k === "ArrowLeft") v -= step;
+      else if (k === "Home") v = 0;
+      else if (k === "End") v = 100;
+      else used = false;
+      if (!used) return;
+      e.preventDefault();
+      setSoundVol(v, true);
+    });
+    volSliderEl.addEventListener("wheel", function(e){
+      e.preventDefault();
+      setSoundVol(soundVol + (e.deltaY < 0 ? VOL_STEP : -VOL_STEP), true);
+    }, { passive: false });
+  })();
+  function toggleVolPop(show){
+    if (!volPop) return;
+    var willShow = (show != null) ? show : !volPop.classList.contains("show");
+    volPop.classList.toggle("show", willShow);
+    if (soundBtn) soundBtn.setAttribute("aria-expanded", willShow ? "true" : "false");
+  }
+  // 音效资源映射：类型 -> 本地文件（相对页面路径）
+  var SFX_MAP = {
+    click: "sfx/cash-register-kaching-sound-effect-125042.mp3", // 旋转按钮（收银机 kaching）
+    spin:  "sfx/spin.mp3",                                      // 滚轮转动
+    free:  "sfx/free.mp3",                                      // 免费转触发
+    win:   "sfx/win.mp3",                                       // 中奖
+    airhorn: "sfx/freesound_community-dj-airhorn-sound-39405.mp3", // JACKPOT 派发第 1 声
+    party:   "sfx/mfcc-party-celebration-event-620910.mp3"         // JACKPOT 派发第 2 声
+  };
+  var SFX_VOL = { click: 0.55, spin: 0.32, free: 0.55, win: 0.50,
+                  airhorn: 0.55, party: 0.45 };  // click 已 +10%(0.50→0.55)
+  // 滚轮音延迟：让收银机 kaching 先响一段，避免与滚轮音起点重叠
+  var SPIN_SFX_DELAY = 800;
+  var FREE_SPEED = 1.25;      // 免费转期间的转速倍数（滚轮时长 / 续转间隔都按它缩短）
+  var _sfxCache = {};
+  // 每次加载页面都用新的版本串，强制浏览器重新取音频，避免同名文件更新后仍播缓存旧版
+  var SFX_VER = Date.now();
+  function playSfx(type){
+    if (soundVol <= 0) return;                  // 音量拖到最左（0%）= 关闭
+    var src = SFX_MAP[type]; if (!src) return;
+    try {
+      var a = _sfxCache[type];
+      if (!a){ a = _sfxCache[type] = new Audio(src + "?v=" + SFX_VER); a.preload = "auto"; }
+      var base = (SFX_VOL[type] != null) ? SFX_VOL[type] : 0.5;
+      a.volume = Math.max(0, Math.min(1, base * (soundVol / 100)));
+      try { a.currentTime = 0; } catch(e){}
+      var p = a.play();
+      if (p && p.catch) p.catch(function(){});  // 忽略自动播放策略拒绝，避免控制台报错
+    } catch(e){}
+  }
+  if (soundBtn) soundBtn.addEventListener("click", function(e){ e.stopPropagation(); toggleVolPop(); });
+  // 点浮层外部 / 按 Esc 收起
+  document.addEventListener("click", function(e){
+    if (!volPop || !volPop.classList.contains("show")) return;
+    if (volPop.contains(e.target) || (soundBtn && soundBtn.contains(e.target))) return;
+    toggleVolPop(false);
+  });
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape") toggleVolPop(false);
+  });
+  renderSound();
+
+  /* ---------------- 玩家档案（最高盈利 / 最高单次中奖 / 累计输赢 / 破产次数） ----------------
+     口径（2026-11-02 按用户要求两次修订，现为"固定基线"版）：
+       「最高盈利」——只算玩家自己打出来的盈利，**起始资金不计入**。
+         盈利 = (积分 + 卡内) − 20000（固定基线，永远是起始资金这一档）
+         为什么用「积分 + 卡内」：存/取款只是把钱在钱包和卡之间搬，总资产不变，
+         不能因为"先存进卡再取出"就刷出一次新高；猜大小翻倍、JACKPOT 派发都自然被计入。
+         为什么扣基线：开局就有 20000，如果直接拿余额当记录，新玩家一进页面就是 2萬，
+         等于把"初始奖金"当成了历史最高（旧实现就是这么显示的）。
+       为什么基线固定、不随「重新开始」累加（用户选定）：
+         重开拿到的 20000 不增加基线门槛，所以重开更容易重新攒出记录值；
+         代价是已知的——若重开时卡里还留着钱（比如卡内 5000），那一刻总资产
+         是 20000+5000，会显示成"盈利 5000"，而它其实是玩家自己的旧钱。
+         这是"门槛低"换来的取舍，不做额外修正（另一版累加本金会把门槛越推越高）。
+       旧键 slot_peak 存的是"绝对积分峰值"（含本金），首次加载时一次性换算成盈利并删除。 */
+  var LS_BROKE = "slot_broke", LS_MAXWIN = "slot_maxwin", LS_WON = "slot_won", LS_LOST = "slot_lost";
+  var LS_PROFIT = "slot_profit", LS_PEAK_OLD = "slot_peak";
+  var profitBase = START_CREDITS;                                 // 固定基线：起始资金
+  var statPeak = Math.max(0, Math.floor(lsLoad(LS_PROFIT, 0)));   // 最高盈利（≥0，只升不降）
+  (function migratePeak(){
+    var legacy = lsLoad(LS_PEAK_OLD, NaN);
+    if (!isFinite(legacy)) return;              // 没有旧档，无需迁移
+    if (!isFinite(lsLoad(LS_PROFIT, NaN))){     // 还没写过新值：换算一次
+      // 旧值 = 绝对积分峰值；减去起始资金即近似盈利
+      statPeak = Math.max(statPeak, Math.max(0, Math.floor(legacy) - START_CREDITS));
+      lsSave(LS_PROFIT, statPeak);
+    }
+    try { localStorage.removeItem(LS_PEAK_OLD); } catch(e){}
+  })();
+  var statBroke = Math.max(0, Math.floor(lsLoad(LS_BROKE, 0)));
+  var statMaxWin = Math.max(0, Math.floor(lsLoad(LS_MAXWIN, 0)));   // 单次最高中奖（含 jackpot，仅统计单局实际派彩）
+  var statWon    = Math.max(0, Math.floor(lsLoad(LS_WON, 0)));      // 累计赢分（所有派彩之和）
+  var statLost   = Math.max(0, Math.floor(lsLoad(LS_LOST, 0)));     // 累计输分（＝累计投注额，免费转不计）
+  var brokeFlag = (credits < 1);   // 加载时若已是破产状态（上次没点重新开始），本次不重复计数
+  var peakEl  = document.getElementById("peakVal");
+  var brokeEl = document.getElementById("brokeVal");
+  var maxWinEl = document.getElementById("maxWinVal");
+  var wonEl    = document.getElementById("wonVal");
+  var lostEl   = document.getElementById("lostVal");
+  // 中文界面按「萬」计数：不足一万直接给原值（中文四位一进，四位以内不插千分位逗号）；
+  // 一万起用「萬」并最多两位小数；百万以上仍用「萬」但取整（125萬，不写 1.25百萬）。
+  // 英文界面保持西式 20,000 / 380K / 1.25M。
+  function fmtWan(n){
+    if (n < 10000) return String(n);
+    if (n >= 1000000) return Math.round(n / 10000) + "萬";
+    return (n / 10000).toFixed(2).replace(/\.?0+$/, "") + "萬";   // 12.50 -> 12.5，2.00 -> 2
+  }
+  function fmtBig(n){
+    n = Math.floor(n || 0);
+    if (curLang === "zh") return fmtWan(n);
+    if (n < 100000) return n.toLocaleString("en-US");
+    if (n < 1e6)    return (n / 1000).toFixed(1).replace(/\.0$/, "") + "K";   // 380.0K -> 380K
+    return (n / 1e6).toFixed(2).replace(/\.?0+$/, "") + "M";                    // 2.00M -> 2M
+  }
+  /* 当前盈利：(积分 + 卡内) − 固定基线（20000 起始资金）。
+     用"总资产"而非单看积分：存/取款是内部转账（总资产不变），不该刷新记录；
+     而投注、派彩、JACKPOT、猜大小翻倍都会真实改变总资产，从而被正确计入。 */
+  function profitNow(){
+    return Math.floor(credits || 0) + Math.floor(cardBalance || 0) - profitBase;
+  }
+  // 只在创新高时落盘（盈利为负时不记，显示仍是 0）
+  function updatePeak(){
+    var p = profitNow();
+    if (p > statPeak){ statPeak = Math.floor(p); lsSave(LS_PROFIT, statPeak); }
+    return statPeak;
+  }
+  // 只刷数字（切语言时也要重排单位，所以单独抽出，不跑破产判定）
+  function renderStatNumbers(){
+    if (peakEl)   peakEl.textContent   = fmtBig(statPeak);
+    if (maxWinEl) maxWinEl.textContent = fmtBig(statMaxWin);
+    if (wonEl)    wonEl.textContent    = fmtBig(statWon);
+    if (lostEl)   lostEl.textContent   = fmtBig(statLost);
+    if (brokeEl){
+      brokeEl.textContent = statBroke;
+      brokeEl.classList.toggle("warn", statBroke > 0);
+    }
+  }
+  function updateStats(){
+    // 刷新最高盈利（起始资金作为本金已扣除，见 profitNow/updatePeak）
+    updatePeak();
+    // 破产判定时机（2026-11-02 修 bug）：
+    //   只有「本局彻底落定」才允许看积分。落定的定义必须是四件事同时成立：
+    //     ① !spinning  —— 滚轮已停、注已扣、奖金已结算入账；
+    //     ② !settling  —— 结算展示期已过（见 doSpin 结算段：先算中奖→入账→展示→才解除）；
+    //     ③ freeSpinsLeft === 0 —— 免费转整段走完（免费转不扣注，中途零余额是正常的）；
+    //     ④ 没有正在开奖的弹窗（猜大小翻牌中 / 破产弹窗已在显示）。
+    //   旧实现只判 ①③，于是「最后一轮还在转、注已扣、余额 0、本局其实还会中奖」时
+    //   就弹了破产裂卡并整机变灰 —— 把还在转的轮子的结果提前否掉了。
+    var gmOpen = !!(gambleMask && gambleMask.classList.contains("show"));
+    var settled = !spinning && !settling && freeSpinsLeft === 0 && !_gmBusy && !gmOpen;
+    var brokeNoMoney = credits < 1 && cardBalance < 1;       // 真·破产：现金和卡都空
+    // 破产判定要点：
+    //   ① spinning —— 本局还在转，注已扣但结果未结算，余额为 0 属正常中间态；
+    //   ② settling —— 已算出中奖、正在展示，余额这一帧才刚变成最终值；
+    //   ③ freeSpinsLeft —— 免费转不扣注，要等整段免费转转完再看积分；
+    //   ④ cardBalance —— 只要卡里还有钱，现金归零也不算破产，改为提示「取出继续」。
+    if (settled){
+      if (credits < 1 && cardBalance >= 1){
+        // 现金归零但卡里还有钱：不破产，弹窗询问是否取出卡内余额继续（记住"暂不"，避免反复弹）
+        if (!_rescueDismissed) showRescueDialog();
+        brokeFlag = false;
+      } else if (brokeNoMoney && !brokeFlag){
+        brokeFlag = true;
+        // 破产次数是全局的（与百家乐共用 slot_broke）：先对齐对方可能已记的更高值，再 +1
+        statBroke = Math.max(statBroke, Math.floor(lsLoad(LS_BROKE, 0))) + 1;
+        lsSave(LS_BROKE, statBroke);
+        showBankruptDialog();          // 真·破产：出现后裂开
+      } else if (credits >= 1){
+        brokeFlag = false;
+        _rescueDismissed = false;      // 有现金了，重置"暂不"记忆
+      }
+    }
+    renderStatNumbers();
+    // 破产视觉：整机彩灯停闪、数字去色变暗（只有真·破产才触发）
+    document.body.classList.toggle("bankrupt",
+      brokeNoMoney && freeSpinsLeft === 0 && !spinning && !settling && !gmOpen);
+  }
+
+  /* ---------------- 累积奖金池（JACKPOT，7 位机械翻滚轮） ---------------- */
+  var JACKPOT_BASE = 1250000;   // 池底
+  var JACKPOT_RATE = 0.015;     // 每笔投注累积比例（贴近真机 1~2%）
+  var JACKPOT_MAX  = 9999999;   // 7 位翻轮上限
+  var JACKPOT_MUSTHIT = 3000000; // 必出上限：池子达到此值后，下一局必派发（本机单级奖池）
+  var MAX_WIN_MULT = 5000;       // 单局封顶 = 5000 × 总注（JACKPOT 全额另计，不受此限）
+  var MAX_GAMBLE_ROUNDS = 5;     // 猜大小最多连猜次数
+  var jackpot = (function(){
+    var v = lsLoad(LS_JACKPOT, JACKPOT_BASE);
+    // 脏数据防护：低于池底（被改坏/被清）或非有限值一律回池底
+    if (!isFinite(v) || v < JACKPOT_BASE) return JACKPOT_BASE;
+    return Math.min(JACKPOT_MAX, v);
+  })();
+  function persistWallet(){ lsSave(LS_CREDITS, credits); lsSave(LS_JACKPOT, jackpot); lsSave(LS_CARD, cardBalance); }
+
+  /* 共通钱袋：百家乐页（另一个标签页）改了积分 / 银行卡 / 破产次数时同步过来。
+     不这么做的话，本页内存里留着旧余额，下一次下注会把对方刚赢的分覆盖掉。
+     storage 事件只会送到"别的"标签页，所以正好用来做跨页同步。
+     注意：两页真的同时下注仍可能后写覆盖先写（没有跨页锁），属于已知取舍。 */
+  function syncWalletFromStore(){
+    var changed = false;
+    var cv = lsLoad(LS_CREDITS, null);
+    if (cv != null && Math.floor(cv) !== credits){ credits = Math.max(0, Math.floor(cv)); changed = true; }
+    var bv = lsLoad(LS_CARD, null);
+    if (bv != null && Math.floor(bv) !== cardBalance){ cardBalance = Math.max(0, Math.floor(bv)); changed = true; }
+    var pv = lsLoad(LS_PROFIT, null);
+    if (pv != null && Math.floor(pv) > statPeak){ statPeak = Math.floor(pv); changed = true; }
+    var kv = lsLoad(LS_BROKE, null);
+    if (kv != null && Math.floor(kv) > statBroke){
+      statBroke = Math.floor(kv); changed = true;
+      // 这次破产是对方页面记的账：把 brokeFlag 举起来，别在本页再记一遍
+      if (credits < 1 && cardBalance < 1) brokeFlag = true;
+    }
+    return changed;
+  }
+  window.addEventListener("storage", function(ev){
+    if (!ev || !ev.key) return;
+    if (ev.key !== LS_CREDITS && ev.key !== LS_CARD && ev.key !== LS_PROFIT && ev.key !== LS_BROKE) return;
+    if (syncWalletFromStore()) updateHUD();
+  });
+  // 切回本标签页时补一次（storage 事件偶尔会丢，比如标签页被冻结期间）
+  document.addEventListener("visibilitychange", function(){
+    if (document.visibilityState !== "visible") return;
+    if (syncWalletFromStore()) updateHUD();
+  });
+  var jackpotValEl = document.getElementById("jackpotVal");
+  var jackpotCardEl = document.getElementById("jackpotCard");
+  var jpReels = [];
+  // 7 位机械轮的逗号分隔位置随语言变：
+  //   中文按四位一进（125,0000）—— 7 位拆成 3+4，一个逗号；
+  //   英文按三位一进（1,250,000）—— 拆成 1+3+3，两个逗号。
+  // 两条分支的逗号个数不同，所以切换语言时要整串重建。
+  function buildJackpot(){
+    if (!jackpotValEl) return;
+    jpReels = [];
+    jackpotValEl.innerHTML = "";
+    var sepAt = (curLang === "zh") ? [3] : [1, 4];
+    for (var i=0;i<7;i++){
+      if (sepAt.indexOf(i) >= 0){
+        var sep = document.createElement("span");
+        sep.className = "jp-sep"; sep.textContent = ",";
+        jackpotValEl.appendChild(sep);
+      }
+      var win = document.createElement("span"); win.className = "jp-dg";
+      var reel = document.createElement("span"); reel.className = "jp-reel";
+      for (var d=0; d<=9; d++){
+        var cell = document.createElement("i"); cell.textContent = d; reel.appendChild(cell);
+      }
+      win.appendChild(reel); jackpotValEl.appendChild(win);
+      jpReels.push(reel);
+    }
+    // 切语言时重建后立刻把当前值摆回去，避免数字回落到 0 的初始位置
+    if (typeof jackpot === "number") renderJackpot(false);
+  }
+  buildJackpot();
+  function jackpotStr(n){
+    var s = String(Math.min(JACKPOT_MAX, Math.max(0, Math.floor(n))));
+    while (s.length < 7) s = "0" + s;
+    return s.slice(-7);
+  }
+  function renderJackpot(animate){
+    if (!jpReels.length) return;
+    var s = jackpotStr(jackpot);
+    for (var i=0;i<jpReels.length;i++){
+      var r = jpReels[i], d = +s[i];
+      if (!animate) r.style.transition = "none";
+      r.style.transform = "translateY(-" + (d * 10) + "%)";   // 竖列 10 项 → 每位 10%
+      if (!animate){ void r.offsetHeight; r.style.transition = ""; }
+    }
+  }
+  function addToJackpot(wager){
+    var before = jackpot;
+    jackpot = Math.min(JACKPOT_MAX, jackpot + wager * JACKPOT_RATE);
+    renderJackpot(true);
+    persistWallet();
+    // 返回"本次实际注入量"：奖金池有上限 JACKPOT_MAX，可能被截断；
+    // 本局若因随机源掉线而退款，必须按这个精确值原样扣回，不能按 wager*RATE 盲扣。
+    return jackpot - before;
+  }
+  // 下注作废（随机源未就绪 / 取数掉线）时，把已注入奖金池的那一份等额退回。
+  // 与 credits 退款必须成对出现，否则池子会被"幽灵投注"白喂。
+  function revertJackpot(delta){
+    if (!(delta > 0)) return;
+    jackpot = Math.max(JACKPOT_BASE, jackpot - delta);
+    renderJackpot(true);
+    persistWallet();
+  }
+  // 派发门槛：最大注（9 线 × 10 币 × 面额 25）+ 任意激活线五连 7
+  function isMaxBet(){
+    // 最大注 = 三个变量全部顶到最高档（9 线 × 10 币 × 面额 25 = 2250）
+    return activeLines() === LINE_TIERS[LINE_TIERS.length-1]
+        && coinVal()     === COIN_TIERS[COIN_TIERS.length-1]
+        && denomVal()    === DENOM_TIERS[DENOM_TIERS.length-1];
+  }
+  // 任意激活线上「五连 7」（WILD 可替身；全 WILD 按最高赔计为 7）
+  function hasSevenFive(g){
+    var N = activeLines();
+    for (var li=0; li<N; li++){
+      var target = null, matched = 0;
+      for (var i=0;i<5;i++){
+        var s = g[LINES[li][i]][i];
+        if (s === WILD){ matched++; }
+        else if (s === SCAT){ break; }
+        else if (target === null){ target = s; matched++; }
+        else if (s === target){ matched++; }
+        else break;
+      }
+      var sym = (target === null) ? "seven" : target;
+      if (matched === 5 && sym === "seven") return true;
+    }
+    return false;
+  }
+  /* ---------------- JACKPOT 全屏美元雨（持续掉落，直到用户按键/点旋转） ---------------- */
+  var _usd = { on:false, raf:0, cv:null, ctx:null, parts:[], W:0, H:0, last:0 };
+  var USD_BILL_TONES = [
+    { face:"#8fe9b4", edge:"#1d7a4e", mark:"#0f5a38" },
+    { face:"#6edc96", edge:"#145c3a", mark:"#0b4a2c" },
+    { face:"#a3f2c4", edge:"#238a58", mark:"#136043" }
+  ];
+  function roundRectPath(c, x, y, w, h, r){
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.arcTo(x + w, y, x + w, y + h, r);
+    c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r);
+    c.arcTo(x, y, x + w, y, r);
+    c.closePath();
+  }
+  // 一张钞票：绿色票面 + 双层描边 + 左右装饰圆 + 中央深绿 $
+  function drawBill(ctx, p){
+    var w = p.w, h = p.h, tone = p.tone;
+    ctx.save();
+    ctx.globalAlpha = p.alpha;
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rot);
+
+    ctx.shadowColor = "rgba(60,240,140,.45)";
+    ctx.shadowBlur = 10;
+    var g = ctx.createLinearGradient(-w/2, -h/2, w/2, h/2);
+    g.addColorStop(0, tone.face);
+    g.addColorStop(1, tone.edge);
+    ctx.fillStyle = g;
+    roundRectPath(ctx, -w/2, -h/2, w, h, h*0.13);
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = tone.edge;
+    ctx.lineWidth = Math.max(1, h*0.05);
+    roundRectPath(ctx, -w/2, -h/2, w, h, h*0.13);
+    ctx.stroke();
+
+    ctx.strokeStyle = "rgba(255,255,255,.42)";
+    ctx.lineWidth = Math.max(1, h*0.028);
+    roundRectPath(ctx, -w/2 + h*0.11, -h/2 + h*0.11, w - h*0.22, h - h*0.22, h*0.09);
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(255,255,255,.22)";
+    ctx.beginPath(); ctx.arc(-w/2 + h*0.27, 0, h*0.105, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc( w/2 - h*0.27, 0, h*0.105, 0, Math.PI*2); ctx.fill();
+
+    ctx.fillStyle = tone.mark;
+    ctx.font = "900 " + (h*0.62) + "px 'Segoe UI',system-ui,sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("$", 0, h*0.03);
+
+    ctx.restore();
+  }
+
+  function usdRain(){
+    if (_usd.on) return;
+    var cv = document.getElementById("usdRain");
+    if (!cv){
+      cv = document.createElement("canvas");
+      cv.id = "usdRain";
+      document.body.appendChild(cv);
+    }
+    var ctx = cv.getContext("2d");
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    var W = window.innerWidth;
+    // 底部与柜机底边对齐：钞票落到柜机底部即消失，不覆盖下方规则卡
+    var cab = document.querySelector(".cabinet");
+    var cabBottom = cab ? cab.getBoundingClientRect().bottom : window.innerHeight;
+    var H = Math.min(Math.max(cabBottom, 200), window.innerHeight);
+    cv.width = Math.floor(W*dpr); cv.height = Math.floor(H*dpr);
+    cv.style.width = W+"px"; cv.style.height = H+"px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    cv.classList.add("on");
+
+    _usd.on = true; _usd.cv = cv; _usd.ctx = ctx;
+    _usd.W = W; _usd.H = H; _usd.parts = []; _usd.last = performance.now();
+
+    (function loop(now){
+      if (!_usd.on) return;
+      var dt = Math.min(0.05, (now - _usd.last)/1000); _usd.last = now;
+      var parts = _usd.parts;
+      ctx.clearRect(0, 0, W, H);
+
+      // 持续补充，屏幕上保持约 90 张钞票（掉出去就补）
+      var want = 90 - parts.length;
+      if (want > 0){
+        var n = Math.min(want, 2 + ((Math.random()*3)|0));
+        for (var k=0;k<n;k++){
+          var hh = 18 + Math.random()*26;
+          parts.push({
+            x: Math.random()*W,
+            y: -50 - Math.random()*120,
+            h: hh,
+            w: hh * 2,
+            vy: 85 + Math.random()*190,
+            vx: (Math.random()-0.5)*50,
+            rot: (Math.random()-0.5)*0.9,
+            vrot: (Math.random()-0.5)*1.1,
+            phase: Math.random()*Math.PI*2,
+            swayAmp: 22 + Math.random()*48,
+            swaySpd: 0.6 + Math.random()*1.1,
+            alpha: 0.75 + Math.random()*0.25,
+            tone: USD_BILL_TONES[(Math.random()*USD_BILL_TONES.length)|0]
+          });
+        }
+      }
+      for (var i=parts.length-1; i>=0; i--){
+        var p = parts[i];
+        p.phase += p.swaySpd*dt;
+        p.y += p.vy*dt;
+        p.x += (p.vx + Math.sin(p.phase)*p.swayAmp) * dt;   // 左右摇摆着飘落
+        p.rot += p.vrot*dt;
+        if (p.y > H + 80 || p.x < -160 || p.x > W + 160){ parts.splice(i,1); continue; }
+        drawBill(ctx, p);
+      }
+      _usd.raf = requestAnimationFrame(loop);
+    })(performance.now());
+  }
+
+  function stopUsdRain(){
+    if (!_usd.on) return;
+    _usd.on = false;
+    cancelAnimationFrame(_usd.raf);
+    if (_usd.ctx) _usd.ctx.clearRect(0, 0, _usd.W, _usd.H);
+    if (_usd.cv) _usd.cv.classList.remove("on");
+    _usd.parts = [];
+  }
+
+  /* ---------------- JACKPOT 派发双音效：airhorn 播完接 party ---------------- */
+  var _jpAudio = null, _jpSfxCancel = false, _jpType = null;
+  function playJackpotSfx(){
+    if (soundVol <= 0) return;
+    stopJackpotSfx();
+    _jpSfxCancel = false;
+    function playOne(type, next){
+      var src = SFX_MAP[type];
+      if (!src){ if (next) next(); return; }
+      var a = new Audio(src + "?v=" + SFX_VER);
+      var base = (SFX_VOL[type] != null) ? SFX_VOL[type] : 0.5;
+      a.volume = Math.max(0, Math.min(1, base * (soundVol/100)));
+      a.preload = "auto";
+      _jpAudio = a;
+      _jpType = type;                       // 记住当前类型，供滑杆实时调音量
+      a.onended = function(){ if (!_jpSfxCancel && next) next(); };
+      var p = a.play(); if (p && p.catch) p.catch(function(){});
+    }
+    playOne("airhorn", function(){ if (!_jpSfxCancel) playOne("party", null); });
+  }
+  function stopJackpotSfx(){
+    _jpSfxCancel = true;
+    if (_jpAudio){
+      try { _jpAudio.pause(); _jpAudio.currentTime = 0; } catch(e){}
+      _jpAudio.onended = null;
+      _jpAudio = null;
+    }
+    _jpType = null;
+  }
+  // 正在播放的派发音效实时跟随音量滑杆
+  function applyJackpotVol(){
+    if (!_jpAudio || !_jpType) return;
+    var base = (SFX_VOL[_jpType] != null) ? SFX_VOL[_jpType] : 0.5;
+    try { _jpAudio.volume = Math.max(0, Math.min(1, base * (soundVol/100))); } catch(e){}
+  }
+  // 一键收起：美元雨 + 双音效
+  function stopJackpotCelebrate(){
+    stopUsdRain();
+    stopJackpotSfx();
+  }
+
+  // 派发整池并重置回池底，返回派发金额
+  var jpPayingOut = false;   // 派发动画期间临时解除冻结态，保证金光能播
+  function payoutJackpot(){
+    var paid = Math.floor(jackpot);
+    jackpot = JACKPOT_BASE;
+    renderJackpot(true);
+    persistWallet();
+    usdRain();               // 全屏美元雨（持续，直到按键/点旋转）
+    playJackpotSfx();        // airhorn → party 接力
+    if (jackpotCardEl){
+      jpPayingOut = true;
+      jackpotCardEl.classList.remove("frozen");
+      jackpotCardEl.classList.remove("payout"); void jackpotCardEl.offsetWidth;
+      jackpotCardEl.classList.add("payout");
+      setTimeout(function(){
+        jackpotCardEl.classList.remove("payout");
+        jpPayingOut = false;
+        updateJackpotFrozen();
+      }, 2200);
+    }
+    return paid;
+  }
+  // 派发资格徽标：只有「最大注」才点亮，让"必须最大注"这条一眼可见
+  var jpEligEl = document.getElementById("jpElig");
+  function updateJackpotElig(){
+    if (!jpEligEl) return;
+    var ok = isMaxBet();
+    jpEligEl.classList.toggle("ok", ok);
+    jpEligEl.textContent = ok
+      ? tt("jp.elig.ok")
+      : tt("jp.elig.no", { l: LINE_TIERS[LINE_TIERS.length-1],
+                           c: COIN_TIERS[COIN_TIERS.length-1],
+                           d: DENOM_TIERS[DENOM_TIERS.length-1] });
+  }
+  // 免费转期间标记奖池"暂停累积"（免费转本身不投注，池子不再增长）
+  function updateJackpotFrozen(){
+    if (!jackpotCardEl) return;
+    jackpotCardEl.classList.toggle("frozen", freeSpinsLeft > 0 && !jpPayingOut);
+  }
+  renderJackpot(false);
+  // 调试入口：控制台可预览累积/派发（不影响正常玩法）
+  //   __jackpot.add(10000)  手动注入；__jackpot.payout()  直接派发整个池子
+  window.__jackpot = {
+    value: function(){ return jackpot; },
+    // 调试注入：直接给池子加绝对值（不走 1.5% 投注累积）
+    add: function(v){
+      jackpot = Math.min(JACKPOT_MAX, jackpot + Math.max(0, Math.floor(v || 10000)));
+      renderJackpot(true);
+      persistWallet();
+      return jackpot;
+    },
+    // 调试派发：与真实流程一致——整池（含底池）入账到 credits，池子重置回底池
+    payout: function(){
+      var paid = payoutJackpot();
+      credits += paid;
+      persistWallet();
+      updateHUD();
+      setSrcMsg("调试派发 +" + paid.toLocaleString("en-US") + "（奖池已重置回底池）");
+      return paid;
+    },
+    reset: function(){ jackpot = JACKPOT_BASE; renderJackpot(true); persistWallet(); return jackpot; }
+  };
+  // 清空存档（模拟"首次打开"，积分/奖池/统计/注档全部归位）
+  window.__slotReset = function(){
+    try {
+      [LS_CREDITS, LS_JACKPOT, LS_CARD, LS_PROFIT, LS_PEAK_OLD, "slot_granted", LS_BROKE,
+       LS_MAXWIN, LS_WON, LS_LOST, "slot_coinIdx", "slot_lineIdx",
+       "bacc_won", "bacc_lost", "bacc_maxwin", "bacc_broke", "bacc_hands", "bacc_road", "bacc_chipIdx"]
+        .forEach(function(k){ localStorage.removeItem(k); });
+    } catch(e){}
+    location.reload();
+  };
+  // 调试：直接给 N 次免费转，用于预览"奖池冻结"效果（0 = 解除）
+  window.__freeSpins = function(n){
+    freeSpinsLeft = Math.max(0, Math.floor(n) || 0);
+    updateHUD();
+    return freeSpinsLeft;
+  };
+  // 调试：直接改免费转转速倍数（1 = 不加速），改完下一手免费转立即生效
+  window.__freeSpeed = function(v){
+    if (typeof v === "number" && v > 0) FREE_SPEED = v;
+    return FREE_SPEED;
+  };
+
+  /* ---------------- 银行卡（可存可取储蓄账户；破产/重开保留卡内余额） ---------------- */
+  var cardBalance = Math.max(0, Math.floor(lsLoad(LS_CARD, 0)));   // 卡内积分（独立于 credits）
+  var cardBalEl  = document.getElementById("cardBal");
+  var cardAmtEl  = document.getElementById("cardAmt");
+  var cardDepBtn = document.getElementById("cardDep");
+  var cardWdBtn  = document.getElementById("cardWd");
+  var cardQbtns  = Array.prototype.slice.call(document.querySelectorAll(".bc-q"));
+  var cardLastDir = null;                            // 最近一次转账方向："in"=存入 / "out"=取出；决定「全部」填哪个金额
+
+  /* 银行卡展开 / 收起：收起后只剩一个圆形卡标按钮，状态记在本地（下次进来保持上次的样子） */
+  var bankCardEl = document.getElementById("bankCard");
+  var bcOpenBtn  = document.getElementById("bcOpen");
+  var bcCloseBtn = document.getElementById("bcClose");
+  var BC_OPEN_KEY = "slot_bank_open";
+  function setBankOpen(open, save){
+    if (!bankCardEl) return;
+    bankCardEl.classList.toggle("collapsed", !open);
+    if (bcOpenBtn) bcOpenBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    if (save){ try { localStorage.setItem(BC_OPEN_KEY, open ? "1" : "0"); }catch(e){} }
+  }
+  setBankOpen((function(){
+    try { return localStorage.getItem(BC_OPEN_KEY) !== "0"; }catch(e){ return true; }
+  })(), false);
+  if (bcOpenBtn)  bcOpenBtn.addEventListener("click", function(){ setBankOpen(true, true); });
+  if (bcCloseBtn) bcCloseBtn.addEventListener("click", function(){ setBankOpen(false, true); });
+
+  function renderCard(){
+    if (cardBalEl) cardBalEl.textContent = String(Math.floor(cardBalance || 0));   // 余额必须精确，不做万/K 缩写
+    // 收起态看不到卡面数字，把余额挂到圆钮的悬浮提示上
+    if (bcOpenBtn) bcOpenBtn.title = tt("bc.title") + " " + String(Math.floor(cardBalance || 0));
+    var locked = spinning || freeSpinsLeft > 0;        // 旋转中 / 免费转中 锁定一切卡操作
+    if (cardDepBtn) cardDepBtn.disabled = locked || credits < 1;
+    if (cardWdBtn)  cardWdBtn.disabled  = locked || cardBalance < 1;
+    if (cardQbtns)  cardQbtns.forEach(function(b){ b.disabled = locked; });   // 早期调用时 cardQbtns 可能尚未赋值
+    if (cardAmtEl)  cardAmtEl.disabled  = locked;
+  }
+  // 解析输入框金额：空 / "全部" → -1（由调用方按方向取全量）；否则取正整数；非法 → 0
+  function _cardAmount(){
+    var raw = (cardAmtEl && cardAmtEl.value) ? cardAmtEl.value.trim() : "";
+    if (raw === "") return -1;
+    var n = Math.floor(Number(raw));
+    return (isFinite(n) && n > 0) ? n : 0;
+  }
+  function depositCard(){
+    if (spinning || freeSpinsLeft > 0) return;
+    var amt = _cardAmount();
+    if (amt < 0) amt = credits;                        // 空框＝全部
+    amt = Math.min(amt, Math.floor(credits));          // 超额自动截到可用积分，不再点了没反应
+    if (!(amt > 0)) return;
+    credits -= amt; cardBalance += amt;
+    cardLastDir = "in";
+    if (cardAmtEl) cardAmtEl.value = String(amt);      // 框里保留本次实际存入的金额
+    persistWallet(); updateHUD();
+  }
+  function withdrawCard(){
+    if (spinning || freeSpinsLeft > 0) return;
+    var amt = _cardAmount();
+    if (amt < 0) amt = cardBalance;                    // 空框＝全部
+    amt = Math.min(amt, Math.floor(cardBalance));      // 超额自动截到卡内余额
+    if (!(amt > 0)) return;
+    cardBalance -= amt; credits += amt;
+    cardLastDir = "out";
+    if (cardAmtEl) cardAmtEl.value = String(amt);      // 框里保留本次实际取出的金额
+    persistWallet(); updateHUD();
+  }
+  if (cardDepBtn) cardDepBtn.addEventListener("click", depositCard);
+  if (cardWdBtn)  cardWdBtn.addEventListener("click", withdrawCard);
+  cardQbtns.forEach(function(b){
+    b.addEventListener("click", function(){
+      if (!cardAmtEl) return;
+      var a = b.getAttribute("data-amt");
+      if (a === "all"){
+        // "全部"把真实金额填进框：上次是取→填卡内余额；否则有积分填积分，没积分填卡内余额
+        var v;
+        if (cardLastDir === "out" && cardBalance >= 1) v = cardBalance;
+        else if (credits >= 1) v = credits;
+        else v = cardBalance;
+        cardAmtEl.value = String(Math.max(0, Math.floor(v)));
+      } else {
+        cardAmtEl.value = a;
+      }
+      cardAmtEl.focus();
+    });
+  });
+
+  /* ---------------- Gamble 猜大小（随机走板子 RNG，绝不用浏览器随机） ---------------- */
+  var pendingGamble = 0, gambleRound = 0, _gmBusy = false;
+  var gambleBtn   = document.getElementById("gambleBtn");
+  var gambleMask  = document.getElementById("gambleMask");
+  var gmStakeEl   = document.getElementById("gmStake");
+  var gmRoundEl   = document.getElementById("gmRound");
+  var gmResultEl  = document.getElementById("gmResult");
+  var gmCardEl    = document.getElementById("gmCard");
+  var gmRankEl    = document.getElementById("gmRank");
+  var gmSuitEl    = document.getElementById("gmSuit");
+  var gmVerdictEl = document.getElementById("gmVerdict");
+  var gmRedBtn    = document.getElementById("gmRed");
+  var gmBlackBtn  = document.getElementById("gmBlack");
+  var gmCashBtn   = document.getElementById("gmCash");
+  var gmPointEl   = document.getElementById("gmPoint");
+  var gmModalEl   = gambleMask ? gambleMask.querySelector(".modal") : null;
+  // 👆 移到某个按钮的正下方居中（鼠标悬停 / 手指按下 / 键盘 Tab 聚焦都会触发）
+  function gmPointTo(btn){
+    if (!gmPointEl || !gmModalEl || !btn) return;
+    var mr = gmModalEl.getBoundingClientRect(), br = btn.getBoundingClientRect();
+    if (mr.bottom - br.bottom >= 24){
+      // 常规按钮：贴在按钮正下方，手往上指
+      gmPointEl.textContent = "👆";
+      gmPointEl.style.marginLeft = "-9px";
+      gmPointEl.style.left = (br.left - mr.left + br.width / 2) + "px";
+      gmPointEl.style.top  = (br.bottom - mr.top - 3) + "px";
+    } else {
+      // 贴底按钮（收下离场）：下方放不下，改到它左侧用"指右"的手，避免压住说明文字
+      gmPointEl.textContent = "👉";
+      gmPointEl.style.marginLeft = "0px";
+      gmPointEl.style.left = (br.left - mr.left - 21) + "px";
+      gmPointEl.style.top  = (br.top - mr.top + br.height / 2 - 9) + "px";
+    }
+    gmPointEl.classList.add("on");
+  }
+  function gmPointHide(){ if (gmPointEl) gmPointEl.classList.remove("on", "tap"); }
+  // 从板子随机字节派生一张扑克牌：最低位定「红/黑」（这一位才是输赢依据，256 字节均匀 → 严格 50/50），
+  // 其余位只用来挑花色与点数（纯视觉，不参与判定、不影响概率）。
+  var GM_RANKS = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+  function drawCard(pos){
+    var b = pos[0] & 255;
+    var red = (b & 1) === 0;
+    var hi  = (b >> 1) & 1;
+    var suit = red ? (hi ? "\u2666" : "\u2665")      // ♦ / ♥
+                   : (hi ? "\u2663" : "\u2660");     // ♣ / ♠
+    return { side: red ? "red" : "black", red: red, rank: GM_RANKS[pos[1] % 13], suit: suit };
+  }
+  // 牌面状态：null = 扣着（牌背），否则翻开为对应花色
+  function setGmCard(card){
+    if (!gmCardEl) return;
+    if (!card){ gmCardEl.classList.remove("red","black"); gmCardEl.classList.add("down"); return; }
+    var apply = function(){
+      if (gmRankEl) gmRankEl.textContent = card.rank;
+      if (gmSuitEl) gmSuitEl.textContent = card.suit;
+      gmCardEl.classList.remove("red","black");
+      gmCardEl.classList.add(card.side);
+    };
+    if (gmCardEl.classList.contains("down")){
+      apply();                                  // 扣着时先装好，再翻上来（看不到切换过程）
+      void gmCardEl.offsetWidth;
+      gmCardEl.classList.remove("down");
+    } else {
+      gmCardEl.classList.add("down");           // 上一轮还亮着：先扣下，半途换面再翻开
+      setTimeout(function(){
+        apply();
+        void gmCardEl.offsetWidth;
+        gmCardEl.classList.remove("down");
+      }, 210);
+    }
+  }
+  // 判定：win=true 显示绿色「猜中 +X」，false 显示红色「猜错 −X」
+  // 判定条：kind = "win"（猜中，绿）| "lose"（猜错，红）| "cash"（收下离场，中性金）| null（清空）
+  function setGmVerdict(kind, amt){
+    if (!gmVerdictEl) return;
+    gmVerdictEl.classList.remove("win","lose","cash","show");
+    if (!kind){ gmVerdictEl.textContent = ""; return; }
+    gmVerdictEl.textContent = (kind === "cash") ? tt("gm.cashVerdict", { amt: amt }) : tt(kind === "win" ? "gm.winBig" : "gm.loseBig", { amt: amt });
+    void gmVerdictEl.offsetWidth;
+    gmVerdictEl.classList.add(kind, "show");
+  }
+  function updateGambleUI(){
+    if (!gambleBtn) return;
+    gambleBtn.disabled = !(pendingGamble > 0 && !spinning && freeSpinsLeft === 0 && !_gmBusy);
+    // 已经押过一轮 → 红/黑按钮改名「继续押 X」，让玩家一眼看出“再选一色＝继续押”，收下离场才是退出
+    var again = gambleRound > 0 && pendingGamble > 0;   // 只有"真的还有钱可押"才显示继续押
+    if (gmRedBtn)   gmRedBtn.textContent   = tt(again ? "gm.redGo"   : "gm.red");
+    if (gmBlackBtn) gmBlackBtn.textContent = tt(again ? "gm.blackGo" : "gm.black");
+  }
+  function openGambleModal(){
+    if (!(pendingGamble > 0) || !gambleMask) return;
+    if (gmStakeEl) gmStakeEl.textContent = Math.floor(pendingGamble).toLocaleString("en-US");
+    if (gmRoundEl) gmRoundEl.textContent = (gambleRound + 1);
+    if (gmResultEl) gmResultEl.textContent = tt("gm.tapHint", { amt: Math.floor(pendingGamble).toLocaleString("en-US") });
+    if (gmCashBtn) gmCashBtn.textContent = tt("gm.cash");
+    setGmCard(null); setGmVerdict(null);        // 牌扣好、判定清空
+    if (gmRedBtn) gmRedBtn.disabled = false;
+    if (gmBlackBtn) gmBlackBtn.disabled = false;
+    updateGambleUI();                           // 复位按钮文案（新一轮又变回「红/黑」）
+    gmPointHide();                              // 👆 每次打开先收起，等玩家指向某个按钮再出现
+    gambleMask.classList.add("show");
+  }
+  function closeGambleModal(){
+    gmPointHide();
+    if (gambleMask) gambleMask.classList.remove("show");
+    updateHUD();     // 弹窗关了才允许判破产（updateStats 里有 gmOpen 挡板），这里立刻补判一次
+  }
+  function cashOutGamble(){
+    var amt = Math.floor(pendingGamble).toLocaleString("en-US");
+    if (pendingGamble > 0 && gmResultEl){          // 先让玩家看见「已收下」，再关窗
+      if (gmResultEl) gmResultEl.textContent = tt("gm.cashHint");
+      setGmVerdict("cash", amt);        // 中性态：没押注就谈不上赢/输
+      playSfx("click");                               // 收银机 kaching：收进袋的声音（约 1 秒，自然播完）
+      pendingGamble = 0; gambleRound = 0;
+      updateGambleUI();
+      setTimeout(closeGambleModal, 820);
+      return;
+    }
+    pendingGamble = 0; gambleRound = 0; closeGambleModal(); updateGambleUI();
+  }
+  async function doGamble(choice){
+    if (_gmBusy || spinning || freeSpinsLeft > 0) return;
+    var stake = Math.min(Math.floor(pendingGamble), Math.floor(credits));   // 不能超过当前积分
+    if (!(stake > 0)) return;
+    _gmBusy = true;
+    settling = true;                 // 翻牌/结算期间不看积分（扣注瞬间余额可能归零）
+    if (gmRedBtn) gmRedBtn.disabled = true;
+    if (gmBlackBtn) gmBlackBtn.disabled = true;
+    if (gmResultEl) gmResultEl.textContent = tt("gm.flipping");
+    setGmVerdict(null);                          // 只清判定，牌等新结果翻出来再变
+    var pos;
+    try { pos = await fetchPositionsSafe(); }
+    catch(e){
+      _gmBusy = false;
+      settling = false;            // 取数失败＝本轮作废，立即解除结算态（否则永远不会再判破产）
+      if (gmRedBtn) gmRedBtn.disabled = false;
+      if (gmBlackBtn) gmBlackBtn.disabled = false;
+      if (gmResultEl) gmResultEl.textContent = tt("gm.err");
+      updateHUD();
+      updateGambleUI();
+      return;
+    }
+    var card = drawCard(pos);                      // 翻出的这张牌：花色决定红/黑
+    var win  = (choice === card.side);
+    credits -= stake;                              // 先把本轮奖金押上
+    if (win){
+      credits += stake * 2;                        // 猜中翻倍
+      pendingGamble = stake * 2;
+      gambleRound++;
+    } else {
+      pendingGamble = 0;
+    }
+    persistWallet(); updateHUD();
+    _gmBusy = false;
+    var maxed = (gambleRound >= MAX_GAMBLE_ROUNDS);
+    var banked = 0;
+    if (!win || maxed){
+      banked = Math.floor(pendingGamble);          // 达上限时把入袋金额留到文案里
+      pendingGamble = 0;
+    }
+
+    // 先翻牌，等牌面亮出后再喊「猜中/猜错」，避免文案抢在翻牌前面剧透。
+    // 上一轮还亮着时会先扣下再翻（多花 210ms），所以判定文案跟着延后，才能与牌面同时出现。
+    var wasDown = gmCardEl && gmCardEl.classList.contains("down");
+    setGmCard(card);
+    setTimeout(function(){
+      setGmVerdict(win ? "win" : "lose", stake.toLocaleString("en-US"));
+      // 牌面与文案都亮出来了，本局才算落定（弹窗还开着时 updateStats 也不会判破产）
+      settling = false;
+      updateHUD();
+      if (!gmResultEl) return;
+      if (!win){ gmResultEl.textContent = tt("gm.overHint"); }
+      else if (maxed){ gmResultEl.textContent = tt("gm.maxHint", { amt: banked.toLocaleString("en-US") }); }
+      else { gmResultEl.textContent = tt("gm.nextHint", { amt: Math.floor(pendingGamble).toLocaleString("en-US") }); }
+    }, wasDown ? 250 : 470);
+
+    if (maxed || !win){
+      if (gmRedBtn) gmRedBtn.disabled = true;
+      if (gmBlackBtn) gmBlackBtn.disabled = true;
+      if (gmCashBtn) gmCashBtn.textContent = tt("gm.close");
+    } else {
+      if (gmStakeEl) gmStakeEl.textContent = Math.floor(pendingGamble).toLocaleString("en-US");
+      if (gmRoundEl) gmRoundEl.textContent = (gambleRound + 1);
+      if (gmRedBtn) gmRedBtn.disabled = false;
+      if (gmBlackBtn) gmBlackBtn.disabled = false;
+    }
+    updateGambleUI();
+  }
+  [gmRedBtn, gmBlackBtn, gmCashBtn].forEach(function(b){
+    if (!b) return;
+    b.addEventListener("pointerenter", function(){ gmPointTo(b); });
+    b.addEventListener("focus",        function(){ gmPointTo(b); });
+    b.addEventListener("pointerdown",  function(){
+      gmPointTo(b);
+      if (gmPointEl){ gmPointEl.classList.remove("tap"); void gmPointEl.offsetWidth; gmPointEl.classList.add("tap"); }
+    });
+  });
+  if (gambleBtn)  gambleBtn.addEventListener("click", openGambleModal);
+  if (gmRedBtn)   gmRedBtn.addEventListener("click", function(){ doGamble("red"); });
+  if (gmBlackBtn) gmBlackBtn.addEventListener("click", function(){ doGamble("black"); });
+  if (gmCashBtn)  gmCashBtn.addEventListener("click", cashOutGamble);
+  if (gambleMask) gambleMask.addEventListener("click", function(e){ if (e.target === gambleMask) cashOutGamble(); });
+
+  /* ---------------- 重新开始（确认后清空积分并重置为起始资金） ---------------- */
+  var resetMask     = document.getElementById("resetMask");
+  var resetAmountEl = document.getElementById("resetAmount");
+  var resetBtn      = document.getElementById("resetBtn");
+  var resetCancelBtn= document.getElementById("resetCancel");
+  var resetConfirmBtn = document.getElementById("resetConfirm");
+  function openResetDialog(){
+    if (!resetMask) return;
+    if (resetAmountEl) resetAmountEl.textContent = Math.floor(credits).toLocaleString("en-US");
+    resetMask.classList.add("show");
+  }
+  function closeResetDialog(){ if (resetMask) resetMask.classList.remove("show"); }
+  function doRestart(){
+    credits = START_CREDITS;        // 只清空玩家自己的积分；奖池与历史统计保留
+    // 基线固定为 20000（用户选定）：重开拿到的 20000 不累加本金门槛。
+    // 已知取舍——若重开时卡里还有钱，那一刻总资产会暂时高于基线，会被记成一次盈利。
+    brokeFlag = false;
+    persistWallet();
+    updateHUD();
+    closeResetDialog();
+    setSrcMsg("已重新开始 · 积分重置为 " + START_CREDITS);
+  }
+  /* ---------------- 破产弹窗：出现 → 裂缝 → 裂开（停住，等用户互动才收） ---------------- */
+  var _bkTimers = [], _bkVisible = false;
+  function showBankruptDialog(){
+    var mask = document.getElementById("bkMask");
+    if (!mask) return;
+    _bkTimers.forEach(clearTimeout); _bkTimers = [];
+    mask.classList.remove("show", "crack", "broken");
+    void mask.offsetWidth;                       // 重置动画
+    _bkVisible = true;
+    mask.classList.add("show");                  // 0ms 弹窗淡入
+    _bkTimers.push(setTimeout(function(){ mask.classList.add("crack"); },  950));   // 裂缝亮起
+    _bkTimers.push(setTimeout(function(){ mask.classList.add("broken"); }, 1250));  // 左右裂开并停住
+  }
+  function dismissBankruptDialog(){
+    if (!_bkVisible) return;
+    _bkVisible = false;
+    var mask = document.getElementById("bkMask");
+    if (mask) mask.classList.remove("show", "crack", "broken");
+  }
+  // 点任意处收起（捕获阶段只摘 class，不阻断事件继续传给按钮）
+  document.addEventListener("click", function(){
+    if (_bkVisible) dismissBankruptDialog();
+    if (_ncVisible) dismissNotEnoughDialog();
+  }, true);
+
+  /* ---------------- 积分不足弹窗：外观同破产卡，但不裂开，等用户互动才收 ---------------- */
+  var _ncVisible = false, _ncVars = null, _ncTimers = [];
+  function renderNcDetail(){                     // 语言切换时也能重译
+    var el = document.getElementById("ncDetail");
+    if (el && _ncVars) el.innerHTML = tt("nc.detail", _ncVars);
+  }
+  function showNotEnoughDialog(need, cur){
+    var mask = document.getElementById("ncMask");
+    if (!mask) return;
+    _ncVars = {
+      need: Math.max(0, Math.floor(need)).toLocaleString("en-US"),
+      cur:  Math.max(0, Math.floor(cur)).toLocaleString("en-US")
+    };
+    renderNcDetail();
+    _ncTimers.forEach(clearTimeout); _ncTimers = [];
+    mask.classList.remove("show");
+    void mask.offsetWidth;                       // 重置入场动画
+    _ncVisible = true;
+    mask.classList.add("show");
+  }
+  function dismissNotEnoughDialog(){
+    if (!_ncVisible) return;
+    _ncVisible = false;
+    var mask = document.getElementById("ncMask");
+    if (mask) mask.classList.remove("show");
+  }
+
+  /* ---------------- 卡内余额续玩提示：现金归零但卡里还有钱，不算破产 ---------------- */
+  var _rescueDismissed = false;                       // 记住"暂不"，避免每次刷新反复弹
+  var _rescueVisible = false;
+  var rescueMask   = document.getElementById("rescueMask");
+  var rescueAmtEl  = document.getElementById("rescueAmt");
+  var rescueYesBtn = document.getElementById("rescueYes");
+  var rescueNoBtn  = document.getElementById("rescueNo");
+  function showRescueDialog(){
+    if (!rescueMask || _rescueVisible) return;
+    _rescueVisible = true;
+    if (rescueAmtEl) rescueAmtEl.textContent = Math.floor(cardBalance).toLocaleString("en-US");
+    rescueMask.classList.add("show");
+  }
+  function closeRescueDialog(){
+    _rescueVisible = false;
+    _rescueDismissed = true;                          // 本次"暂不"
+    if (rescueMask) rescueMask.classList.remove("show");
+  }
+  function withdrawAllToContinue(){
+    var amt = Math.floor(cardBalance);
+    if (amt > 0){ credits += amt; cardBalance = 0; persistWallet(); }
+    _rescueVisible = false;
+    _rescueDismissed = false;
+    if (rescueMask) rescueMask.classList.remove("show");
+    updateHUD();
+    setSrcMsg("已取出卡内 " + amt.toLocaleString("en-US") + " 积分，继续游戏");
+  }
+  if (rescueYesBtn) rescueYesBtn.addEventListener("click", withdrawAllToContinue);
+  if (rescueNoBtn)  rescueNoBtn.addEventListener("click", closeRescueDialog);
+  if (rescueMask)   rescueMask.addEventListener("click", function(e){
+    if (e.target === rescueMask) closeRescueDialog();   // 点遮罩空白处＝暂不
+  });
+
+  if (resetBtn)       resetBtn.addEventListener("click", openResetDialog);
+  if (resetCancelBtn) resetCancelBtn.addEventListener("click", closeResetDialog);
+  if (resetConfirmBtn) resetConfirmBtn.addEventListener("click", doRestart);
+  if (resetMask) resetMask.addEventListener("click", function(e){
+    if (e.target === resetMask) closeResetDialog();   // 点遮罩空白处取消
+  });
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape" && resetMask && resetMask.classList.contains("show")) closeResetDialog();
+  });
+
+  /* ---------------- 渲染 ---------------- */
+  function cellHTML(sym){
+    return '<div class="cell"><svg class="sym" viewBox="0 0 100 100"><use href="#sym-'+sym+'"/></svg></div>';
+  }
+  /* 整条虚拟带预渲染一次：每个滚轮一条周期为 64 的带子（第 j 格 = REELS[j%64]），
+     只在页面加载时写一次 innerHTML。之后每次 spin 不再重建任何 DOM，只把"起点"
+     挪到「停位往前 LAND_N 格」处，再固定滚 LAND_N 格 —— 起点画面与旧的"每转重建
+     46 格窗口"完全等价，手感/时长/停位都不变，却省掉了每次 230 格的重排。 */
+  var STRIP_CELLS = LAND_N + 66;   // 需覆盖 endTop+2：startTop(≤63)+LAND_N(40)+2 = 105 → 106 格
+  function buildReelStrip(stripEl, reelIdx){
+    var html = "";
+    for (var j=0;j<STRIP_CELLS;j++){ html += cellHTML(REELS[reelIdx][j % 64]); }
+    stripEl.innerHTML = html;        // 仅初始化时执行一次
+  }
+  // 停位 target ⇒ 起点顶部格索引：滚 LAND_N 格后中行正好是 target
+  // （中行 = 顶部格 + 1，故 target = startTop + LAND_N + 1）
+  function startTopFor(target){ return ((target - (LAND_N+1)) % 64 + 64) % 64; }
+
+  /* 扩展 WILD 的显示同步：停稳后把该列可见的、非 SCATTER 的格子画成 WILD；
+     下一局开始时按条带周期恢复，避免污染预渲染条带（否则会残留到后续 spin）。 */
+  var _expandedRestore = [-1,-1,-1,-1,-1];
+  function _cellUse(stripEl, idx){
+    var c = stripEl && stripEl.children[idx];
+    return c ? c.querySelector("use") : null;
+  }
+  function restoreExpandedWilds(){
+    for (var i=0;i<5;i++){
+      var top = _expandedRestore[i];
+      if (top < 0) continue;
+      var el = strips[i];
+      for (var k=0;k<3;k++){
+        var idx = top + k, u = _cellUse(el, idx);
+        if (u) u.setAttribute("href", "#sym-" + REELS[i][((idx % 64) + 64) % 64]);
+      }
+      _expandedRestore[i] = -1;
+    }
+  }
+  function applyExpandedWildDisplay(endTops, rawGrid){
+    for (var i=0;i<5;i++){
+      var hasWild = (i >= 1 && i <= 3) && (rawGrid[1][i] === WILD);   // 与 expandWilds 条件一致
+      if (!hasWild) continue;
+      var top = endTops[i], el = strips[i];
+      for (var k=0;k<3;k++){
+        if (rawGrid[k][i] === SCAT) continue;     // 不覆盖 scatter
+        var u = _cellUse(el, top + k);
+        if (u) u.setAttribute("href", "#sym-wild");
+      }
+      _expandedRestore[i] = top;
+    }
+  }
+
+  // 由停位算出 3×5 网格 grid[row][reel]
+  function gridFrom(pos){
+    var g = [[],[],[]];
+    for (var r=0;r<3;r++){
+      for (var i=0;i<5;i++){
+        g[r][i] = REELS[i][((pos[i] - (1-r)) % 64 + 64) % 64]; // r=1->pos, r=0->pos-1, r=2->pos+1
+      }
+    }
+    return g;
+  }
+
+  /* ---------------- 派彩 ---------------- */
+  // 一条线：从滚轮0向右连续匹配，wild 百搭
+  function evalLine(g, line){
+    var target = null, matched = 0;
+    for (var i=0;i<5;i++){
+      var s = g[line[i]][i];
+      if (s === WILD){ matched++; }
+      else if (s === SCAT){ break; }    // scatter 不参与 payline，只在任意位置触发免费转
+      else if (target === null){ target = s; matched++; }
+      else if (s === target){ matched++; }
+      else break;
+    }
+    if (matched >= 3){
+      var sym = (target === null) ? "seven" : target;   // 全 wild 按最高赔
+      return PAY[sym][matched-3] * betPerLine();
+    }
+    return 0;
+  }
+
+  // 扩展 WILD：仅「中间三列的中行」出现 WILD 时，整列（除 SCATTER 外）视为 WILD。
+  // 收窄到中行+中间列，是为了避免 WILD 太常见导致整列扩展把 RTP 顶穿（已按此重新标定赔率）。
+  // 只影响评估用的网格，不改动原始停位/散财计数；显示层另用 applyExpandedWildDisplay 同步。
+  function expandWilds(g){
+    var e = [[],[],[]];
+    for (var i=0;i<5;i++){
+      var hasWild = (i >= 1 && i <= 3) && (g[1][i] === WILD);
+      for (var r2=0;r2<3;r2++){
+        e[r2][i] = (hasWild && g[r2][i] !== SCAT) ? WILD : g[r2][i];
+      }
+    }
+    return e;
+  }
+  function evaluate(pos){
+    var g = expandWilds(gridFrom(pos));
+    var N = activeLines();              // 只结算前 N 条激活线
+    var total = 0, winLines = [];
+    for (var li=0; li<N; li++){
+      var w = evalLine(g, LINES[li]);
+      if (w > 0){ total += w; winLines.push(li); }
+    }
+    // scatter：任意位置出现 ≥3 个
+    var scat = 0;
+    for (var r=0;r<3;r++) for (var i=0;i<5;i++) if (g[r][i] === SCAT) scat++;
+    var scatWin = 0;
+    if (scat >= 3){
+      scatWin = (SCAT_PAY[scat] || SCAT_PAY[5]) * betVal();
+      total += scatWin;
+    }
+    return { total: total, winLines: winLines, scat: scat, scatWin: scatWin };
+  }
+
+  /* ---------------- payline 连线 ---------------- */
+  var plines = [];
+  function layoutLines(){
+    var sc = document.querySelector(".screen").getBoundingClientRect();
+    linesSvg.setAttribute("viewBox", "0 0 " + sc.width + " " + sc.height);
+    // 重建前先清空，避免 resize 时旧连线叠加
+    while (linesSvg.firstChild){ linesSvg.removeChild(linesSvg.firstChild); }
+    var reelRects = strips.map(function(s){
+      var r = s.parentElement.getBoundingClientRect();
+      return { cx: r.left - sc.left + r.width/2, top: r.top - sc.top, h: r.height };
+    });
+    var N = activeLines();
+    plines = LINES.slice(0, N).map(function(line){
+      var pts = line.map(function(row, i){
+        var y = reelRects[i].top + reelRects[i].h * (row*2+1)/6;
+        return reelRects[i].cx + "," + y;
+      }).join(" ");
+      var pl = document.createElementNS("http://www.w3.org/2000/svg","polyline");
+      pl.setAttribute("points", pts);
+      pl.setAttribute("class","pline");
+      linesSvg.appendChild(pl);
+      return pl;
+    });
+    highlightLines(_winLines);   // 重建后恢复当前中奖高亮
+  }
+  var _winLines = [];
+  function highlightLines(idxs){
+    _winLines = idxs || [];
+    plines.forEach(function(pl,i){ pl.classList.toggle("win", _winLines.indexOf(i) >= 0); });
+  }
+
+  function updateHUD(){
+    creditsEl.textContent = credits;
+    betEl.textContent = betPerLine();    // BET = 每线注 = 币数 × 面额
+    totalEl.textContent = betVal();      // TOTAL = 总注 = 线数 × 每线注
+    linesEl.textContent = activeLines();
+    coinEl.textContent = coinVal();
+    if (denomEl) denomEl.textContent = "×" + denomVal();
+    freeEl.textContent = freeSpinsLeft;
+    freeMeter.classList.toggle("on", freeSpinsLeft > 0);
+    // 免费转期间锁定投注控件 + 禁用 SPIN（真实机：免费转强制自动、中途不可改注）
+    var locked = freeSpinsLeft > 0;
+    // 积分不足（但还有钱）时不再 disable——否则点上去毫无反馈。改成"变暗但可点"，由 doSpin 弹提示。
+    // 只有「现金和卡都空」的真·破产才禁用：卡里还有钱时点 SPIN 会弹「取出继续」。
+    var brokeNoCash = credits < 1 && cardBalance < 1;
+    var shortOfCredits = !brokeNoCash && freeSpinsLeft === 0 && !spinning && credits < betVal();
+    spinBtn.disabled = locked || spinning || (brokeNoCash && freeSpinsLeft === 0);
+    spinBtn.classList.toggle("short", shortOfCredits);
+    [lineUpBtn, lineDownBtn, betUpBtn, betDownBtn, denomUpBtn, denomDownBtn]
+      .forEach(function(b){ if (b) b.disabled = locked; });
+    // 注档随手存档（刷新后保持上次的线数/币数/面额）
+    lsSave("slot_coinIdx", coinIdx);
+    lsSave("slot_lineIdx", lineIdx);
+    lsSave("slot_denomIdx", denomIdx);
+    updateJackpotFrozen();   // 免费转期间奖池显示"暂停累积"
+    updateJackpotElig();     // 刷新"是否已达最大注"徽标
+    // 三个步进器：各自到顶时挂 .at-max，弹出「已达最大值」小徽标
+    if (grpLines)   grpLines.classList.toggle("at-max",   lineIdx  >= LINE_TIERS.length  - 1);
+    if (grpDenom)   grpDenom.classList.toggle("at-max",   denomIdx >= DENOM_TIERS.length - 1);
+    if (grpPerLine) grpPerLine.classList.toggle("at-max", coinIdx  >= COIN_TIERS.length  - 1);
+    updateStats();           // 刷新最高积分 / 破产次数
+    renderCard();            // 刷新银行卡余额与按钮可用状态
+    updateGambleUI();        // 猜大小按钮可用性（有可押奖金 + 空闲时）
+  }
+  function setWin(v){
+    winEl.textContent = v;
+    if (v > 0){
+      winMeter.classList.add("win");
+      // 先摘再挂 .hit 并强制回流，否则免费转连中时动画不会重播；
+      // 1100ms 与 winValGlow 时长对齐，留给爆亮动画跑完（原来 520 会把它截断）。
+      winMeter.classList.remove("hit");
+      void winMeter.offsetWidth;
+      winMeter.classList.add("hit");
+      clearTimeout(_winHitT);
+      _winHitT = setTimeout(function(){ winMeter.classList.remove("hit"); }, 1150);
+    } else {
+      winMeter.classList.remove("win", "hit");
+    }
+  }
+
+  /* ---------------- 旋转动画 ---------------- */
+  async function doSpin(){
+    if (spinning) return;
+    var isFree = freeSpinsLeft > 0;
+
+    // 随机源闸门：选中的来源必须已连上，否则不允许旋转。
+    // 本游戏只有「H743 在线串口直供(online)」与「H743 离线快照+DRBG(offline)」两种来源，
+    // 绝不使用浏览器随机——未就绪就拦下，提示用户先连上对应桥或切换到已就绪的来源。
+    if (!await ensureSelectedReady()){
+      notifySourceBlocked();
+      return;
+    }
+
+    var hasClick = false;          // 本次是否响了 kaching（正常下注启动）
+    var wager = 0;                 // 本局实际下注额（退款时按此原样退回，不重读档位）
+    var jpAdded = 0;               // 本局实际注入奖金池的额度（退款时按此等额扣回）
+    if (!isFree){
+      if (credits < betVal()){
+        shakeSpin();
+        if (credits < 1 && cardBalance >= 1){
+          showRescueDialog();                        // 现金归零但卡里还有钱 → 提示取出继续
+        } else if (credits >= 1){
+          showNotEnoughDialog(betVal(), credits);    // 还有钱只是不够这注 → 弹「积分不足」
+        }
+        // 真·破产（credits<1 且 cardBalance<1）已有裂卡提示，不叠加
+        return;
+      }
+      wager = betVal();
+      credits -= wager;
+      jpAdded = addToJackpot(wager);   // 每笔投注按比例注入奖金池（返回实际注入量）
+      statLost += wager;               // 累计输分 = 累计投注额（免费转不扣注，故不计）
+      lsSave(LS_LOST, statLost);
+      playSfx("click");            // 旋转按钮（收银机 kaching）：仅正常下注启动时响
+      hasClick = true;
+    } else {
+      freeSpinsLeft--;
+    }
+    clearTimeout(_settleT);        // 上一局的落定定时器作废，避免它提前解除本局的 settling
+    settling = false;
+    spinning = true; setWin(0); highlightLines([]); updateHUD();
+    spinBtn.disabled = true;
+
+    // 取停位：此时来源已确认就绪；若取数中途意外掉线，干净中止（退还已下注、不回退浏览器随机）
+    var pos;
+    try {
+      pos = await fetchPositionsSafe();
+      setSrcMsgKey(useTrng ? "src.msg.trng" : "src.msg.offline", { t: new Date().toLocaleTimeString() });
+    } catch(e){
+      // 本局作废：积分与「注入奖金池」必须成对回滚。只退积分会让奖池白吃本局 1.5%，
+      // 且 addToJackpot 已 persistWallet 落盘，不回滚等于永久损失、越掉线池子越肥。
+      if (!isFree){
+        credits += wager;          // 退还本局下注额
+        revertJackpot(jpAdded);    // 扣回本局注入奖金池的那一份
+        statLost = Math.max(0, statLost - wager);   // 累计输分同步回滚，否则掉线会白记一次输
+        lsSave(LS_LOST, statLost);
+      } else {
+        freeSpinsLeft++;           // 免费转同样退回：这一转没真正用掉，不能白扣
+      }
+      spinning = false; spinBtn.disabled = false; updateHUD();
+      notifySourceDrop();
+      return;
+    }
+
+    // 免费转整体加速：滚轮时长与续转间隔同步缩短，节奏更紧凑
+    var spd = isFree ? FREE_SPEED : 1;
+    var durs = [1700, 1900, 2100, 2300, 2500].map(function(d){ return Math.round(d / spd); });
+    restoreExpandedWilds();   // 先把上一局"扩展 WILD"改过的格子还原，避免污染本条动画
+    // 预渲染带子只需重设"起点"：起始格 = 停位往前 LAND_N 格，滚完 LAND_N 格正好停在中行。
+    // 起点内容与旧版"重建 46 格窗口"的首帧完全一致 → 观感不变，但这里没有任何 DOM 重建。
+    var endTops = [];
+    strips.forEach(function(el, i){
+      var st = startTopFor(pos[i]);
+      endTops.push(st + LAND_N);
+      el.style.transition = "none";
+      el.style.transform = "translate3d(0,-"+(st*ROW_H)+"px,0)";   // 起点跳变被开转瞬间掩盖，与旧版一致
+    });
+    void strips[0].offsetHeight;   // 让起点先落地，CSS transition 才会从它开始
+
+    requestAnimationFrame(function(){
+      // 滚轮音排在 kaching 之后；免费转自动续转无 kaching，立即播
+      setTimeout(function(){ playSfx("spin"); }, hasClick ? SPIN_SFX_DELAY : 0);
+      strips.forEach(function(el, i){
+        el.classList.add("rolling");
+        el.style.transition = "transform "+durs[i]+"ms cubic-bezier(.12,.72,.16,1)";
+        el.style.transform = "translate3d(0,-"+(endTops[i]*ROW_H)+"px,0)";   // 固定滚 LAND_N 格
+        setTimeout(function(){ el.classList.remove("rolling"); }, durs[i]-90);
+      });
+    });
+
+    var maxDur = Math.max.apply(null, durs);
+    setTimeout(function(){
+      strips.forEach(function(s, i){ s.style.transition="none"; s.style.transform="translate3d(0,-"+(endTops[i]*ROW_H)+"px,0)"; });
+
+      var rawGrid = gridFrom(pos);
+      var res = evaluate(pos);
+      applyExpandedWildDisplay(endTops, rawGrid);   // 扩展 WILD 的可视化（整列画成 WILD）
+
+      // JACKPOT：最大注 + 任意激活线五连 7（含扩展 WILD）→ 派发整池并重置；
+      // 或池子到达「必出上限」→ 本局必派（本机单级奖池的 must-hit-by）。
+      var jpPaid = 0, mustHit = false;
+      if (isMaxBet() && hasSevenFive(expandWilds(rawGrid))) jpPaid = payoutJackpot();
+      if (jpPaid === 0 && jackpot >= JACKPOT_MUSTHIT){ jpPaid = payoutJackpot(); mustHit = true; }
+
+      // 免费转期间线奖 ×FREE_MULT（scatter 派彩不参与乘数，与真机一致）
+      var lineWin = res.total - res.scatWin;
+      if (isFree) lineWin *= FREE_MULT;
+      var normalWin = lineWin + res.scatWin;
+      // 单局封顶（不含 JACKPOT，奖池全额另派）
+      var cap = MAX_WIN_MULT * betVal(), capped = false;
+      if (normalWin > cap){ normalWin = cap; capped = true; }
+      var totalWin = normalWin + jpPaid;
+
+      if (totalWin > 0){
+        credits += totalWin;
+        statWon += totalWin;
+        if (totalWin > statMaxWin){ statMaxWin = totalWin; lsSave(LS_MAXWIN, statMaxWin); }
+        lsSave(LS_WON, statWon);
+        setWin(totalWin);
+        highlightLines(res.winLines);
+        winMeter.classList.add("win");
+        playSfx("win");
+      } else { setWin(0); }
+
+      if (res.scat >= 3){
+        playSfx("free");
+        // 锁定触发这一手的线数/币数/面额，作为整段免费转的冻结注额
+        frozenLines = activeLines();
+        frozenCoin = coinVal();
+        frozenDenom = denomVal();
+        freeSpinsLeft += FREE_TRIGGER;
+        setSrcMsg((isFree?"免费转中 ":"") + "★ " + res.scat + " scatter → +" + FREE_TRIGGER + " 免费转");
+      }
+      if (jpPaid > 0){
+        setSrcMsg((mustHit ? "★★ 必出上限触发 · JACKPOT 派发 +" : "★★ JACKPOT 派发 +") + jpPaid.toLocaleString("en-US") + " ★★");
+      } else if (capped){
+        setSrcMsg("单局封顶 " + MAX_WIN_MULT + "× 总注，超出部分不计");
+      }
+
+      // 猜大小：只有基础局（非免费转、未触发免费转）的非 JACKPOT 奖金可押注。
+      // （自动转已按真机口径移除：每局都是玩家主动按下的一手，中奖即可押。）
+      pendingGamble = (!isFree && normalWin > 0 && res.scat < 3) ? normalWin : 0;
+      gambleRound = 0;
+
+      // === 结算顺序铁律（2026-11-02 修 bug）===
+      // 本局中奖已在上面的 totalWin 分支入账 -> 落盘 -> 关 spinning 并进入 settling ->
+      // 刷 HUD（这时积分才是"本局最终值"）-> 展示期结束才解除 settling，允许判破产。
+      // 顺序不可再调换：若先刷 HUD 再关 spinning / 不等展示，就会出现
+      // 「最后一轮还在转、注已扣、余额 0」被提前判成破产的假象。
+      persistWallet();
+      spinning = false;
+      settling = true;
+      updateHUD();
+      var hold = (totalWin > 0) ? SETTLE_HOLD_WIN_MS : SETTLE_HOLD_MS;
+      clearTimeout(_settleT);
+      _settleT = setTimeout(function(){
+        settling = false;
+        updateHUD();               // 落定后才看积分：本局中奖了就不会误判破产
+      }, hold);
+      // 免费转自动续转（不消耗下注）
+      if (freeSpinsLeft > 0){ setTimeout(function(){ doSpin(); }, Math.round(900 / spd)); }
+    }, maxDur + 140);
+  }
+
+  /* -------- 按钮 / 键盘 -------- */
+  spinBtn.addEventListener("click", function(){
+    if (_usd.on){ stopJackpotCelebrate(); return; }   // JACKPOT 特效应答中：点一下先收起
+    if (gambleMask && gambleMask.classList.contains("show")) return;   // 猜大小弹窗中不转
+    if (spinning) return;
+    doSpin();
+  });
+  // 面额（credit 价值）−/+
+  if (denomUpBtn) denomUpBtn.addEventListener("click", function(){
+    if (spinning) return;
+    if (denomIdx < DENOM_TIERS.length-1){ denomIdx++; updateHUD(); }
+    if (denomIdx >= DENOM_TIERS.length-1) flashMax(grpDenom);   // 已到顶再点也提示一次
+  });
+  if (denomDownBtn) denomDownBtn.addEventListener("click", function(){
+    if (spinning) return; if (denomIdx > 0){ denomIdx--; updateHUD(); }
+  });
+  // 每线币数 −/+
+  document.getElementById("betUp").addEventListener("click", function(){
+    if (spinning) return;
+    if (coinIdx < COIN_TIERS.length-1){ coinIdx++; updateHUD(); }
+    if (coinIdx >= COIN_TIERS.length-1) flashMax(grpPerLine);
+  });
+  document.getElementById("betDown").addEventListener("click", function(){
+    if (spinning) return; if (coinIdx > 0){ coinIdx--; updateHUD(); }
+  });
+  // 激活线数 −/+
+  document.getElementById("lineUp").addEventListener("click", function(){
+    if (spinning) return;
+    if (lineIdx < LINE_TIERS.length-1){ lineIdx++; layoutLines(); updateHUD(); }
+    if (lineIdx >= LINE_TIERS.length-1) flashMax(grpLines);
+  });
+  document.getElementById("lineDown").addEventListener("click", function(){
+    if (spinning) return;
+    if (lineIdx > 0){ lineIdx--; layoutLines(); updateHUD(); }
+  });
+  document.addEventListener("keydown", function(e){
+    if (e.code !== "Space") return;
+    var ae = document.activeElement;
+    // 焦点在输入控件（音量滑块等）时不抢空格
+    if (ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA")) return;
+    e.preventDefault();
+    if (_bkVisible){ dismissBankruptDialog(); return; }   // 破产弹窗：空格收起
+    if (_ncVisible){ dismissNotEnoughDialog(); return; }  // 积分不足弹窗：空格收起（不再重复触发）
+    if (_usd.on){ stopJackpotCelebrate(); return; }   // JACKPOT 特效应答中：空格先收起
+    if (gambleMask && gambleMask.classList.contains("show")) return;   // 猜大小弹窗中不转
+    doSpin();
+  });
+
+  /* =====================================================================
+   *  file:// + Firefox 内核 ⇒ 本页与百家乐页是**两个独立源**，积分不可能共通。
+   *  这种情况必须明说，否则玩家只会看到"积分没同步"而不是"打开方式不对"。
+   * ===================================================================== */
+  (function warnFileOrigin(){
+    if (location.protocol !== "file:") return;
+    if (!/Firefox|Zen/i.test(navigator.userAgent)) return;      // Chrome/Edge 的 file:// 是共享的，不必吓人
+    try{ if (sessionStorage.getItem("slot_filewarn") === "1") return; }catch(e){}
+    var bar = document.createElement("div");
+    bar.className = "filewarn";
+    bar.innerHTML = '<span>⚠ 当前用 <b>file://</b> 打开：Firefox 内核把本页当成独立站点，' +
+      '百家乐那边读不到这里的积分（两个页面各有各的存储）。请用 <b>start_casino.py</b> 启动，' +
+      '它会自动改用 <b>http://127.0.0.1:8788</b>，积分与银行卡就真正共通了。<br>' +
+      '<i>Opened via file:// — Firefox treats this page as a separate site, so credits cannot be shared. ' +
+      'Launch with start_casino.py instead (it serves over http://127.0.0.1:8788).</i></span>' +
+      '<button type="button" aria-label="close">×</button>';
+    bar.querySelector("button").addEventListener("click", function(){
+      try{ sessionStorage.setItem("slot_filewarn", "1"); }catch(e){}
+      bar.parentNode && bar.parentNode.removeChild(bar);
+    });
+    document.body.appendChild(bar);
+  })();
+
+  /* -------- 初始化 -------- */
+  layoutLines();
+  window.addEventListener("resize", layoutLines);
+  strips.forEach(function(s, i){
+    buildReelStrip(s, i);                          // 预渲染整条带子（仅此一次），之后每次 spin 不再重建
+    var p0 = Math.floor(Math.random()*64);
+    var et = startTopFor(p0) + LAND_N;             // 初始停在随机位（中行 = p0）
+    s.style.transition = "none";
+    s.style.transform = "translate3d(0,-"+(et*ROW_H)+"px,0)";
+  });
+  updateHUD();
+  setWin(0);
+  // 刷新时若仍处于「真破产」（积分与卡都空），重新给出破产提示，但不累加破产次数
+  // （brokeFlag 初始化时已置位）。不会白送 20000，玩家需点「重新开始」。
+  if (credits < 1 && cardBalance < 1) showBankruptDialog();
+})();
+</script>
+</body>
+</html>
