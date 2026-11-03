@@ -1,3 +1,5 @@
+<img width="3072" height="3192" alt="Image" src="https://github.com/user-attachments/assets/54aa2dd3-dcee-47d7-a5e4-e5e3a9b871c3" />
+
 # STM32H743 老虎机（真随机驱动）
 
 English version: [README_EN.md](README_EN.md)
