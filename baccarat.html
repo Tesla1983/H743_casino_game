@@ -100,6 +100,20 @@
     position:absolute;bottom:0;right:14px;z-index:5;}
   /* 三卡行：玩家档案 / 柜机 / 珠盘路 同一行底部对齐 */
   .machrow{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;justify-content:center;width:100%;}
+  /* 右侧缩放列：牌靴 / 珠盘路 / 银行卡 收敛到台面右侧一条窄列，压暗作为非焦点 */
+  body.arc .sidecol{display:flex;flex-direction:column;align-items:center;gap:12px;
+    width:212px;flex:0 0 auto;align-self:flex-end;
+    filter:brightness(.94) saturate(.92);opacity:.96;}
+  /* 牌靴：从台面内浮出改到侧栏块级小牌 */
+  body.arc .sidecol .shoecard{float:none;margin:0;width:100%;
+    padding:10px 12px;border-radius:14px;text-align:center;
+    background:linear-gradient(180deg,rgba(9,30,23,.82),rgba(4,15,11,.9));
+    border:1px solid rgba(245,197,66,.22);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05), 0 8px 18px rgba(0,0,0,.36);}
+  body.arc .sidecol .shoecard .sc-val{text-shadow:0 0 10px rgba(245,197,66,.32);}
+  /* 侧栏内卡片（珠盘路 / 银行卡）填满列宽，避免 collapsed 容器宽 248 溢出窄列 */
+  body.arc .sidecol .bankcard{width:100%;}
+  body.arc .sidecol .bankcard.collapsed{width:100%;}
   /* 右侧放不下时（视口 ≤1663px）银行卡回到独立一行，别压到珠盘路上。
      判据是「右侧空档 (0.96W − 三卡宽)/2 ≥ 卡宽 170 + 间距 16 + 余量 10」：1 倍下三卡 1174 ⇒ W ≥ 1664 */
   @media (max-width:1663px){
@@ -124,8 +138,6 @@
      卡片同步加宽到 246px（内容区 220px = 6×30 + 5×6 间距），避免点被裁切。 */
   .sidecard.roadcard{width:246px;}
 
-  .jp-bulbs{position:relative;width:100%;height:8px;display:flex;align-items:center;
-    justify-content:space-between;padding:0 2px;}
   .bulb{width:6px;height:6px;border-radius:50%;background:#ffd76a;
     box-shadow:0 0 7px 2px rgba(255,180,40,.85);animation:blink 1.15s infinite;}
   .bulb:nth-child(2n){animation-delay:.28s;}
@@ -133,7 +145,7 @@
   .bulb:nth-child(4n){animation-delay:.8s;}
   @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
 
-  .jp-title{margin-top:12px;font-weight:900;font-size:14px;letter-spacing:3px;color:var(--gold-l);
+  .jp-title{margin-top:2px;font-weight:900;font-size:14px;letter-spacing:3px;color:var(--gold-l);
     text-shadow:0 0 8px rgba(245,197,66,.85),0 0 18px rgba(255,140,20,.5);}
   .jp-sub{font-size:10.5px;letter-spacing:1px;color:#a896c4;margin-top:3px;}
   .jp-body{flex:1;width:100%;display:flex;flex-direction:column;align-items:center;
@@ -322,24 +334,23 @@
   .bcard-in{position:relative;width:100%;height:100%;transform-style:preserve-3d;
     transform:rotateY(180deg);transition:transform .42s cubic-bezier(.3,.9,.25,1);}
   .bcard.up .bcard-in{transform:rotateY(0deg);}
-  .bcard.deal{animation:cardIn .3s ease-out;}
-  @keyframes cardIn{
-    0%{transform:translate3d(150px,-42px,0) scale(.82) rotate(7deg);opacity:.35;}
-    100%{transform:none;opacity:1;}
-  }
   .bf{position:absolute;inset:0;border-radius:7px;overflow:hidden;
     backface-visibility:hidden;-webkit-backface-visibility:hidden;
     background:#fff;box-shadow:0 6px 14px rgba(0,0,0,.6);
     border:1px solid rgba(0,0,0,.35);}
   .bf img{width:100%;height:100%;display:block;object-fit:cover;}
   .bf.back{transform:rotateY(180deg);border-color:rgba(245,197,66,.45);background:#2b1a48;}
+  /* 飞行体：仅牌背的扁平卡片，不参与 3D 翻转，保证飞行途中一定是牌背朝上 */
+  .flycard{position:fixed;pointer-events:none;border-radius:7px;overflow:hidden;
+    box-shadow:0 12px 26px rgba(0,0,0,.5);border:1px solid rgba(0,0,0,.35);background:#2b1a48;}
+  .flycard img{width:100%;height:100%;display:block;object-fit:cover;}
   .bcard.hot .bf{box-shadow:0 0 18px rgba(255,205,70,.55),0 6px 14px rgba(0,0,0,.6);
     border-color:rgba(255,225,140,.85);}
   .total{
     flex:0 0 52px;width:52px;height:52px;border-radius:50%;
     display:flex;align-items:center;justify-content:center;
     font-size:22px;font-weight:900;color:#ffe9a8;font-variant-numeric:tabular-nums;
-    background:radial-gradient(circle at 35% 28%,#3a2a5e,#150d24 76%);
+    background:radial-gradient(circle at 50% 28%, rgba(255,255,255,.07), rgba(0,0,0,.34));
     border:2px solid rgba(245,197,66,.5);
     box-shadow:0 0 16px rgba(245,197,66,.16), inset 0 0 12px rgba(0,0,0,.72);
     transition:transform .25s cubic-bezier(.2,1.4,.4,1), color .2s, border-color .2s, box-shadow .2s;
@@ -389,7 +400,7 @@
   .hud{display:flex;gap:10px;margin-top:14px;}
   .meter{
     flex:1;border-radius:12px;padding:9px 6px;text-align:center;position:relative;
-    background:linear-gradient(#1c1327,#120c1a);
+    background:radial-gradient(circle at 50% 28%, rgba(255,255,255,.07), rgba(0,0,0,.34));
     border:3px solid rgba(226,169,15,.62);
     box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
   }
@@ -672,7 +683,7 @@
     background:rgba(4,2,8,0);pointer-events:none;
     transition:background .3s ease;
   }
-  .bk-mask.show{display:flex;background:rgba(4,2,8,.62);}
+  .bk-mask.show{display:flex;background:rgba(4,2,8,.62);pointer-events:auto;}
   .bk-stage{position:relative;width:min(86vw,420px);height:176px;}
   .bk-half{
     position:absolute;inset:0;
@@ -706,7 +717,7 @@
     position:fixed;inset:0;z-index:9400;display:none;align-items:center;justify-content:center;
     background:rgba(4,2,8,0);pointer-events:none;transition:background .3s ease;
   }
-  .nc-mask.show{display:flex;background:rgba(4,2,8,.55);}
+  .nc-mask.show{display:flex;background:rgba(4,2,8,.55);pointer-events:auto;}
   .nc-card{
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:11px;
     width:min(86vw,420px);padding:26px 28px;
@@ -802,7 +813,8 @@
   @media (max-width:980px){
     .machrow{flex-direction:column;align-items:center;gap:14px;}
     .bankbar{justify-content:center;}
-    .sidecard,.bankcard{align-self:center;width:min(100%,600px);}
+    .sidecard,.bankcard,.sidecol{align-self:center;width:min(100%,600px);}
+    .sidecol{opacity:1;filter:none;}
     /* 银行卡是竖版卡面，窄屏撑满整行会显得又扁又宽 —— 单独收窄到 330 */
     .bankcard{width:min(100%,330px);}
     .jp-body{flex-direction:row;justify-content:center;gap:16px;}
@@ -833,9 +845,40 @@
   }
 
   /* 余牌小牌：去掉 class="arc" 时的降级样式（右侧浮动小字），避免旧柜机外观下变成裸文字 */
-  .shoecard{float:right;margin:0 0 6px 10px;text-align:center;}
-  .shoecard .sc-lbl{display:block;font-size:9.5px;letter-spacing:1.5px;color:#8f84a8;}
-  .shoecard .sc-val{display:block;font-size:16px;font-weight:900;color:var(--gold);font-variant-numeric:tabular-nums;}
+  /* ---------- 余牌：牌靴堆叠 + 进度条 ---------- */
+  .shoecard{display:flex;flex-direction:column;align-items:stretch;gap:8px;
+    padding:12px 12px 13px;border-radius:14px;text-align:center;
+    /* 去掉独立面板观感：背景用半透明绿呢色融入台面，无边框、无外投影 */
+    background:linear-gradient(180deg,rgba(12,58,44,.28),rgba(6,30,22,.42));
+    border:0;box-shadow:none;}
+  .shoecard .sc-top{display:flex;align-items:baseline;justify-content:center;gap:8px;}
+  .shoecard .sc-lbl{font-size:11px;letter-spacing:1.4px;color:#a9c7bb;font-weight:600;}
+  .shoecard .sc-val{font-size:24px;font-weight:900;line-height:1;color:#ffd76a;
+    font-variant-numeric:tabular-nums;text-shadow:0 0 10px rgba(245,197,66,.32);}
+  /* 牌靴堆叠：多张 CC0 牌背错落叠放，露出每层边缘像一摞未发的牌 */
+  .shoecard .sc-stack{position:relative;height:73px;width:62px;margin:3px auto 5px;}
+  /* 牌堆下方的接触阴影：让整摞牌像真实摆在桌呢上，而非浮在面板里 */
+  .shoecard .sc-stack::after{content:"";position:absolute;left:1px;right:-1px;bottom:1px;height:13px;
+    background:radial-gradient(62% 100% at 50% 0,rgba(0,0,0,.55),rgba(0,0,0,0) 72%);
+    filter:blur(2.5px);pointer-events:none;}
+  .shoecard .sc-card{position:absolute;width:46px;height:64px;border-radius:5px;
+    border:1px solid rgba(255,255,255,.2);
+    box-shadow:0 2px 5px rgba(0,0,0,.45);}
+  .shoecard .sc-card:nth-child(1){top:9px;left:2px;}
+  .shoecard .sc-card:nth-child(2){top:6px;left:6px;}
+  .shoecard .sc-card:nth-child(3){top:3px;left:10px;}
+  .shoecard .sc-card:nth-child(4){top:0;left:14px;z-index:4;
+    box-shadow:0 3px 8px rgba(0,0,0,.5);}
+  /* 进度条 */
+  .shoecard .sc-bar{height:9px;border-radius:6px;overflow:hidden;
+    background:rgba(0,0,0,.42);border:1px solid rgba(255,255,255,.12);}
+  .shoecard .sc-bar > i{display:block;height:100%;border-radius:6px;width:100%;
+    background:linear-gradient(90deg,#caa23a,#ffd76a);
+    box-shadow:0 0 8px rgba(245,197,66,.4);transition:width .35s ease;}
+  .shoecard .sc-foot{font-size:10.5px;letter-spacing:.2px;color:#bcd3c8;
+    font-variant-numeric:tabular-nums;display:flex;align-items:baseline;justify-content:center;gap:3px;}
+  .shoecard .sc-pct{font-style:normal;}
+  .shoecard .sc-of{color:#8fb3a4;}
 
   /* ============================================================================
      ARC 试验版：圆弧赌桌（去掉柜机外壳）
@@ -854,9 +897,12 @@
   body.arc .machine{zoom:1;}
 
   /* HUD 四格放到桌面下方等距分布；余牌单独做小牌挂桌面右侧中部 */
-  body.arc .hud{order:0;margin:18px 0 0;gap:10px;}
+  body.arc .hud{order:6;margin:16px 0 0;gap:10px;width:100%;}
   body.arc .meter{border-radius:12px;padding:8px 6px;
-    background:linear-gradient(180deg,rgba(28,19,39,.94),rgba(11,7,16,.96));}
+    background:radial-gradient(circle at 50% 28%, rgba(255,255,255,.07), rgba(0,0,0,.34));
+    border:2px dashed rgba(245,197,66,.34);box-shadow:inset 0 0 30px rgba(0,0,0,.45);}
+  /* 并入台面后去掉流动金边，改用与六个下注圈（球）一致的虚线金边 */
+  body.arc .meter::before{display:none;}
   body.arc .meter .val{font-size:19px;}
   body.arc .meter .label{font-size:9.5px;letter-spacing:1.6px;}
   html[lang="zh-CN"] body.arc .meter .label{font-size:11px;letter-spacing:.4px;}
@@ -897,18 +943,23 @@
 
   /* 台呢顶部不再印字：招牌与水印都已去掉，弧顶留白由 .felt 的 padding 控制 */
 
-  /* 余牌小牌：桌面右侧中部。刻意不用 .meter 那套「流动金边」（conic 渐变 + 旋转），
-     只是一块静态的深色小牌，避免和台面上的牌抢注意力 */
+  /* 余牌卡片移入台面右侧：绝对定位到台面右缘、垂直居中、贴边；尺寸等比缩小 */
   body.arc .felt > .shoecard{
-    position:absolute;right:24px;top:50%;transform:translateY(-50%);z-index:2;
-    width:76px;padding:9px 6px 10px;border-radius:14px;text-align:center;
-    background:linear-gradient(180deg,rgba(9,30,23,.88),rgba(4,15,11,.92));
-    border:1px solid rgba(245,197,66,.26);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 8px 18px rgba(0,0,0,.38);
+    position:absolute;right:4px;top:50%;transform:translateY(-50%);z-index:4;
+    width:148px;padding:9px 9px 10px;gap:6px;
+    /* 融入绿呢台面：半透明台面色 + 无边框 + 无外投影，牌堆像直接摆在桌上 */
+    background:linear-gradient(180deg,rgba(12,58,44,.30),rgba(6,30,22,.44));
+    border:0;box-shadow:none;border-radius:14px;
   }
-  body.arc .shoecard .sc-lbl{display:block;font-size:9.5px;letter-spacing:1.8px;color:#a9c7bb;}
-  body.arc .shoecard .sc-val{display:block;margin-top:3px;font-size:22px;font-weight:900;line-height:1.1;
-    color:#ffd76a;font-variant-numeric:tabular-nums;text-shadow:0 0 10px rgba(245,197,66,.35);}
+  body.arc .felt > .shoecard .sc-val{font-size:20px;}
+  body.arc .felt > .shoecard .sc-stack{height:62px;width:56px;}
+  body.arc .felt > .shoecard .sc-card{width:40px;height:56px;}
+  body.arc .felt > .shoecard .sc-card:nth-child(1){top:6px;left:4px;}
+  body.arc .felt > .shoecard .sc-card:nth-child(2){top:4px;left:8px;}
+  body.arc .felt > .shoecard .sc-card:nth-child(3){top:2px;left:12px;}
+  body.arc .felt > .shoecard .sc-card:nth-child(4){top:0;left:16px;}
+  body.arc .felt > .shoecard .sc-bar{height:8px;}
+  body.arc .felt > .shoecard .sc-foot{font-size:9.5px;}
 
   /* ---------- 闲 / 庄 两张手牌区：名字牌居中在上，牌居中、点数在右 ---------- */
   body.arc .side{
@@ -936,26 +987,6 @@
   body.arc .verdict .vt{font-size:17px;letter-spacing:4px;}
   body.arc .tlog{order:3;margin-top:4px;padding:0 26px;}
 
-  /* ---------- 中央三个下注圈（玩法上真正下注的位置） ---------- */
-  body.arc .arcspots{order:4;display:flex;justify-content:center;gap:16px;margin:12px 0 2px;}
-  body.arc .arcspots .aspot{
-    width:76px;height:76px;border-radius:50%;flex:0 0 auto;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
-    background:radial-gradient(circle at 50% 26%, rgba(255,255,255,.06), rgba(0,0,0,.30));
-    border:2px dashed rgba(245,197,66,.32);
-    box-shadow:inset 0 0 26px rgba(0,0,0,.42);
-    transition:border-color .2s ease, box-shadow .2s ease;
-  }
-  body.arc .arcspots .as-lbl{font-size:10.5px;font-weight:800;letter-spacing:1px;line-height:1.2;}
-  body.arc .arcspots .aspot.p .as-lbl{color:#a8c8ff;}
-  body.arc .arcspots .aspot.b .as-lbl{color:#ffa8a8;}
-  body.arc .arcspots .aspot.t .as-lbl{color:#8ff0b8;}
-  body.arc .arcspots .as-val{font-size:15px;font-weight:900;font-variant-numeric:tabular-nums;
-    color:rgba(255,233,168,.42);line-height:1.15;}
-  body.arc .arcspots .aspot.hot{border-style:solid;border-color:rgba(255,215,106,.72);
-    box-shadow:inset 0 0 26px rgba(0,0,0,.40), 0 0 18px rgba(255,200,60,.22);}
-  body.arc .arcspots .aspot.hot .as-val{color:#ffe9a8;text-shadow:0 0 10px rgba(245,197,66,.5);}
-
   /* ---------- 下注轨 / 发牌键 ---------- */
   body.arc .controls{
     margin-top:18px;padding:14px 14px 12px;border-radius:18px;
@@ -975,9 +1006,122 @@
     body.arc .cabinet{width:100%;max-width:700px;}
     body.arc .felt{padding:46px 26px 20px;border-radius:44% 44% 24px 24px / 26% 26% 24px 24px;}
     body.arc .side{max-width:100%;}
-    body.arc .arcspots .aspot{width:70px;height:70px;}
-    body.arc .arcspots .as-val{font-size:13px;}
+    body.arc .bspot.main{width:70px;height:70px;}
+    body.arc .bspot.side{width:62px;height:62px;}
   }
+
+  /* ============================================================================
+   *  新版下注区：筹码盘 + 点圈下注（替换原 stepgrp 加减档）
+   *  —— 仅改外观与交互，不动任何结算 / 路纸 / 钱包逻辑
+   * ============================================================================ */
+
+  /* 注位筹码配色（盘上筹码与筹码堆共用） */
+  .d5{--c:#e23b3b;} .d25{--c:#1f9a5a;} .d100{--c:#161616;}
+  .d500{--c:#2b6fd4;} .d1000{--c:#c8901a;}
+
+  /* 迷你筹码（筹码堆里用，与盘上筹码同款外观，缩小） */
+  .minichip{
+    border-radius:50%;position:relative;
+    background:repeating-conic-gradient(from 0deg,#f3efe6 0deg 7deg, var(--c) 7deg 21deg);
+    box-shadow:inset 0 0 0 2px rgba(0,0,0,.28);
+  }
+  .minichip::before{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--c);}
+  .minichip::after{content:"";position:absolute;inset:6px;border-radius:50%;
+    border:1px dashed rgba(245,235,210,.8);}
+
+  /* 下注圈容器：两行三列网格，主注第一行、附加注第二行（对齐到各自主注下方） */
+  body.arc .arcspots{
+    order:4;display:grid;grid-template-columns:repeat(3, 1fr);
+    gap:14px 20px;margin:16px auto 6px;justify-items:center;width:100%;max-width:380px;
+  }
+  body.arc .bspot{
+    position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:1px;border-radius:50%;cursor:pointer;
+    /* 下注圈内文字禁止被鼠标拖选复制（避免出现蓝色选中高亮），点击仍落在整圈上 */
+    -webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;
+    -webkit-touch-callout:none;
+    background:radial-gradient(circle at 50% 28%, rgba(255,255,255,.07), rgba(0,0,0,.34));
+    border:2px dashed rgba(245,197,66,.34);
+    box-shadow:inset 0 0 30px rgba(0,0,0,.45);
+    transition:border-color .2s ease, box-shadow .2s ease, transform .1s ease;
+  }
+  /* 圈内文字纯展示：不承接指针事件，点击一律穿透到整圈，也避免成为选中/复制的抓手 */
+  body.arc .bspot .bs-pay,
+  body.arc .bspot .bs-name,
+  body.arc .bspot .bs-amt{pointer-events:none;}
+  body.arc .bspot.main{width:88px;height:88px;}
+  body.arc .bspot.side{width:70px;height:70px;opacity:.94;}
+  body.arc .bspot:hover{border-color:rgba(255,215,106,.55);}
+  body.arc .bspot:active{transform:translateY(1px) scale(.98);}
+  body.arc .bspot.hot{
+    border-style:solid;border-color:rgba(255,215,106,.80);
+    box-shadow:inset 0 0 26px rgba(0,0,0,.40), 0 0 20px rgba(255,200,60,.25);
+  }
+  body.arc .bspot.max-flash{border-color:rgba(255,120,120,.85);}
+  body.arc .bspot .bs-pay{
+    font-size:9.5px;letter-spacing:.3px;color:#cbb8e6;opacity:.85;position:relative;z-index:3;
+    white-space:nowrap;
+  }
+  body.arc .bspot.main .bs-pay{font-size:11px;}
+  body.arc .bspot .bs-name{
+    font-size:10px;font-weight:800;letter-spacing:1px;color:#e8ddf2;position:relative;z-index:3;
+    white-space:nowrap;
+  }
+  body.arc .bspot.main .bs-name{font-size:13px;letter-spacing:2px;}
+  body.arc .bspot .bs-amt{
+    font-size:12px;font-weight:900;font-variant-numeric:tabular-nums;
+    color:rgba(255,233,168,.5);position:relative;z-index:3;
+  }
+  body.arc .bspot.main .bs-amt{font-size:15px;}
+  body.arc .bspot.hot .bs-amt{color:#ffe9a8;text-shadow:0 0 10px rgba(245,197,66,.5);}
+  /* 筹码堆：从注圈中心向上叠，column-reverse 让后放的盖在前面的上面 */
+  body.arc .bspot .bs-stack{
+    position:absolute;bottom:52%;left:50%;transform:translateX(-50%);
+    display:flex;flex-direction:column-reverse;align-items:center;z-index:2;pointer-events:none;
+  }
+  body.arc .bspot .minichip{width:20px;height:20px;border-radius:50%;margin-bottom:-13px;
+    box-shadow:0 1px 3px rgba(0,0,0,.55), inset 0 0 0 2px rgba(0,0,0,.28);}
+  body.arc .bspot.main .minichip{width:24px;height:24px;margin-bottom:-16px;}
+
+  /* 筹码盘：经典黏土筹码（外圈边斑 + 虚线缝线环 + 中央凸面 + 高光） */
+  body.arc .chiptray{display:flex;width:100%;justify-content:space-evenly;align-items:center;flex-wrap:wrap;padding:6px 4px;}
+  body.arc .chip{
+    position:relative;width:54px;height:54px;border-radius:50%;cursor:pointer;flex:0 0 auto;
+    background:repeating-conic-gradient(from 0deg, #f3efe6 0deg 7deg, var(--c) 7deg 21deg);
+    box-shadow:0 5px 12px rgba(0,0,0,.5), inset 0 0 0 2px rgba(0,0,0,.28);
+    display:flex;align-items:center;justify-content:center;
+    transition:transform .12s ease, box-shadow .15s ease, filter .15s ease;
+  }
+  body.arc .chip::before{content:"";position:absolute;inset:6px;border-radius:50%;background:var(--c);}
+  body.arc .chip::after{content:"";position:absolute;inset:14px;border-radius:50%;
+    border:1.5px dashed rgba(245,235,210,.85);}
+  body.arc .chip .c-val{position:relative;z-index:1;font-size:14px;font-weight:900;
+    color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.65);font-variant-numeric:tabular-nums;}
+  body.arc .chip:hover{transform:translateY(-3px);filter:brightness(1.04);}
+  body.arc .chip.sel{
+    transform:translateY(-6px);
+    box-shadow:0 0 0 3px var(--gold), 0 7px 16px rgba(0,0,0,.55);
+  }
+
+  /* 发牌按钮：去掉老虎机 SPIN 流光，改成干净的金色实体键；
+     收缩为紧凑键，与「清空下注 / 台面」同排在 featrow（不再独占整行全宽） */
+  body.arc .cab-col .btn.deal{margin-top:0;flex:0 0 auto;height:38px;width:auto;padding:0 26px;}
+  body.arc .btn.deal{
+    background:linear-gradient(180deg,#ffd76a,#d39a14);
+    color:#241500;font-weight:900;letter-spacing:4px;
+    border:1px solid rgba(255,255,255,.4);
+    box-shadow:0 10px 26px rgba(245,180,20,.35), inset 0 1px 0 rgba(255,255,255,.5);
+    transition:filter .15s ease, transform .08s ease;
+  }
+  body.arc .btn.deal:hover{filter:brightness(1.07);}
+  body.arc .btn.deal:active{transform:translateY(2px) scale(.99);}
+  body.arc .btn.deal.short{filter:saturate(.3) brightness(.62);}
+
+  /* 右侧缩放面板：珠盘路 / 银行卡（非焦点，压暗 + 缩小） */
+  body.arc .sidecard.roadcard.mini{width:200px;}
+  body.arc .sidecard.roadcard.mini .rd{width:18px;height:18px;font-size:11px;}
+  body.arc .sidecard.roadcard.mini .road-grid{gap:3px;min-height:158px;}
+  body.arc .bankcard.mini{opacity:.92;}
 
   /* ---------- 中文小标签统一度量（置于样式表末尾，压过各处原始定义） ----------
      页面里 9.5–10.5px 的「字段标签」原是按英文大写定的：大写字母笔画简单，
@@ -987,12 +1131,15 @@
      注意 .sbet .sb-lbl 不改颜色 —— 「有注即亮」的 #ffe9a8 高亮优先级必须保住。 */
   html[lang="zh-CN"] .pl-lbl,
   html[lang="zh-CN"] .steplbl .sl-name,
-  html[lang="zh-CN"] .shoecard .sc-lbl{font-size:11px;letter-spacing:.3px;font-weight:600;color:#b7a8d2;}
-  html[lang="zh-CN"] .sbet .sb-lbl{font-size:11px;letter-spacing:.3px;font-weight:800;}
+  html[lang="zh-CN"] .shoecard .sc-lbl{font-size:11px;letter-spacing:.3px;font-weight:600;color:#c4d8cc;}
   html[lang="zh-CN"] .jp-sub{font-size:11.5px;letter-spacing:.5px;font-weight:600;color:#b7a8d2;}
   /* 珠盘路底部的结果统计（庄 20 · 闲 25 · 和 3）：同样按中文标签度量处理。
      只挂 .roadcard —— 老虎机页的 .jp-foot 是 JACKPOT 说明整句，不属于字段标签。 */
   html[lang="zh-CN"] .roadcard .jp-foot{font-size:11px;letter-spacing:.4px;font-weight:600;color:#b7a8d2;}
+  /* 珠盘路图例旁的汉字（庄 / 闲 / 和）：原只继承通用 11px，与上方字段标签统一放大、提亮 */
+  html[lang="zh-CN"] .road-legend{font-size:14px;letter-spacing:.5px;font-weight:600;color:#d4c8ec;}
+  /* 缩放模式下卡片被 brightness(.94) 压暗，图例再提亮一档补偿 */
+  html[lang="zh-CN"] body.arc .sidecard.roadcard.mini .road-legend{color:#e0d4f2;}
   /* 补牌记录（闲 1 (补 6♠ → 7) · 庄 3 (补 5♥ → 8)）：同样按中文标签度量处理，
      金色结算拆解再站高一级，保住「记录为辅、结算为主」的层次。 */
   html[lang="zh-CN"] .tlog{font-size:11.5px;letter-spacing:.2px;font-weight:600;color:#b7a8d2;min-height:20px;}
@@ -1049,62 +1196,13 @@
 <div class="stage">
   <div class="machine">
 
-    <div class="bankbar">
-    <!-- ==================== 银行卡（可收起：收起后只剩一个圆形卡标按钮，浮于柜机右上角） ==================== -->
-    <div class="bankcard" id="bankCard">
-      <button class="bc-mini" id="bcOpen" type="button"
-              aria-label="展开银行卡 / Open bank card" aria-expanded="false" title="展开银行卡 / Open">
-        <svg class="bc-mini-ico" viewBox="0 0 64 40" aria-hidden="true">
-          <circle cx="26" cy="20" r="13" fill="#eb001b"/>
-          <circle cx="38" cy="20" r="13" fill="#f79e1b"/>
-          <path d="M32 8.5A13 13 0 0 1 32 31.5A13 13 0 0 0 32 8.5Z" fill="#ff5f00"/>
-        </svg>
-      </button>
-      <div class="bc-panel" id="bcPanel">
-        <button class="bc-collapse" id="bcClose" type="button"
-                aria-label="收起银行卡 / Collapse bank card" title="收起 / Collapse">&#8722;</button>
-        <div class="bc-face">
-          <div class="bc-bank-name" data-i18n="bc.title">银行卡</div>
-          <div class="bc-logo" aria-hidden="true">
-            <svg class="bc-logo-svg" viewBox="0 0 64 40">
-              <circle cx="26" cy="20" r="13" fill="#eb001b"/>
-              <circle cx="38" cy="20" r="13" fill="#f79e1b"/>
-              <path d="M32 8.5A13 13 0 0 1 32 31.5A13 13 0 0 0 32 8.5Z" fill="#ff5f00"/>
-            </svg>
-          </div>
-          <div class="bc-num" id="cardBal">0</div>
-          <div class="bc-meta">
-            <div class="bc-mi bc-mi-name"><span class="bc-ml" data-i18n="bc.label">卡内积分</span></div>
-            <div class="bc-mi bc-mi-mid"><span class="bc-ml">H743</span></div>
-            <div class="bc-mi bc-mi-end"><span class="bc-ml">B</span></div>
-          </div>
-        </div>
-        <div class="bc-ctrl">
-          <div class="bc-amt">
-            <button class="bc-q" type="button" data-amt="1000">1000</button>
-            <button class="bc-q" type="button" data-amt="5000">5000</button>
-            <button class="bc-q bc-all" type="button" data-amt="all" data-i18n="bc.all">全部</button>
-            <input class="bc-in" id="cardAmt" type="number" min="0" inputmode="numeric"
-                   data-i18n-ph="bc.amtPh" placeholder="自定义">
-          </div>
-          <div class="bc-actions">
-            <button class="bc-dep" id="cardDep" type="button" data-i18n="bc.dep">存入 ▲</button>
-            <button class="bc-wd" id="cardWd" type="button" data-i18n="bc.wd">取出 ▼</button>
-          </div>
-        </div>
-      </div>
-    </div>
-    </div><!-- /.bankbar -->
+    <!-- 银行卡已移入右侧 .sidecol -->
 
-    <!-- ==================== 三卡行：玩家档案 / 柜机 / 珠盘路 + 路纸 ==================== -->
+    <!-- ==================== 三卡行：玩家档案 / 柜机 / 右侧缩放列（牌靴·珠盘路·银行卡） ==================== -->
     <div class="machrow">
 
     <!-- ==================== 玩家档案 ==================== -->
     <div class="sidecard" id="playerCard">
-      <div class="jp-bulbs">
-        <i class="bulb"></i><i class="bulb"></i><i class="bulb"></i><i class="bulb"></i>
-        <i class="bulb"></i><i class="bulb"></i><i class="bulb"></i><i class="bulb"></i>
-      </div>
       <div class="jp-title">PLAYER</div>
       <div class="jp-sub" data-i18n="pl.sub">玩家档案</div>
       <div class="jp-body" id="plBody">
@@ -1158,10 +1256,20 @@
 
       <div class="screen">
         <div class="felt" id="felt">
-          <!-- 余牌：从 HUD 里拆出来，单独挂在桌面右侧中部（无流动金边，静态小牌） -->
-          <div class="shoecard">
-            <span class="sc-lbl" data-i18n="hud.shoe">余牌</span>
-            <b class="sc-val" id="shoeLeft">–</b>
+          <!-- 余牌卡片：移入台面右侧、垂直居中贴近右缘（牌靴堆叠 + 进度条，牌背取自 CC0 仓库 back_blue.webp） -->
+          <div class="shoecard" id="shoeCard">
+            <div class="sc-top">
+              <span class="sc-lbl" data-i18n="hud.shoe">余牌</span>
+              <b class="sc-val" id="shoeLeft">–</b>
+            </div>
+            <div class="sc-stack" aria-hidden="true">
+              <img class="sc-card" src="assets/cards/back_blue.webp" alt="" draggable="false">
+              <img class="sc-card" src="assets/cards/back_blue.webp" alt="" draggable="false">
+              <img class="sc-card" src="assets/cards/back_blue.webp" alt="" draggable="false">
+              <img class="sc-card" src="assets/cards/back_blue.webp" alt="" draggable="false">
+            </div>
+            <div class="sc-bar"><i id="shoeBar" style="width:100%"></i></div>
+            <div class="sc-foot"><span id="shoePct">100</span><i class="sc-pct" data-i18n="shoe.pct">%</i><span class="sc-of" data-i18n="shoe.full">满靴 416</span></div>
           </div>
           <!-- 闲家 -->
           <div class="side p" id="sideP">
@@ -1180,9 +1288,42 @@
           <div class="tlog" id="tlog"></div>
           <!-- 中央三个下注圈：金额与下注区同源（updateHUD 里镜像），>0 时金圈点亮 -->
           <div class="arcspots">
-            <div class="aspot p" id="spotP"><span class="as-lbl" data-i18n="side.p">闲家</span><b class="as-val">0</b></div>
-            <div class="aspot b" id="spotB"><span class="as-lbl" data-i18n="side.b">庄家</span><b class="as-val">0</b></div>
-            <div class="aspot t" id="spotT"><span class="as-lbl" data-i18n="ctl.t">和局注</span><b class="as-val">0</b></div>
+            <div class="bspot main p" data-spot="p">
+              <span class="bs-pay" data-i18n="spot.pay.p">1:1</span>
+              <div class="bs-stack"></div>
+              <span class="bs-name" data-i18n="spot.p">闲家</span>
+              <b class="bs-amt">0</b>
+            </div>
+            <div class="bspot main b" data-spot="b">
+              <span class="bs-pay" data-i18n="spot.pay.b">0.95</span>
+              <div class="bs-stack"></div>
+              <span class="bs-name" data-i18n="spot.b">庄家</span>
+              <b class="bs-amt">0</b>
+            </div>
+            <div class="bspot main t" data-spot="t">
+              <span class="bs-pay" data-i18n="spot.pay.t">8:1</span>
+              <div class="bs-stack"></div>
+              <span class="bs-name" data-i18n="spot.t">和局</span>
+              <b class="bs-amt">0</b>
+            </div>
+            <div class="bspot side" data-spot="pp">
+              <span class="bs-pay" data-i18n="spot.pay.pp">11:1</span>
+              <div class="bs-stack"></div>
+              <span class="bs-name" data-i18n="spot.pp">闲对</span>
+              <b class="bs-amt">0</b>
+            </div>
+            <div class="bspot side" data-spot="bp">
+              <span class="bs-pay" data-i18n="spot.pay.bp">11:1</span>
+              <div class="bs-stack"></div>
+              <span class="bs-name" data-i18n="spot.bp">庄对</span>
+              <b class="bs-amt">0</b>
+            </div>
+            <div class="bspot side" data-spot="l6">
+              <span class="bs-pay" data-i18n="spot.pay.l6">12/20</span>
+              <div class="bs-stack"></div>
+              <span class="bs-name" data-i18n="spot.l6">幸运六</span>
+              <b class="bs-amt">0</b>
+            </div>
           </div>
           <!-- 庄家 -->
           <div class="side b" id="sideB">
@@ -1193,59 +1334,24 @@
             <div class="cards" id="bCards"></div>
             <div class="total empty" id="bTotal"></div>
           </div>
+          <!-- HUD（积分/本注/筹码/派彩）已并入台面，背景与六个下注圈（球）同材质 -->
+          <div class="hud">
+            <div class="meter"><div class="label" data-i18n="hud.credits">积分</div><div class="val" id="credits">20000</div></div>
+            <div class="meter"><div class="label" data-i18n="hud.bet">本注</div><div class="val" id="betTotal">0</div></div>
+            <div class="meter"><div class="label" data-i18n="hud.chip">筹码</div><div class="val" id="chipVal">10</div></div>
+            <div class="meter" id="winMeter"><div class="label" data-i18n="hud.win">PAYOUT</div><div class="val" id="win">0</div></div>
+          </div>
         </div>
       </div>
 
-      <div class="hud">
-        <div class="meter"><div class="label" data-i18n="hud.credits">积分</div><div class="val" id="credits">20000</div></div>
-        <div class="meter"><div class="label" data-i18n="hud.bet">本注</div><div class="val" id="betTotal">0</div></div>
-        <div class="meter"><div class="label" data-i18n="hud.chip">筹码</div><div class="val" id="chipVal">10</div></div>
-        <div class="meter" id="winMeter"><div class="label" data-i18n="hud.win">WIN</div><div class="val" id="win">0</div></div>
-      </div>
-
+      <!-- 筹码盘：点选面额（5 / 25 / 100 / 500 / 1000），再点台面上的注圈下注 -->
       <div class="controls">
-        <div class="stepgrp" id="grpChip">
-          <span class="max-tag" data-i18n="bet.max">已达最大值</span>
-          <button class="btn small" id="chipDown" aria-label="降低筹码"><svg class="tri" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 9.6 1.4 3.4h9.2z"/></svg></button>
-          <span class="steplbl"><span class="sl-name" data-i18n="ctl.chip">筹码</span> <b id="chipLbl">×10</b></span>
-          <button class="btn small" id="chipUp" aria-label="提高筹码"><svg class="tri" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2.4 10.6 8.6H1.4z"/></svg></button>
-        </div>
-        <div class="stepgrp" data-spot="p" id="grpP">
-          <span class="max-tag" data-i18n="bet.max">已达最大值</span>
-          <button class="btn small" id="pDown" aria-label="减少闲家注"><svg class="tri" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 9.6 1.4 3.4h9.2z"/></svg></button>
-          <span class="steplbl"><span class="sl-name" data-i18n="ctl.p">闲家注</span> <b id="betP">0</b></span>
-          <button class="btn small" id="pUp" aria-label="增加闲家注"><svg class="tri" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2.4 10.6 8.6H1.4z"/></svg></button>
-        </div>
-        <div class="stepgrp" data-spot="b" id="grpB">
-          <span class="max-tag" data-i18n="bet.max">已达最大值</span>
-          <button class="btn small" id="bDown" aria-label="减少庄家注"><svg class="tri" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 9.6 1.4 3.4h9.2z"/></svg></button>
-          <span class="steplbl"><span class="sl-name" data-i18n="ctl.b">庄家注</span> <b id="betB">0</b></span>
-          <button class="btn small" id="bUp" aria-label="增加庄家注"><svg class="tri" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2.4 10.6 8.6H1.4z"/></svg></button>
-        </div>
-        <div class="stepgrp" data-spot="t" id="grpT">
-          <span class="max-tag" data-i18n="bet.max">已达最大值</span>
-          <button class="btn small" id="tDown" aria-label="减少和局注"><svg class="tri" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 9.6 1.4 3.4h9.2z"/></svg></button>
-          <span class="steplbl"><span class="sl-name" data-i18n="ctl.t">和局注</span> <b id="betT">0</b></span>
-          <button class="btn small" id="tUp" aria-label="增加和局注"><svg class="tri" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2.4 10.6 8.6H1.4z"/></svg></button>
-        </div>
-      </div>
-
-      <!-- 附加注：对子 11:1、幸运六 12:1（两张牌）/ 20:1（三张牌）；单位与「筹码 ±」一致 -->
-      <div class="sidebets" id="sidebets">
-        <div class="sbet" data-sb="pp" id="grpPP">
-          <button class="sb-btn" type="button" data-sb="pp" data-dir="-1" aria-label="减少闲对注">&#8722;</button>
-          <div class="sb-mid"><span class="sb-lbl" data-i18n="sb.pp">闲对 11:1</span><b class="sb-val" id="betPP">0</b></div>
-          <button class="sb-btn" type="button" data-sb="pp" data-dir="1" aria-label="增加闲对注">+</button>
-        </div>
-        <div class="sbet" data-sb="bp" id="grpBP">
-          <button class="sb-btn" type="button" data-sb="bp" data-dir="-1" aria-label="减少庄对注">&#8722;</button>
-          <div class="sb-mid"><span class="sb-lbl" data-i18n="sb.bp">庄对 11:1</span><b class="sb-val" id="betBP">0</b></div>
-          <button class="sb-btn" type="button" data-sb="bp" data-dir="1" aria-label="增加庄对注">+</button>
-        </div>
-        <div class="sbet" data-sb="l6" id="grpL6">
-          <button class="sb-btn" type="button" data-sb="l6" data-dir="-1" aria-label="减少幸运六注">&#8722;</button>
-          <div class="sb-mid"><span class="sb-lbl" data-i18n="sb.l6">幸运六 12/20</span><b class="sb-val" id="betL6">0</b></div>
-          <button class="sb-btn" type="button" data-sb="l6" data-dir="1" aria-label="增加幸运六注">+</button>
+        <div class="chiptray" id="chipTray">
+          <button class="chip d5"    type="button" data-idx="0" data-denom="5"    aria-label="筹码 5"><span class="c-val">5</span></button>
+          <button class="chip d25"   type="button" data-idx="1" data-denom="25"   aria-label="筹码 25"><span class="c-val">25</span></button>
+          <button class="chip d100"  type="button" data-idx="2" data-denom="100"  aria-label="筹码 100"><span class="c-val">100</span></button>
+          <button class="chip d500"  type="button" data-idx="3" data-denom="500"  aria-label="筹码 500"><span class="c-val">500</span></button>
+          <button class="chip d1000" type="button" data-idx="4" data-denom="1000" aria-label="筹码 1000"><span class="c-val">1K</span></button>
         </div>
       </div>
 
@@ -1278,32 +1384,78 @@
         <!-- 台面模式：有佣台（庄赢抽 5%）⇄ 澳门免佣台（不抽水，但庄以 6 点赢只赔 0.5:1）。
              文案由 renderComm() 按当前模式拼，不放 data-i18n（切换语言时重拼） -->
         <button class="btn feat ghost" id="commBtn" type="button">台面：有佣 5%</button>
+        <!-- 发牌：收缩为紧凑键，置于「台面」按钮右侧（不再独占整行） -->
+        <button class="btn deal" id="dealBtn" type="button">
+          <span data-i18n="btn.deal">发牌</span><kbd class="kb-space" data-i18n="btn.space">空格</kbd>
+        </button>
       </div>
-
-      <button class="btn spin" id="dealBtn" type="button">
-        <span data-i18n="btn.deal">发牌</span><kbd class="kb-space" data-i18n="btn.space">空格</kbd>
-      </button>
       <div class="hintmsg" id="hintMsg"></div>
     </div>
     </div>
 
-    <!-- ==================== 路纸（珠盘路） ==================== -->
-    <div class="sidecard roadcard" id="roadCard">
-      <div class="jp-bulbs">
-        <i class="bulb"></i><i class="bulb"></i><i class="bulb"></i><i class="bulb"></i>
-        <i class="bulb"></i><i class="bulb"></i><i class="bulb"></i><i class="bulb"></i>
+    <!-- 路纸已移入右侧 .sidecol -->
+
+    <!-- ==================== 右侧缩放列（非焦点）：牌靴 / 珠盘路 / 银行卡 ==================== -->
+    <div class="sidecol">
+      <!-- ==================== 路纸（珠盘路） ==================== -->
+      <div class="sidecard roadcard mini" id="roadCard">
+        <div class="jp-title">ROAD</div>
+        <div class="jp-sub" data-i18n="road.sub">珠盘路</div>
+        <div class="jp-body">
+          <div class="road-grid" id="roadGrid"></div>
+          <div class="road-legend">
+            <i><span class="rd b"></span><span data-i18n="side.bShort">庄</span></i>
+            <i><span class="rd p"></span><span data-i18n="side.pShort">闲</span></i>
+            <i><span class="rd t"></span><span data-i18n="side.tShort">和</span></i>
+          </div>
+        </div>
+        <div class="jp-foot" id="roadStat">&mdash;</div>
       </div>
-      <div class="jp-title">ROAD</div>
-      <div class="jp-sub" data-i18n="road.sub">珠盘路</div>
-      <div class="jp-body">
-        <div class="road-grid" id="roadGrid"></div>
-        <div class="road-legend">
-          <i><span class="rd b"></span><span data-i18n="side.bShort">庄</span></i>
-          <i><span class="rd p"></span><span data-i18n="side.pShort">闲</span></i>
-          <i><span class="rd t"></span><span data-i18n="side.tShort">和</span></i>
+
+      <!-- ==================== 银行卡（默认收起为迷你卡标） ==================== -->
+      <div class="bankcard mini collapsed" id="bankCard">
+        <button class="bc-mini" id="bcOpen" type="button"
+                aria-label="展开银行卡 / Open bank card" aria-expanded="false" title="展开银行卡 / Open">
+          <svg class="bc-mini-ico" viewBox="0 0 64 40" aria-hidden="true">
+            <circle cx="26" cy="20" r="13" fill="#eb001b"/>
+            <circle cx="38" cy="20" r="13" fill="#f79e1b"/>
+            <path d="M32 8.5A13 13 0 0 1 32 31.5A13 13 0 0 0 32 8.5Z" fill="#ff5f00"/>
+          </svg>
+        </button>
+        <div class="bc-panel" id="bcPanel">
+          <button class="bc-collapse" id="bcClose" type="button"
+                  aria-label="收起银行卡 / Collapse bank card" title="收起 / Collapse">&#8722;</button>
+          <div class="bc-face">
+            <div class="bc-bank-name" data-i18n="bc.title">银行卡</div>
+            <div class="bc-logo" aria-hidden="true">
+              <svg class="bc-logo-svg" viewBox="0 0 64 40">
+                <circle cx="26" cy="20" r="13" fill="#eb001b"/>
+                <circle cx="38" cy="20" r="13" fill="#f79e1b"/>
+                <path d="M32 8.5A13 13 0 0 1 32 31.5A13 13 0 0 0 32 8.5Z" fill="#ff5f00"/>
+              </svg>
+            </div>
+            <div class="bc-num" id="cardBal">0</div>
+            <div class="bc-meta">
+              <div class="bc-mi bc-mi-name"><span class="bc-ml" data-i18n="bc.label">卡内积分</span></div>
+              <div class="bc-mi bc-mi-mid"><span class="bc-ml">H743</span></div>
+              <div class="bc-mi bc-mi-end"><span class="bc-ml">B</span></div>
+            </div>
+          </div>
+          <div class="bc-ctrl">
+            <div class="bc-amt">
+              <button class="bc-q" type="button" data-amt="1000">1000</button>
+              <button class="bc-q" type="button" data-amt="5000">5000</button>
+              <button class="bc-q bc-all" type="button" data-amt="all" data-i18n="bc.all">全部</button>
+              <input class="bc-in" id="cardAmt" type="number" min="0" inputmode="numeric"
+                     data-i18n-ph="bc.amtPh" placeholder="自定义">
+            </div>
+            <div class="bc-actions">
+              <button class="bc-dep" id="cardDep" type="button" data-i18n="bc.dep">存入 ▲</button>
+              <button class="bc-wd" id="cardWd" type="button" data-i18n="bc.wd">取出 ▼</button>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="jp-foot" id="roadStat">&mdash;</div>
     </div>
 
     </div><!-- /.machrow -->
@@ -1352,7 +1504,7 @@
     </ul>
 
     <h3 data-i18n="rules.bet">下注与赔率</h3>
-    <p data-i18n="rules.bet.p">六个注位可同时下注，各注位<b>独立派彩</b>。先用「筹码 ±」把单注面额调到 <b>10 / 25 / 50 / 100 / 500</b> 中的一档，再按注位自己的 ± 加减（主注用三角键、附加注用两侧的 − / +）：<b>按一下加一注、再按一下再加一注</b>，注额 = 面额 × 次数，按多了一下一下减回去。点「发牌」或按<b>空格</b>后六个注位一起结算。派彩规则：</p>
+    <p data-i18n="rules.bet.p">六个注位可同时下注，各注位<b>独立派彩</b>。先在底部<b>筹码盘</b>选好一个面额（<b>5 / 25 / 100 / 500 / 1000</b>），再<b>点击台面上的注圈</b>下注：点一下放一注、再点一下再加一注，<b>右键注圈</b>可撤掉一注。点「发牌」或按<b>空格</b>后六个注位一起结算。派彩规则：</p>
     <table>
       <thead><tr><th data-i18n="th.spot">注位</th><th data-i18n="th.pay">赔率</th><th data-i18n="th.cond">成立条件</th></tr></thead>
       <tbody>
@@ -1364,7 +1516,7 @@
         <tr><td><span class="tag six" data-i18n="sb.l6">幸运六</span></td><td data-i18n="pay.l6">12 : 1 / 20 : 1</td><td data-i18n="pay.l6.c">庄以 6 点赢：两张牌成 6 点 12:1，补第三张成 6 点 20:1</td></tr>
       </tbody>
     </table>
-    <p class="note" data-i18n="rules.bet.note">下注时按注额从积分里扣除，上方「本注」格是六个注位的合计；和局时押在闲/庄的注会<b>原额退回</b>，押和的注按 8:1 派彩，附加注（对子 / 幸运六）在和局时<b>全输</b>。每手每个注位最多押 <b>100,000</b>。补牌记录后面那行金色小字是<b>本手拆解</b>——逐个注位写出赔了多少 / 输了多少，末尾给净额。<b>发牌后注额会留在注位上</b>：下一手直接再按「发牌」就按同样注额继续；想改注额用 ±，想归零按「清空下注」。</p>
+    <p class="note" data-i18n="rules.bet.note">下注时按注额从积分里扣除，上方「本注」格是六个注位的合计；和局时押在闲/庄的注会<b>原额退回</b>，押和的注按 8:1 派彩，附加注（对子 / 幸运六）在和局时<b>全输</b>。每手每个注位最多押 <b>100,000</b>。补牌记录后面那行金色小字是<b>本手拆解</b>——逐个注位写出赔了多少 / 输了多少，末尾给净额。<b>发牌后注额会留在注位上</b>：下一手直接再按「发牌」就按同样注额继续；想改注额再点几下注圈，想归零按「清空下注」。</p>
 
     <h3 data-i18n="rules.comm">台面模式：有佣 / 免佣</h3>
     <p data-i18n="rules.comm.p">下注区下方那排按钮里的「台面」在两种真实台型之间切换，按钮上直接显示当前台型（默认<b>免佣</b>）。切换只影响<b>下一手</b>——已经发出去的一手按发牌那一刻的台型结算；选择会随存档保留，刷新后不变：</p>
@@ -1519,7 +1671,7 @@
    * ===================================================================== */
 
   var DECKS = 8, CUT_CARD = 26, SHOE_SIZE = 52 * DECKS;
-  var CHIP_TIERS = [10, 25, 50, 100, 500];
+  var CHIP_TIERS = [5, 25, 100, 500, 1000];
   var START_CREDITS = 20000;
   var MAX_SPOT = 100000;         // 单个注位上限
   var PAY_B = 95;                // 有佣台：庄赢按 95% 派彩（5% 佣金），整数百分比避免浮点误差
@@ -1606,15 +1758,15 @@
   var commFree = (function(){ return lsLoadStr(LS.comm, "1") === "1"; })();
   // 牌靴：末尾是下一张要发的。刷新后从存档恢复，余牌与牌序都接着上一局走。
   var shoe = loadShoe() || [];
+  var shoeLeft = shoe.length;   // 余牌显示计数：与出牌动作同步——drawHand 抽牌不提前扣，逐张发出才 -1
   var dealing = false;
   var lastResult = null;  // "p" | "b" | "t"
   var _settleT = null;
 
   var $ = function(id){ return document.getElementById(id); };
   var creditsEl = $("credits"), betTotalEl = $("betTotal"), chipValEl = $("chipVal");
-  var winEl = $("win"), winMeter = $("winMeter"), shoeLeftEl = $("shoeLeft");
-  var chipLbl = $("chipLbl"), betPEl = $("betP"), betBEl = $("betB"), betTEl = $("betT");
-  var betPPEl = $("betPP"), betBPEl = $("betBP"), betL6El = $("betL6");
+  var winEl = $("win"), winMeter = $("winMeter"), shoeLeftEl = $("shoeLeft"),
+      shoeBarEl = $("shoeBar"), shoePctEl = $("shoePct");
   var commBtn = $("commBtn");
   var pCards = $("pCards"), bCards = $("bCards"), pTotalEl = $("pTotal"), bTotalEl = $("bTotal");
   var sideP = $("sideP"), sideB = $("sideB");
@@ -1827,6 +1979,7 @@
   }
 
   async function reshuffle(){
+    playSfx("shuffle");   // 牌靴重洗音效（余量不足自动重洗时触发）
     var arr = buildDeck();
     var q = new ByteQueue();
     for (var i = arr.length - 1; i > 0; i--){
@@ -1834,6 +1987,7 @@
       var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
     }
     shoe = arr;
+    shoeLeft = shoe.length;   // 新鞋满靴：余牌计数复位
     saveShoe();          // 洗牌结果立刻落盘：刷新不该让这一副牌白洗
     updateHUD();
   }
@@ -1868,7 +2022,7 @@
       "pl.reset":"重新开始","pl.resetAlt":"新游戏",
       "side.p":"闲家","side.b":"庄家","side.t":"和局",
       "side.pShort":"闲","side.bShort":"庄","side.tShort":"和",
-      "hud.credits":"积分","hud.bet":"本注","hud.chip":"筹码","hud.win":"中奖","hud.shoe":"余牌",
+      "hud.credits":"积分","hud.bet":"本注","hud.chip":"筹码","hud.win":"派彩","hud.shoe":"余牌","shoe.pct":"%","shoe.full":"满靴 416",
       "ctl.chip":"筹码","ctl.p":"闲家注","ctl.b":"庄家注","ctl.t":"和局注",
       "bet.max":"已达最大值",
       "feat.clear":"清空下注",
@@ -1877,6 +2031,10 @@
       "msg.cfOn":"已切到免佣台：庄赢不抽水，但庄以 6 点赢只赔 0.5:1（下一手生效）",
       "msg.cfOff":"已切回有佣台：庄赢一律按 0.95:1 派彩（抽 5%，下一手生效）",
       "sb.pp":"闲对 11:1","sb.bp":"庄对 11:1","sb.l6":"幸运六 12/20",
+      "spot.p":"闲家","spot.b":"庄家","spot.t":"和局",
+      "spot.pp":"闲对","spot.bp":"庄对","spot.l6":"幸运六",
+      "spot.pay.p":"1:1","spot.pay.b":"0.95","spot.pay.t":"8:1",
+      "spot.pay.pp":"11:1","spot.pay.bp":"11:1","spot.pay.l6":"12/20",
       "btn.deal":"发牌","btn.space":"空格",
       "verdict.place":"请下注 · 按「发牌」开始","verdict.dealing":"发牌中…","verdict.p":"闲家胜","verdict.b":"庄家胜","verdict.t":"和局",
       "verdict.win":"+{n}","verdict.lose":"−{n}","verdict.push":"退还 {n}",
@@ -1923,7 +2081,7 @@
       "rules.basic.3":"牌桌上只有两个角色：<b>闲家（Player）</b>与<b>庄家（Banker）</b>各自摸牌、自动补牌，你只负责在 <b>6 个注位</b>（闲 / 庄 / 和 + 闲对 / 庄对 / 幸运六）上下注，全程不需要做任何决策。",
       "rules.basic.4":"<b>资金共通</b>：积分与银行卡余额是本机<b>全局钱袋</b>，与<b>老虎机</b>游戏页共用 —— 在老虎机赢的分可以直接拿到这里下注，在这里赢的分也能回老虎机继续玩；银行卡里的存款同样是两边共用的同一笔钱。「最高盈利」按全局总资产（积分 + 银行卡 − 20000 起始资金）统计，<b>破产次数</b>也是两边共用的一次账（积分和银行卡一起清零才算一次破产）。",
       "rules.bet":"下注与赔率",
-      "rules.bet.p":"六个注位可同时下注，各注位<b>独立派彩</b>。先用「筹码 ±」把单注面额调到 <b>10 / 25 / 50 / 100 / 500</b> 中的一档，再按注位自己的 ± 加减（主注用三角键、附加注用两侧的 − / +）：<b>按一下加一注、再按一下再加一注</b>，注额 = 面额 × 次数，按多了一下一下减回去。点「发牌」或按<b>空格</b>后六个注位一起结算。派彩规则：",
+      "rules.bet.p":"六个注位可同时下注，各注位<b>独立派彩</b>。先在底部<b>筹码盘</b>选好一个面额（<b>5 / 25 / 100 / 500 / 1000</b>），再<b>点击台面上的注圈</b>下注：点一下放一注、再点一下再加一注，<b>右键注圈</b>可撤掉一注。点「发牌」或按<b>空格</b>后六个注位一起结算。派彩规则：",
       "th.spot":"注位","th.pay":"赔率","th.cond":"成立条件",
       "pay.p":"1 : 1","pay.p.c":"闲家点数高于庄家",
       "pay.b":"0.95 : 1","pay.b.c":"庄家点数高于闲家（有佣台抽 5% 佣金；免佣台不抽佣，但庄以 6 点赢只赔 0.5:1）",
@@ -1931,7 +2089,7 @@
       "pay.pp":"11 : 1","pay.pp.c":"闲家头两张牌点数相同",
       "pay.bp":"11 : 1","pay.bp.c":"庄家头两张牌点数相同",
       "pay.l6":"12 : 1 / 20 : 1","pay.l6.c":"庄以 6 点赢：两张牌成 6 点 12:1，补第三张成 6 点 20:1",
-      "rules.bet.note":"下注时按注额从积分里扣除，上方「本注」格是六个注位的合计；和局时押在闲/庄的注会<b>原额退回</b>，押和的注按 8:1 派彩，附加注（对子 / 幸运六）在和局时<b>全输</b>。每手每个注位最多押 <b>100,000</b>。补牌记录后面那行金色小字是<b>本手拆解</b>——逐个注位写出赔了多少 / 输了多少，末尾给净额。<b>发牌后注额会留在注位上</b>：下一手直接再按「发牌」就按同样注额继续；想改注额用 ±，想归零按「清空下注」。",
+      "rules.bet.note":"下注时按注额从积分里扣除，上方「本注」格是六个注位的合计；和局时押在闲/庄的注会<b>原额退回</b>，押和的注按 8:1 派彩，附加注（对子 / 幸运六）在和局时<b>全输</b>。每手每个注位最多押 <b>100,000</b>。补牌记录后面那行金色小字是<b>本手拆解</b>——逐个注位写出赔了多少 / 输了多少，末尾给净额。<b>发牌后注额会留在注位上</b>：下一手直接再按「发牌」就按同样注额继续；想改注额再点几下注圈，想归零按「清空下注」。",
       "rules.comm":"台面模式：有佣 / 免佣",
       "rules.comm.p":"下注区下方那排按钮里的「台面」在两种真实台型之间切换，按钮上直接显示当前台型（默认<b>免佣</b>）。切换只影响<b>下一手</b>——已经发出去的一手按发牌那一刻的台型结算；选择会随存档保留，刷新后不变：",
       "rules.comm.1":"<b>有佣台</b>：庄赢一律按 <b>0.95 : 1</b> 派彩，抽 5% 佣金，不足 1 分向下取整。庄家优势 <b>1.06%</b>，是全桌最优注。",
@@ -1986,7 +2144,7 @@
       "pl.reset":"Restart","pl.resetAlt":"New game",
       "side.p":"Player","side.b":"Banker","side.t":"Tie",
       "side.pShort":"P","side.bShort":"B","side.tShort":"T",
-      "hud.credits":"CREDITS","hud.bet":"BET","hud.chip":"CHIP","hud.win":"WIN","hud.shoe":"SHOE",
+      "hud.credits":"CREDITS","hud.bet":"BET","hud.chip":"CHIP","hud.win":"PAYOUT","hud.shoe":"SHOE","shoe.pct":"%","shoe.full":"416 full",
       "ctl.chip":"Chip","ctl.p":"Player bet","ctl.b":"Banker bet","ctl.t":"Tie bet",
       "bet.max":"MAX",
       "feat.clear":"Clear bets",
@@ -1995,6 +2153,10 @@
       "msg.cfOn":"Commission-free table: banker pays even money, but a banker win on 6 pays only 0.5:1 (next hand)",
       "msg.cfOff":"Commission table: banker wins pay 0.95:1 (5% rake, next hand)",
       "sb.pp":"Player pair 11:1","sb.bp":"Banker pair 11:1","sb.l6":"Lucky Six 12/20",
+      "spot.p":"Player","spot.b":"Banker","spot.t":"Tie",
+      "spot.pp":"P. Pair","spot.bp":"B. Pair","spot.l6":"Lucky 6",
+      "spot.pay.p":"1:1","spot.pay.b":"0.95","spot.pay.t":"8:1",
+      "spot.pay.pp":"11:1","spot.pay.bp":"11:1","spot.pay.l6":"12/20",
       "btn.deal":"DEAL","btn.space":"Space",
       "verdict.place":"PLACE YOUR BETS","verdict.dealing":"DEALING…","verdict.p":"PLAYER WINS","verdict.b":"BANKER WINS","verdict.t":"TIE",
       "verdict.win":"+{n}","verdict.lose":"-{n}","verdict.push":"PUSH {n}",
@@ -2038,7 +2200,7 @@
       "rules.basic.3":"Two hands only: <b>Player</b> and <b>Banker</b> are dealt and draw automatically - you just bet on <b>6 spots</b> (Player / Banker / Tie + Player pair / Banker pair / Lucky Six). No decisions to make.",
       "rules.basic.4":"<b>Shared wallet</b>: credits and the bank-card balance are a <b>single casino-wide purse</b>, shared with the <b>slot machine</b> page - winnings from the slots can be bet here, and vice versa; the bank card holds one balance for both games. <b>BEST PROFIT</b> is likewise computed from total assets (credits + card - 20,000 starting bankroll), and the <b>bankruptcy count</b> is one shared tally too (counted only when credits and the card are both empty).",
       "rules.bet":"Bets & payouts",
-      "rules.bet.p":"Six spots can be bet at once and each settles <b>independently</b>. Set the unit with the CHIP +/- buttons (<b>10 / 25 / 50 / 100 / 500</b>), then use each spot's own +/- (triangles for the main spots, the - / + buttons on either side for side bets): <b>one press adds one unit</b>, the stake is unit x presses, and over-betting is undone one press at a time. DEAL (or <b>Space</b>) settles all six spots together. Payouts:",
+      "rules.bet.p":"Six spots can be bet at once and each settles <b>independently</b>. Pick a chip value on the <b>chip tray</b> (<b>5 / 25 / 100 / 500 / 1000</b>), then <b>click a betting spot</b> to place it: each click adds one unit, right-click removes one. DEAL (or <b>Space</b>) settles all six spots together. Payouts:",
       "th.spot":"Spot","th.pay":"Pays","th.cond":"Wins when",
       "pay.p":"1 : 1","pay.p.c":"Player total is higher",
       "pay.b":"0.95 : 1","pay.b.c":"Banker total is higher (commission table: 5% rake; commission-free: no rake, but a banker win on 6 pays only 0.5:1)",
@@ -2046,7 +2208,7 @@
       "pay.pp":"11 : 1","pay.pp.c":"Player's first two cards share the same rank",
       "pay.bp":"11 : 1","pay.bp.c":"Banker's first two cards share the same rank",
       "pay.l6":"12 : 1 / 20 : 1","pay.l6.c":"Banker wins with 6: 12:1 on two cards, 20:1 when the third card makes the 6",
-      "rules.bet.note":"Bets are deducted on deal and the BET meter shows the total of all six spots. On a tie, Player/Banker bets are <b>returned in full</b>, the Tie bet pays 8:1, and all side bets <b>lose</b>. Max <b>100,000</b> per spot per hand. The small gold line after the draw log is the <b>hand breakdown</b>: it shows what each spot won or lost and ends with the net. <b>Stakes stay on the spots after a deal</b>, so pressing DEAL again repeats the same bet; use +/- to change it, or CLEAR BETS to reset.",
+      "rules.bet.note":"Bets are deducted on deal and the BET meter shows the total of all six spots. On a tie, Player/Banker bets are <b>returned in full</b>, the Tie bet pays 8:1, and all side bets <b>lose</b>. Max <b>100,000</b> per spot per hand. The small gold line after the draw log is the <b>hand breakdown</b>: it shows what each spot won or lost and ends with the net. <b>Stakes stay on the spots after a deal</b>, so pressing DEAL again repeats the same bet; click the spot a few more times to change it, or CLEAR BETS to reset.",
       "rules.comm":"Table type: commission / commission-free",
       "rules.comm.p":"The TABLE button in the row under the betting area switches between the two real-world variants and shows the current one (default: <b>commission-free</b>). It applies to the <b>next hand</b> - a hand already dealt settles under the table type it was dealt with. The choice is saved and survives a reload:",
       "rules.comm.1":"<b>Commission table</b>: every banker win pays <b>0.95:1</b> (5% rake, rounded down). House edge <b>1.06%</b> - the best bet on the table.",
@@ -2135,6 +2297,7 @@
     renderCard();
     renderComm();
     updateHUD();
+    renderChipTray();
     if (langBtn) langBtn.textContent = (lang === "zh") ? "EN" : "中";
     try { localStorage.setItem("slot_lang", lang); }catch(e){}
   }
@@ -2235,13 +2398,16 @@
     if (soundBtn) soundBtn.setAttribute("aria-expanded", willShow ? "true" : "false");
   }
   var SFX_MAP = {
-    chip: "sfx/cash-register-kaching-sound-effect-125042.mp3",
+    // 下注点击（放注 / 选筹码 / 撤注）：放筹码的「咔哒」声
+    chip: "sfx/oxidvideos-placing-poker-chips-522515.mp3",
     win:  "sfx/win.mp3",
     // 发牌：真实的「取牌」音效（约 0.39s）。一手要连发 4~6 张，所以用多路复用播放，
     // 保证上一张的尾音不被下一张硬切（见 playSfx 的 voices 参数）
-    deal: "sfx/oxidvideos-taking-playing-card-3-522513.mp3"
+    deal: "sfx/oxidvideos-taking-playing-card-3-522513.mp3",
+    // 牌靴洗牌：洗牌的「唰啦」声（牌靴余量不足自动重洗时触发）
+    shuffle: "sfx/oxidvideos-shuffling-deck-of-cards-522518.mp3"
   };
-  var SFX_VOL = { chip:0.42, win:0.50, deal:0.45 };
+  var SFX_VOL = { chip:0.42, win:0.50, deal:0.45, shuffle:0.5 };
   var _sfxPool = {}, _sfxIdx = {}, SFX_VER = Date.now();
   function playSfx(type, voices){
     if (soundVol <= 0) return;
@@ -2477,38 +2643,61 @@
   }
   function betSum(b){ b = b || bet; return b.p + b.b + b.t + (b.pp || 0) + (b.bp || 0) + (b.l6 || 0); }
 
+  /* 把注额分解成「真实筹码堆」：从最大面额贪心往下放（任一注额都是 5 的倍数，必能凑满）。
+     返回面额数组，用于在下注圈里画迷你筹码。 */
+  function chipStackOf(amount){
+    var denoms = CHIP_TIERS.slice().sort(function(a,b){ return b - a; });
+    var rest = amount, out = [], max = 12;
+    for (var i = 0; i < denoms.length && out.length < max; i++){
+      var d = denoms[i];
+      while (rest >= d && out.length < max){ out.push(d); rest -= d; }
+    }
+    return out;
+  }
+  function renderSpotStack(stackEl, amount){
+    stackEl.innerHTML = "";
+    if (amount <= 0) return;
+    chipStackOf(amount).forEach(function(d){
+      var c = document.createElement("span");
+      c.className = "minichip d" + d;
+      c.title = fmtAmt(d);
+      stackEl.appendChild(c);
+    });
+  }
+  /* 筹码盘：高亮当前选中的面额 */
+  function renderChipTray(){
+    Array.prototype.forEach.call(document.querySelectorAll("#chipTray .chip"), function(c){
+      c.classList.toggle("sel", parseInt(c.getAttribute("data-idx"), 10) === chipIdx);
+    });
+  }
   function updateHUD(){
     var sum = betSum(), sumTxt = fmtAmt(sum);
     creditsEl.textContent = fmtAmt(credits);
     betTotalEl.textContent = sumTxt;                      // HUD「本注」
     chipValEl.textContent = fmtAmt(CHIP_TIERS[chipIdx]);
-    chipLbl.textContent = "×" + fmtAmt(CHIP_TIERS[chipIdx]);
-    shoeLeftEl.textContent = shoe.length ? String(shoe.length) : "–";
-    betPEl.textContent = fmtAmt(bet.p);
-    betBEl.textContent = fmtAmt(bet.b);
-    betTEl.textContent = fmtAmt(bet.t);
-    betPPEl.textContent = fmtAmt(bet.pp);
-    betBPEl.textContent = fmtAmt(bet.bp);
-    betL6El.textContent = fmtAmt(bet.l6);
-    // 附加注：>0 时整条注位点亮，和桌面下注圈用同一套「有注即亮」的语言
-    [["grpPP", bet.pp], ["grpBP", bet.bp], ["grpL6", bet.l6]].forEach(function(x){
-      var el = $(x[0]); if (!el) return;
-      el.classList.toggle("hot", x[1] > 0);
-    });
-    // 桌面中央的三个下注圈：金额与下注区同源，>0 时金圈点亮（ARC 版外观，见 CSS 末尾）
-    [["spotP", bet.p], ["spotB", bet.b], ["spotT", bet.t]].forEach(function(x){
-      var el = $(x[0]); if (!el) return;
-      el.classList.toggle("hot", x[1] > 0);
-      var v = el.querySelector(".as-val"); if (v) v.textContent = fmtAmt(x[1]);
+    shoeLeftEl.textContent = shoeLeft ? String(shoeLeft) : "–";
+    // 余牌进度条：剩余张数 / 满靴(416) → 百分比
+    var shoePct = shoeLeft ? Math.round(shoeLeft / SHOE_SIZE * 100) : 0;
+    if (shoeBarEl) shoeBarEl.style.width = shoePct + "%";
+    if (shoePctEl) shoePctEl.textContent = shoePct;
+    // 六个下注圈：金额 + 筹码堆 + 有注即亮（ARC 版外观，见 CSS 末尾）
+    Array.prototype.forEach.call(document.querySelectorAll(".bspot"), function(el){
+      var s = el.getAttribute("data-spot"); if (!s || !(s in bet)) return;
+      var v = bet[s] || 0;
+      el.classList.toggle("hot", v > 0);
+      var amt = el.querySelector(".bs-amt"); if (amt) amt.textContent = fmtAmt(v);
+      var stack = el.querySelector(".bs-stack"); if (stack) renderSpotStack(stack, v);
     });
     dealBtn.classList.toggle("short", betSum() > credits || betSum() < 1);
     renderCard();
     renderStats();
-    [["grpP", bet.p], ["grpB", bet.b], ["grpT", bet.t],
-     ["grpPP", bet.pp], ["grpBP", bet.bp], ["grpL6", bet.l6]].forEach(function(x){
-      var el = $(x[0]); if (el) el.classList.toggle("at-max", x[1] >= MAX_SPOT);
-    });
-    var g = $("grpChip"); if (g) g.classList.toggle("at-max", chipIdx >= CHIP_TIERS.length - 1);
+  }
+  // 只刷新余牌数字 + 进度条（发牌逐张减 1 时调用，避免重复跑整段 updateHUD）
+  function refreshShoe(){
+    shoeLeftEl.textContent = shoeLeft ? String(shoeLeft) : "–";
+    var pct = shoeLeft ? Math.round(shoeLeft / SHOE_SIZE * 100) : 0;
+    if (shoeBarEl) shoeBarEl.style.width = pct + "%";
+    if (shoePctEl) shoePctEl.textContent = pct;
   }
   function setWin(n){
     winEl.textContent = fmtAmt(n);
@@ -2569,27 +2758,19 @@
     playSfx("chip");
     updateHUD();
   }
-  $("chipUp").addEventListener("click", function(){
-    if (dealing) return;
-    if (chipIdx < CHIP_TIERS.length - 1){ chipIdx++; updateHUD(); lsSave(LS.chipIdx, chipIdx); }
-    else flashMax($("grpChip"));
-  });
-  $("chipDown").addEventListener("click", function(){
-    if (dealing) return;
-    if (chipIdx > 0){ chipIdx--; updateHUD(); lsSave(LS.chipIdx, chipIdx); }
-  });
-  $("pUp").addEventListener("click", function(){ addBet("p", 1, $("grpP")); });
-  $("pDown").addEventListener("click", function(){ addBet("p", -1, $("grpP")); });
-  $("bUp").addEventListener("click", function(){ addBet("b", 1, $("grpB")); });
-  $("bDown").addEventListener("click", function(){ addBet("b", -1, $("grpB")); });
-  $("tUp").addEventListener("click", function(){ addBet("t", 1, $("grpT")); });
-  $("tDown").addEventListener("click", function(){ addBet("t", -1, $("grpT")); });
-  // 附加注的 ± 按钮：走同一个 addBet（同样受筹码面额、上限、余额校验）
-  Array.prototype.forEach.call(document.querySelectorAll("#sidebets .sb-btn"), function(b){
-    b.addEventListener("click", function(){
-      var tile = b.parentNode;
-      addBet(b.getAttribute("data-sb"), parseInt(b.getAttribute("data-dir"), 10) || 0, tile);
+  /* 筹码盘：点选面额（5 / 25 / 100 / 500 / 1000） */
+  Array.prototype.forEach.call(document.querySelectorAll("#chipTray .chip"), function(c){
+    c.addEventListener("click", function(){
+      if (dealing) return;
+      var idx = parseInt(c.getAttribute("data-idx"), 10);
+      if (isFinite(idx)){ chipIdx = idx; lsSave(LS.chipIdx, chipIdx); renderChipTray(); }
     });
+  });
+  /* 下注圈：点击放一注（当前面额），右键撤一注 */
+  Array.prototype.forEach.call(document.querySelectorAll(".bspot"), function(el){
+    var spot = el.getAttribute("data-spot");
+    el.addEventListener("click", function(){ addBet(spot, 1, el); });
+    el.addEventListener("contextmenu", function(e){ e.preventDefault(); addBet(spot, -1, el); });
   });
   $("clearBtn").addEventListener("click", function(){
     if (dealing) return;
@@ -2649,7 +2830,7 @@
   }
   function cardNode(code){
     var el = document.createElement("div");
-    el.className = "bcard deal";
+    el.className = "bcard";
     el.setAttribute("role", "img");
     el.setAttribute("aria-label", cardLabel(code) + " (" + cardVal(code) + ")");
     var inner = document.createElement("div");
@@ -2674,15 +2855,58 @@
   }
   function wait(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
 
-  // 发一张牌到指定边：入场（从牌靴方向滑入）+ 翻牌
+  // 发一张牌到指定边：从牌靴堆叠位置平滑飞向落点（全程牌背朝上），
+  // 到达指定位置后再翻面揭示并稳定落定。
   async function dealCard(side, code){
-    var el = cardNode(code);
-    (side === "p" ? pCards : bCards).appendChild(el);
     cardSfx("deal");
-    await wait(170);
-    el.classList.add("up");
+    var host = (side === "p" ? pCards : bCards);
+    // 真实牌先落入手牌区并隐藏，用以占住最终落点（保证后续牌定位准确）；
+    // 飞行过程用一份克隆体在页面顶层完成，避免被台面/牌区层级遮挡。
+    var el = cardNode(code);
+    el.style.visibility = "hidden";
+    host.appendChild(el);
+
+    var shoe = document.querySelector(".sc-stack");
+    var sr = shoe ? shoe.getBoundingClientRect() : null;
+    var cr = el.getBoundingClientRect();
+
+    if (sr){
+      // 飞行体只放一张牌背图（扁平 div），不参与 3D 翻转，
+      // 这样飞行途中一定是牌背朝上，到达落点后由真实牌（带 3D 翻面）接管。
+      var fly = document.createElement("div");
+      fly.className = "flycard";
+      var fimg = document.createElement("img");
+      fimg.src = "assets/cards/back_red.webp";
+      fimg.alt = ""; fimg.draggable = false;
+      fly.appendChild(fimg);
+      fly.style.left = "0"; fly.style.top = "0"; fly.style.margin = "0";
+      fly.style.zIndex = "9000";
+      fly.style.width = cr.width + "px";
+      fly.style.height = cr.height + "px";
+      fly.style.transformOrigin = "center center";
+      fly.style.willChange = "transform";
+      // 起点：牌靴堆叠中心；终点：真实牌在台面上的最终落点
+      var sx = sr.left + sr.width / 2 - cr.width / 2;
+      var sy = sr.top + sr.height / 2 - cr.height / 2;
+      fly.style.transform = "translate(" + sx + "px," + sy + "px) rotate(-12deg) scale(.84)";
+      document.body.appendChild(fly);
+      void fly.offsetWidth;                          // 强制 reflow，让起始 transform 生效
+      var dur = 420;
+      fly.style.transition = "transform " + dur + "ms cubic-bezier(.22,1,.36,1)";
+      fly.style.transform = "translate(" + cr.left + "px," + cr.top + "px) rotate(0deg) scale(1)";
+      await wait(dur + 40);
+      el.style.visibility = "visible";              // 揭示已在落点的真实牌（牌背朝上）
+      if (fly.parentNode) fly.parentNode.removeChild(fly);
+    } else {
+      el.style.visibility = "visible";
+    }
+
+    if (shoeLeft > 0){ shoeLeft--; refreshShoe(); }   // 每实际发出一张牌，余牌计数 -1（与出牌动作严格同步）
+    await wait(30);
+    el.classList.add("up");                          // 到位后翻面揭示
     cardSfx("flip");
-    await wait(230);
+    await wait(380);
+    el.classList.remove("deal");
     return el;
   }
   function popTotal(el, v){
@@ -3145,7 +3369,7 @@
     if (save){ try { localStorage.setItem(BC_OPEN_KEY, open ? "1" : "0"); }catch(e){} }
   }
   var bankOpen = (function(){
-    try { return localStorage.getItem(BC_OPEN_KEY) !== "0"; }catch(e){ return true; }
+    try { return localStorage.getItem(BC_OPEN_KEY) === "1"; }catch(e){ return false; }
   })();
   setBankOpen(bankOpen, false);
   if (bcOpenBtn) bcOpenBtn.addEventListener("click", function(){ setBankOpen(true, true); });
