@@ -53,7 +53,3 @@ source_parity.py
 tune_math.py
 test_*.js
 test_dual_source.py
-firmware/rng_dongle/test_dongle.py
-
-# 完整 GUI 固件备份（本项目只用最小固件 rng_dongle，不随公开仓库分发）
-firmware/backup/
