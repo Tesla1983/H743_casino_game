@@ -973,7 +973,9 @@
   body.arc .felt > .shoecard .sc-card:nth-child(2){top:4px;left:8px;}
   body.arc .felt > .shoecard .sc-card:nth-child(3){top:2px;left:12px;}
   body.arc .felt > .shoecard .sc-card:nth-child(4){top:0;left:16px;}
-  body.arc .felt > .shoecard .sc-bar{height:8px;}
+  /* 进度条右端往左收 3px：原本右端距台面右缘 13px（right:4 + padding:9），
+     会压到台呢内圈金线（.felt::before inset:15px）；内缩后右端退到 16px，避开金线 */
+  body.arc .felt > .shoecard .sc-bar{height:8px;margin-right:3px;}
   body.arc .felt > .shoecard .sc-foot{font-size:9.5px;}
 
   /* ---------- 闲 / 庄 两张手牌区：名字牌居中在上，牌在台面正中、点数球平衡在右 ---------- */
