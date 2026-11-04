@@ -34,9 +34,14 @@
      整页就可以顶到 body 内边距（26px），桌面整体上移 53px，一屏能看见发牌键 */
   .page{display:flex;flex-direction:column;align-items:center;gap:24px;width:fit-content;max-width:96vw;zoom:1.2;}
 
-  /* ---------- 左上角：回到老虎机（与右上角工具条同款按钮语言） ---------- */
-  .homelink{
+  /* ---------- 左上角：游戏跳转按钮组（与右上角工具条同款按钮语言） ----------
+     容器统一 fixed 定位，多入口横向排列；子项不再各自 fixed，否则第二个按钮会叠在第一个上。 */
+  .homelinks{
     position:fixed;top:14px;left:20px;z-index:70;
+    display:flex;align-items:center;gap:10px;
+  }
+  .homelink{
+    position:static;
     display:inline-flex;align-items:center;gap:8px;
     padding:7px 14px;border-radius:11px;text-decoration:none;
     font-size:12.5px;font-weight:800;letter-spacing:1px;
@@ -50,6 +55,16 @@
   .homelink:active{transform:translateY(1px);}
   .homelink .hl-ico{width:15px;height:15px;display:block;}
   .homelink .hl-arrow{opacity:.75;font-weight:900;}
+  /* 新入口的小图标：「21」文字徽章不依赖 SVG symbol；双牌图标供跨页复用，三页尺寸一致 */
+  .homelink .hl-ico.hl-badge{
+    width:auto;height:16px;min-width:19px;padding:0 2px;
+    display:inline-flex;align-items:center;justify-content:center;
+    border-radius:4px;background:rgba(245,197,66,.14);
+    border:1px solid rgba(245,197,66,.38);
+    font-size:10px;font-weight:900;letter-spacing:0;line-height:1;
+    color:var(--gold);
+  }
+  .homelink .hl-ico.hl-cards{width:24px;height:16px;}
 
   /* file:// + Firefox 内核时提示"两页不同源"，见 warnFileOrigin() */
   .filewarn{position:fixed;left:0;right:0;bottom:0;z-index:9999;display:flex;align-items:center;gap:12px;
@@ -837,7 +852,9 @@
   @media (max-width:560px){
     .page{zoom:.6;}
     .topbar{top:8px;right:10px;}
-    .homelink{top:8px;left:10px;padding:5px 10px;font-size:11px;}
+    .homelinks{top:8px;left:10px;gap:6px;}
+    .homelink{padding:5px 10px;font-size:11px;}
+    .homelink .hl-ico.hl-cards{width:20px;height:14px;}
     .topbar .btn.small{min-width:38px;font-size:12px;padding:1px 6px;}
     .topbar .volwrap .btn.small{flex:0 0 32px;width:32px;min-width:32px;}
     .vol-pop{padding:7px;}
@@ -1162,12 +1179,19 @@
 </head>
 <body class="arc">
 
-<!-- 左上角：回到老虎机（与老虎机页右上角工具条同款按钮语言） -->
-<a class="homelink" href="slot_machine.html" title="回到老虎机 / Back to slot">
-  <span class="hl-arrow" aria-hidden="true">&#8592;</span>
-  <svg class="hl-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#sym-slot"/></svg>
-  <span data-i18n="nav.slot">老虎机</span>
-</a>
+<!-- 左上角：游戏入口组。百家乐 → 老虎机 / 21点 -->
+<div class="homelinks">
+  <a class="homelink" href="slot_machine.html" title="回到老虎机 / Back to slot">
+    <span class="hl-arrow" aria-hidden="true">&#8592;</span>
+    <svg class="hl-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#sym-slot"/></svg>
+    <span data-i18n="nav.slot">老虎机</span>
+  </a>
+  <a class="homelink" href="blackjack.html" title="去玩21点 / Play Blackjack">
+    <span class="hl-arrow" aria-hidden="true">&#8594;</span>
+    <span class="hl-ico hl-badge" aria-hidden="true">21</span>
+    <span data-i18n="nav.bj">21点</span>
+  </a>
+</div>
 
 <!-- 右上角：音量 + 语言（与老虎机完全一致） -->
 <div class="langrow topbar">
@@ -2028,7 +2052,7 @@
    * ===================================================================== */
   var I18N = {
     zh:{
-      "nav.slot":"老虎机",
+      "nav.slot":"老虎机", "nav.bj":"21点",
       "brand.title":"百家乐",
       "vol.title":"音量","vol.hint":"上下拖动滑杆调音量；调到 0 即静音",
       "pl.sub":"玩家档案","pl.peak":"最高盈利","pl.maxwin":"单手最高派彩",
@@ -2151,7 +2175,7 @@
       "rules.assets.p":"54 张牌面取自 <b>AustinGabriel/Public-Domain-and-CC0-Playing-Cards</b>（Public Domain / CC0，可自由商用，无需署名），已转成 WebP 并缩放到 330 px 宽放在 <b>assets/cards/</b> 下。"
     },
     en:{
-      "nav.slot":"Slots",
+      "nav.slot":"Slots", "nav.bj":"Blackjack",
       "brand.title":"BACCARAT",
       "vol.title":"Volume","vol.hint":"Drag the slider up/down; 0 = mute",
       "pl.sub":"Player profile","pl.peak":"Peak profit","pl.maxwin":"Best single payout",
