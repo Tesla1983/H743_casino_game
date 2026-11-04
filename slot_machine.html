@@ -737,9 +737,14 @@
   @keyframes gmPointTap{0%{transform:translateY(0) scale(1);}45%{transform:translateY(5px) scale(1.16);}100%{transform:translateY(0) scale(1);}}
 
   .srcrow{display:flex;align-items:center;gap:10px;margin-top:10px;}
-  /* ---------- 左上角：去玩百家乐（与右上角工具条同款按钮语言，fixed 不受 zoom 影响） ---------- */
-  .homelink{
+  /* ---------- 左上角：游戏跳转按钮组（与右上角工具条同款按钮语言，fixed 不受 zoom 影响） ----------
+     容器统一 fixed 定位，多入口横向排列；子项不再各自 fixed，否则第二个按钮会叠在第一个上。 */
+  .homelinks{
     position:fixed;top:14px;left:20px;z-index:70;
+    display:flex;align-items:center;gap:10px;
+  }
+  .homelink{
+    position:static;
     display:inline-flex;align-items:center;gap:8px;
     padding:7px 14px;border-radius:11px;text-decoration:none;
     font-size:12.5px;font-weight:800;letter-spacing:1px;
@@ -753,6 +758,16 @@
   .homelink:active{transform:translateY(1px);}
   .homelink .hl-ico{width:26px;height:17px;display:block;}
   .homelink .hl-arrow{opacity:.75;font-weight:900;}
+  /* 新入口的小图标：「21」文字徽章不依赖 SVG symbol；双牌图标供跨页复用，三页尺寸一致 */
+  .homelink .hl-ico.hl-badge{
+    width:auto;height:16px;min-width:19px;padding:0 2px;
+    display:inline-flex;align-items:center;justify-content:center;
+    border-radius:4px;background:rgba(245,197,66,.14);
+    border:1px solid rgba(245,197,66,.38);
+    font-size:10px;font-weight:900;letter-spacing:0;line-height:1;
+    color:var(--gold);
+  }
+  .homelink .hl-ico.hl-cards{width:24px;height:16px;}
 
   /* file:// + Firefox 内核时提示"两页不同源"，见 warnFileOrigin() */
   .filewarn{position:fixed;left:0;right:0;bottom:0;z-index:9999;display:flex;align-items:center;gap:12px;
@@ -859,8 +874,10 @@
      贴边更近 + 按钮缩小，避免压到柜机卡片右上角的内容 */
   @media (max-width:960px){
     .topbar{top:8px;right:10px;}
-    .homelink{top:8px;left:10px;padding:5px 10px;font-size:11px;}
+    .homelinks{top:8px;left:10px;gap:6px;}
+    .homelink{padding:5px 10px;font-size:11px;}
     .homelink .hl-ico{width:22px;height:15px;}
+    .homelink .hl-ico.hl-cards{width:20px;height:14px;}
     .topbar .btn.small{min-width:38px;font-size:12px;padding:1px 6px;}
     .topbar .volwrap .btn.small{flex:0 0 32px;width:32px;min-width:32px;}
     .vol-pop{padding:7px;}
@@ -879,21 +896,28 @@
 </head>
 <body>
 
-<!-- 左上角：去玩百家乐（与百家乐页的「回到老虎机」互为往返） -->
-<a class="homelink" href="baccarat.html" title="去玩百家乐 / Play baccarat">
-  <span class="hl-arrow" aria-hidden="true">&#8594;</span>
-  <svg class="hl-ico" viewBox="0 0 30 20" aria-hidden="true">
-    <g transform="rotate(-8 7.5 10)">
-      <rect x="1" y="1" width="13" height="18" rx="2.5" fill="#fffdf6" stroke="#1a0a2e" stroke-opacity=".45" stroke-width="1.2"/>
-      <text x="7.5" y="13.6" text-anchor="middle" font-size="9" font-family="Georgia,serif" fill="#d3262b">&#9829;</text>
-    </g>
-    <g transform="rotate(8 21.5 10)">
-      <rect x="15" y="1" width="13" height="18" rx="2.5" fill="#fffdf6" stroke="#1a0a2e" stroke-opacity=".45" stroke-width="1.2"/>
-      <text x="21.5" y="13.6" text-anchor="middle" font-size="9" font-family="Georgia,serif" fill="#15151d">&#9824;</text>
-    </g>
-  </svg>
-  <span data-i18n="nav.bacc">百家乐</span>
-</a>
+<!-- 左上角：游戏入口组。老虎机 → 百家乐 / 21点，与各自页的「回到老虎机」互为往返 -->
+<div class="homelinks">
+  <a class="homelink" href="baccarat.html" title="去玩百家乐 / Play baccarat">
+    <span class="hl-arrow" aria-hidden="true">&#8594;</span>
+    <svg class="hl-ico" viewBox="0 0 30 20" aria-hidden="true">
+      <g transform="rotate(-8 7.5 10)">
+        <rect x="1" y="1" width="13" height="18" rx="2.5" fill="#fffdf6" stroke="#1a0a2e" stroke-opacity=".45" stroke-width="1.2"/>
+        <text x="7.5" y="13.6" text-anchor="middle" font-size="9" font-family="Georgia,serif" fill="#d3262b">&#9829;</text>
+      </g>
+      <g transform="rotate(8 21.5 10)">
+        <rect x="15" y="1" width="13" height="18" rx="2.5" fill="#fffdf6" stroke="#1a0a2e" stroke-opacity=".45" stroke-width="1.2"/>
+        <text x="21.5" y="13.6" text-anchor="middle" font-size="9" font-family="Georgia,serif" fill="#15151d">&#9824;</text>
+      </g>
+    </svg>
+    <span data-i18n="nav.bacc">百家乐</span>
+  </a>
+  <a class="homelink" href="blackjack.html" title="去玩21点 / Play Blackjack">
+    <span class="hl-arrow" aria-hidden="true">&#8594;</span>
+    <span class="hl-ico hl-badge" aria-hidden="true">21</span>
+    <span data-i18n="nav.bj">21点</span>
+  </a>
+</div>
 
 <!-- 顶部工具条：音量 + 语言。已移出柜机卡片，固定在网页右上角 -->
 <div class="langrow topbar">
@@ -1937,7 +1961,7 @@
   /* ---------------- 中英文切换（i18n） ---------------- */
   var I18N = {
     zh: {
-      "nav.bacc":"百家乐",
+      "nav.bacc":"百家乐", "nav.bj":"21点",
       "hud.credits":"积分", "hud.lines":"线数", "hud.bet":"每线注", "hud.total":"总注",
       "hud.win":"中奖", "hud.free":"免费转",
       "jp.sub":"累积奖金池", "jp.foot":"每笔投注累积 <b>1.5%</b><br><b class='hot'>必须最大注</b> + 五连 7 才派发",
@@ -2032,7 +2056,7 @@
       "rules.rtp.note":"说明：以上数字由 rtp_sim.py 蒙特卡洛模拟得出（300 万次基础转，已计入免费转链、扩展 WILD 与 5000× 单局封顶）：命中率约 <b>32.4%</b>（约 1/3.1），波动率约 <b>4.4 × 总注</b>。与页面赔率表、条带、payline 完全一致。"
     },
     en: {
-      "nav.bacc":"Baccarat",
+      "nav.bacc":"Baccarat", "nav.bj":"Blackjack",
       "hud.credits":"CREDITS", "hud.lines":"LINES", "hud.bet":"BET/LINE", "hud.total":"TOTAL BET",
       "hud.win":"WIN", "hud.free":"FREE",
       "jp.sub":"PROGRESSIVE POOL", "jp.foot":"<b>1.5%</b> of each bet<br><b class='hot'>max bet required</b> + five 7s",
