@@ -1087,8 +1087,11 @@
      body.arc .side::before 的网格占位占用，不能覆盖掉。 */
   body.arc .bspot::after{
     content:"";position:absolute;inset:0;border-radius:12px;pointer-events:none;z-index:0;
-    border:1px solid rgba(255,225,150,.44);
-    transition:border-color .2s ease;
+    /* 用 inset 阴影画这条 1px 线，而不是 border：border 的圆角是「4 条边 + 4 段弧」拼出来的，
+       接缝正好在四个内角；一旦元素被缩放重采样（按下时的 :active），接缝处的抗锯齿会错位，
+       在四个角闪出一小段断线。box-shadow 的描边是一次成型的圆角矩形，四角不断裂。 */
+    box-shadow:inset 0 0 0 1px rgba(255,225,150,.44);
+    transition:box-shadow .2s ease;
   }
   /* 圈内文字纯展示：不承接指针事件，点击一律穿透到整圈，也避免成为选中/复制的抓手 */
   body.arc .bspot .bs-pay,
@@ -1097,10 +1100,12 @@
   body.arc .bspot.main{width:88px;height:88px;}
   body.arc .bspot.side{width:70px;height:70px;opacity:.94;}
   /* 外框已是透明，交互反馈只能落在那条细金线上：hover 提亮、有注加亮、封顶闪红 */
-  body.arc .bspot:hover::after{border-color:rgba(255,235,180,.88);}
-  body.arc .bspot:active{transform:translateY(1px) scale(.98);}
-  body.arc .bspot.hot::after{border-color:rgba(255,215,106,.95);}
-  body.arc .bspot.max-flash::after{border-color:rgba(255,120,120,.90);}
+  body.arc .bspot:hover::after{box-shadow:inset 0 0 0 1px rgba(255,235,180,.88);}
+  /* 按下时只位移、不缩放：scale 会把 1px 线重采样成 0.98px，四角抗锯齿随即断裂、闪出短线。
+     这条方框没有底色，缩放本来也没有视觉收益。 */
+  body.arc .bspot:active{transform:translateY(1px);}
+  body.arc .bspot.hot::after{box-shadow:inset 0 0 0 1px rgba(255,215,106,.95);}
+  body.arc .bspot.max-flash::after{box-shadow:inset 0 0 0 1px rgba(255,120,120,.90);}
   body.arc .bspot .bs-pay{
     font-size:9.5px;letter-spacing:.3px;color:#cbb8e6;opacity:.85;position:relative;z-index:3;
     white-space:nowrap;
