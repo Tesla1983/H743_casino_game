@@ -1068,28 +1068,30 @@
   }
   body.arc .bspot{
     position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:1px;border-radius:50%;cursor:pointer;
+    /* border-radius 同时决定命中区域：方框后必须跟内圈线一起改成 12px 圆角，
+       否则四角虽然画成了方框、点击仍按圆形裁掉（浏览器按圆角裁剪命中区） */
+    gap:1px;border-radius:12px;cursor:pointer;
     /* 下注圈内文字禁止被鼠标拖选复制（避免出现蓝色选中高亮），点击仍落在整圈上 */
     -webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;
     -webkit-touch-callout:none;
-    /* 与 21 点下注卡统一：无底色，背景留空直接透出桌面绿呢布本身，
-       只保留实线金边 + 一圈外侧金辉来界定注位（不再有深色卡底、内暗和虚线边）。
+    /* 方框版：整枚注位不画外框、不留底色、不加阴影，注位边界完全交给 ::after 那道
+       内圈细金线来界定（外框原先附带的金色光晕一并去掉）。
        尺寸 / 位置 / 文案 / 文字对比度一概不变 */
     background:transparent;
-    border:2px solid rgba(245,197,66,.84);
-    box-shadow:
-      0 0 0 1px rgba(245,197,66,.22),
-      0 2px 10px rgba(0,0,0,.28),
-      0 0 14px rgba(245,197,66,.14);
-    transition:border-color .2s ease, box-shadow .2s ease, transform .1s ease;
+    border:0;
+    box-shadow:none;
+    transition:transform .1s ease;
   }
-  /* 内圈细金线：与 21 点下注卡面同款（那道 inset:7px 的细金线），
-     圆形注位把圆角改成正圆；z-index:0 保证在内圈文字(z:3) 与筹码堆(z:2) 之下。
+  /* 唯一的可见描边：那条细金线。原先外框（2px，贴边）与内圈线（1px，inset:7px）
+     是两道；去掉外框后把留下的这道贴到注位边缘（inset:0），方框尺寸就仍等于
+     88×88 / 70×70，命中区域与看到的框完全一致，不会出现「框外 7px 也能点中」。
+     圆形改方框 → 圆角 12px；z-index:0 保证在内圈文字(z:3) 与筹码堆(z:2) 之下。
      用 ::after 而不是 ::before —— 附加注带 .side 类，::before 已被
      body.arc .side::before 的网格占位占用，不能覆盖掉。 */
   body.arc .bspot::after{
-    content:"";position:absolute;inset:7px;border-radius:50%;pointer-events:none;z-index:0;
+    content:"";position:absolute;inset:0;border-radius:12px;pointer-events:none;z-index:0;
     border:1px solid rgba(255,225,150,.44);
+    transition:border-color .2s ease;
   }
   /* 圈内文字纯展示：不承接指针事件，点击一律穿透到整圈，也避免成为选中/复制的抓手 */
   body.arc .bspot .bs-pay,
@@ -1097,13 +1099,11 @@
   body.arc .bspot .bs-amt{pointer-events:none;}
   body.arc .bspot.main{width:88px;height:88px;}
   body.arc .bspot.side{width:70px;height:70px;opacity:.94;}
-  body.arc .bspot:hover{border-color:rgba(255,230,150,1);}
+  /* 外框已是透明，交互反馈只能落在那条细金线上：hover 提亮、有注加亮、封顶闪红 */
+  body.arc .bspot:hover::after{border-color:rgba(255,235,180,.88);}
   body.arc .bspot:active{transform:translateY(1px) scale(.98);}
-  body.arc .bspot.hot{
-    border-style:solid;border-color:rgba(255,215,106,.80);
-    box-shadow:0 0 20px rgba(255,200,60,.30), 0 0 0 1px rgba(245,197,66,.24);
-  }
-  body.arc .bspot.max-flash{border-color:rgba(255,120,120,.85);}
+  body.arc .bspot.hot::after{border-color:rgba(255,215,106,.95);}
+  body.arc .bspot.max-flash::after{border-color:rgba(255,120,120,.90);}
   body.arc .bspot .bs-pay{
     font-size:9.5px;letter-spacing:.3px;color:#cbb8e6;opacity:.85;position:relative;z-index:3;
     white-space:nowrap;

@@ -2299,6 +2299,7 @@
       "src.msg.autoSwitch":"已自动切换到 {mode}","src.msg.onlineShort":"H743 在线","src.msg.offlineShort":"H743 离线",
       "msg.shuffle":"牌靴余量不足 · 正在用 H743 熵重新洗牌…","msg.norand":"随机源不可用，本手未扣分，请稍后再试",
       "msg.nobet":"请先下注再发牌","msg.cleared":"已清空下注",
+      "msg.inplay":"本局进行中 · 请先要牌或停牌",
       "msg.needIns":"庄家明牌为 A，可押保险",
       "ins.title":"庄家明牌是 A","ins.body":"是否购买保险？保险注为本注一半；若庄家为黑杰克，保险按 2:1 赔付。",
       "ins.amtLbl":"保险注","ins.no":"不买","ins.yes":"买保险",
@@ -2388,6 +2389,7 @@
       "src.msg.autoSwitch":"switched to {mode}","src.msg.onlineShort":"H743 live","src.msg.offlineShort":"H743 offline",
       "msg.shuffle":"Shoe low · reshuffling with H743 entropy…","msg.norand":"Random source unavailable - no bet taken",
       "msg.nobet":"Place a bet first","msg.cleared":"Bet cleared",
+      "msg.inplay":"Hand in progress - hit or stand first",
       "msg.needIns":"Dealer shows an ace - insurance available",
       "ins.title":"Dealer shows an Ace","ins.body":"Buy insurance? It costs half your main bet and pays 2:1 if the dealer has blackjack.",
       "ins.amtLbl":"Insurance bet","ins.no":"No thanks","ins.yes":"Buy insurance",
@@ -2586,7 +2588,15 @@
   /* =====================================================================
    *  下注
    * ===================================================================== */
+  /* 下注区是否可操作：只有 bet 阶段、且没有牌正在飞的时候。
+     本手进行中改 bet.main 是纯粹的漏钱口子——
+       · 加注：新加进去的分数不在这手结算（h.bet 在发牌时就锁定了），局末 bet.main=0 直接吞掉；
+       · 清空下注：clearBet 会把 bet.main 全额退回，而这一手仍然照常赔付，等于白拿；
+       · 撤销：同样只改 bet.main，不动 h.bet。
+     三种操作统一由这里挡，提示文案与「重复发牌」共用。 */
+  function bettingOpen(){ return phase === "bet" && !dealing; }
   function placeBet(){
+    if (!bettingOpen()){ setHintKey("msg.inplay"); return; }
     var d = CHIP_TIERS[chipIdx];
     if (bet.main + d > MAX_SPOT){
       setHintKey("bet.max");
@@ -2603,6 +2613,7 @@
     setVerdict(tt("verdict.place"));
   }
   function undoBet(){
+    if (!bettingOpen()){ setHintKey("msg.inplay"); return; }
     if (bet.main <= 0) return;
     var d = Math.min(CHIP_TIERS[chipIdx], bet.main);
     bet.main -= d;
@@ -2612,6 +2623,7 @@
     updateHUD();
   }
   function clearBet(){
+    if (!bettingOpen()){ setHintKey("msg.inplay"); return; }
     if (bet.main <= 0) return;
     credits += bet.main;
     lsSave(LS.credits, credits);
@@ -2628,6 +2640,11 @@
     // insMask/结算弹层打开时禁止重入（Space 直接调 deal() 不走 dealBtn.disabled）
     var insMaskOpen = document.getElementById("insMask");
     if (insMaskOpen && insMaskOpen.classList.contains("show")) return;
+    /* 本手还没结束就不许重新发牌：player（玩家行动）/ dealer（庄家补牌）两个阶段
+       都还挂着同一笔 bet.main，此时重进 deal() 会把这一手静默换成全新的一手，
+       已发到桌上的牌、要牌决策全部作废，等于用同一注额白拿一手新牌。
+       守卫放在这里而不是只靠按钮置灰 —— 空格键是直接调 deal() 的，绕得过 disabled。 */
+    if (phase === "player" || phase === "dealer"){ setHintKey("msg.inplay"); return; }
     if (bet.main <= 0){ setHintKey("msg.nobet"); return; }
 
     // 牌靴余量：一手最多 11 张（4手分牌上限），不足 12 张就整靴重洗
@@ -2689,8 +2706,10 @@
       // 进入玩家行动阶段
       phase = "player";
       setVerdict(tt("verdict.you"));
+      // 先落 dealing=false 再刷新：refreshActionBtns 里发牌键的置灰条件含 dealing，
+      // 顺序反了会让发牌键在本局进行中重新亮起（这就是原来能重复发牌的原因之一）
+      dealing = false;
       refreshActionBtns();
-      dealing = false; dealBtn.disabled = false;
 
     }catch(e){
       // 随机源不可用等异常：退款、恢复原状
@@ -2747,6 +2766,10 @@
     btnDouble.disabled = !(canAct && h.cards.length === 2 && credits >= h.bet && !h.doubled);
     btnSplit.disabled = !(canAct && h.cards.length === 2 && isPairCards(h.cards)
                           && playerHands.length < 4 && credits >= h.bet);
+    /* 发牌键：本手未结束（发牌动画中 / 玩家行动 / 庄家补牌）一律置灰。
+       原来这里没管发牌键，deal() 结束时又无条件把它点亮，于是牌局进行中可以直接再按一次
+       发牌，白白换掉这一手。状态机里的「可发牌」只有 bet 阶段。 */
+    if (dealBtn) dealBtn.disabled = dealing || phase === "player" || phase === "dealer";
   }
 
   /* =====================================================================
@@ -3179,6 +3202,12 @@
     // 局结束：立即清掉本局牌面（对下一局而言就是「旧牌」），避免与新局牌面混杂。
     // 点数球 / 裁决 / 派彩等本局结果保留在这里，等 startNewRound() 才清。
     clearDealtCards();
+    /* 本手彻底结束：状态机回到下注阶段（原来一直停在 "settle" 不动，
+       发牌键也就没了统一的启停依据）。回到 bet 后 refreshActionBtns 会点亮发牌键，
+       而 deal() 开头的阶段守卫仍会挡住「玩家行动 / 庄家补牌」期间的重复发牌。 */
+    phase = "bet";
+    setHintKey("");          // 清掉「本局进行中」这类临时提示，别让上一手的警告留在台面上
+    refreshActionBtns();
   }
   function saveStats(){
     try{
