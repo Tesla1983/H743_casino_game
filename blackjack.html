@@ -200,6 +200,19 @@
   .pl-reset:hover{filter:brightness(1.08);}
   .pl-reset:active{transform:translateY(1px);}
 
+  /* ---------- 玩家档案：独立放到主牌桌右侧 ----------
+     .sidecard 本来就是 position:relative，用 left 只做视觉平移，原 flex 槽位仍保留，
+     所以柜机 / 右侧列 / 规则区的位置一点不变（不是脱离文档流的 absolute）。
+     位移 = 自身宽 172 + 行间距 16 + 柜机宽 724 + 与牌桌留白 36 = 948px，
+     这是 .machrow 内三个元素连续排列决定的固定相对距离，与视口居中、zoom 都无关。
+     align-self:flex-start 取消 stretch：高度改由内容决定（847px → 348px），
+     .jp-body 的 space-evenly 在没有多余高度后自动收拢，多余留白消失，
+     内部排版 / 字号 / 间距一概不动，内容与交互保持原样。
+     窄于 1240px 时三卡会换行，右侧放不下这张卡，保持原来的行内位置。 */
+  @media (min-width:1240px){
+    #playerCard{align-self:flex-start;left:948px;}
+  }
+
   /* ---------- 路纸（珠盘路）：8 行，自上而下、满列换列 ---------- */
   .roadcard .jp-body{justify-content:flex-start;gap:0;padding-top:12px;}
   .road-grid{
