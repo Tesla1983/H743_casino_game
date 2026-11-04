@@ -2506,6 +2506,9 @@
    * ===================================================================== */
   async function deal(){
     if (dealing) return;
+    // insMask/结算弹层打开时禁止重入（Space 直接调 deal() 不走 dealBtn.disabled）
+    var insMaskOpen = document.getElementById("insMask");
+    if (insMaskOpen && insMaskOpen.classList.contains("show")) return;
     if (bet.main <= 0){ setHintKey("msg.nobet"); return; }
 
     // 牌靴余量：一手最多 11 张（4手分牌上限），不足 12 张就整靴重洗
@@ -2848,11 +2851,16 @@
     h.fromSplit = true;
     if (h.cards[0].rank === "A") h.splitAce = true;
     playerHands.splice(activeHand + 1, 0, nh);
-    // DOM：先把分界 gap 插到被拆牌（现容器尾）之前——此后当前手段尾即此 gap；
-    // 再给当前手补一张（插 gap 前），最后给新手补一张（容器尾）。
+    // DOM：被拆牌（c2，当前手末尾的 bcard）必须跟着数据挪到新手——先插分界 gap，
+    // 再把 c2 节点移到 gap 之后，然后当前手补牌插 gap 前、新手补牌 append 容器尾。
+    // 不移动的话牌面还留在第一组（数据对、视觉错位）。
     var gapEl = document.createElement("div");
     gapEl.className = "split-gap";
     pCards.appendChild(gapEl);
+    // 被拆牌 = 当前容器最后一个 .bcard（:last-of-type 会因 gap 也是 div 而失效）
+    var allBc = pCards.querySelectorAll(".bcard");
+    var moved = allBc.length ? allBc[allBc.length - 1] : null;
+    if (moved) pCards.insertBefore(moved, gapEl.nextSibling);
     var cA = drawCard(), cB = drawCard();
     if (!cA || !cB){ setHintKey("msg.norand"); return; }
     h.cards.push(cA);
