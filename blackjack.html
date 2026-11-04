@@ -210,10 +210,25 @@
      窄于 1240px 时三卡换行，order 失效、回到原来的行内位置（银行卡仍在右侧列），保持原有窄屏行为。 */
   @media (min-width:1240px){
     body.arc .sidecol{order:-1;}
-    /* 先顶对齐到柜机顶部，再由 JS(syncProfileBottom) 把底边推到牌桌(.screen)底部边框，
+    /* 先顶对齐到柜机顶部，再由 JS(syncProfileBottom) 把底边推到牌桌(.felt)底部边框，
        而不是随 machrow 的 align-items:flex-end 一直垂到柜机底部（会盖过筹码盘/按钮区）。 */
-    #playerCard{align-self:flex-start;position:relative;margin-left:36px;order:2;}
+    /* 首帧门控：JS 把底边对齐到牌桌之前先不显示。
+       否则刷新瞬间档案卡会先按「顶对齐」出现在柜机左上（位置偏移），
+       约 26ms 后才跳到底部（top=325），看起来就像闪了一下别的位置的残影。
+       末尾 1.5s 的兜底动画保证即使脚本异常也仍然会显示（只是位置回落到顶部）。 */
+    #playerCard{
+      align-self:flex-start;position:relative;margin-left:36px;order:2;
+      visibility:hidden;
+      animation:pcForceShow 0s linear 1.5s forwards;
+    }
+    body.arc.pc-ready #playerCard{
+      visibility:visible;
+      animation:none;
+      /* 首帧之后才启用过渡：发牌/缩放导致牌桌高度变化时平滑跟随，不再瞬跳 */
+      transition:margin-top .18s cubic-bezier(.22,.61,.36,1);
+    }
   }
+  @keyframes pcForceShow{to{visibility:visible;}}
 
   /* ---------- 路纸（珠盘路）：8 行，自上而下、满列换列 ---------- */
   .roadcard .jp-body{justify-content:flex-start;gap:0;padding-top:12px;}
@@ -3654,29 +3669,56 @@
    *  (.screen) 的底部边框——也就是筹码盘之上、不超出筹码卡片。用 ResizeObserver
    *  监听 .screen，发牌/分牌导致牌桌高度变化时也能自动重算。窄屏不干预（流式）。
    * ===================================================================== */
-  var _pcRaf = 0;
+  var _pcRaf = 0, _pcReady = false;
+  function revealProfileCard(){
+    // 位置定好之后才解除首帧门控（CSS 里 #playerCard 默认 visibility:hidden）
+    if(_pcReady) return;
+    _pcReady = true;
+    document.body.classList.add("pc-ready");
+  }
   function syncProfileBottom(){
     var pc = document.getElementById("playerCard");
     var felt = document.getElementById("felt");   // 牌桌绒布面 = 用户说的「牌桌底部边框」
     var cabCol = document.querySelector(".cab-col");
-    if(!pc || !felt || !cabCol) return;
-    if(!window.matchMedia("(min-width:1240px)").matches){ pc.style.marginTop = ""; return; }
+    if(!pc || !felt || !cabCol){ revealProfileCard(); return; }
+    if(!window.matchMedia("(min-width:1240px)").matches){
+      pc.style.marginTop = "";
+      revealProfileCard();       // 窄屏是流式布局，无需竖向定位，直接显示
+      return;
+    }
     var cabTop = cabCol.getBoundingClientRect().top;
     var feltBottom = felt.getBoundingClientRect().bottom;
     // 自然顶边（marginTop=0 时）≈ cabCol 顶部（machrow 顶部与柜机顶对齐）
-    var desiredTop = feltBottom - cabTop - pc.offsetHeight;
-    pc.style.marginTop = Math.max(0, desiredTop) + "px";
+    var desiredTop = Math.max(0, feltBottom - cabTop - pc.offsetHeight);
+    if(!_pcReady){
+      // 首帧：先写位置、强制回流，再解除隐藏 —— 三者同步完成，
+      // 用户看到的第一帧就已经是对齐后的位置，不会先闪现在柜机顶部。
+      pc.style.transition = "none";   // 首次定位不能有过渡，否则等于从顶部滑下来
+      pc.style.marginTop = desiredTop + "px";
+      void pc.offsetHeight;
+      revealProfileCard();
+      requestAnimationFrame(function(){
+        if(window.matchMedia("(min-width:1240px)").matches) pc.style.transition = "";
+      });
+      return;
+    }
+    pc.style.marginTop = desiredTop + "px";
   }
   function syncProfileBottomSoon(){
     if(_pcRaf) cancelAnimationFrame(_pcRaf);
     _pcRaf = requestAnimationFrame(function(){ requestAnimationFrame(syncProfileBottom); });
   }
   window.addEventListener("resize", syncProfileBottomSoon);
+  // 图片 / 字体 / 布局全部稳定后再校正一次（此时过渡已启用，只会平滑微调，不会瞬跳）
+  window.addEventListener("load", function(){ syncProfileBottom(); });
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ syncProfileBottom(); });
   if(window.ResizeObserver){
     var _pcFelt = document.getElementById("felt");
     if(_pcFelt) new ResizeObserver(syncProfileBottomSoon).observe(_pcFelt);
   }
-  syncProfileBottomSoon();
+  // 立即同步执行（不排 rAF）：脚本位于 body 末尾，此时布局已可测量，
+  // 在浏览器首次绘制之前就把位置定好，否则至少会露出 1~2 帧的错误位置。
+  syncProfileBottom();
 
 })();
 </script>
