@@ -1580,6 +1580,19 @@
   </div>
 </div>
 
+<!-- 保险决策（庄家明 A：先于 peek 开窗，赌场流程） -->
+<div class="mask" id="insMask">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="insTitle">
+    <h3 id="insTitle" data-i18n="ins.title">庄家明牌是 A</h3>
+    <p data-i18n="ins.body">是否购买保险？保险注为本注一半；若庄家为黑杰克，保险按 2:1 赔付。</p>
+    <div class="m-amt"><span data-i18n="ins.amtLbl">保险注</span>：<b id="insAmount">0</b></div>
+    <div class="modal-btns">
+      <button class="m-cancel" id="insNo" type="button" data-i18n="ins.no">不买</button>
+      <button class="m-ok" id="insYes" type="button" data-i18n="ins.yes">买保险</button>
+    </div>
+  </div>
+</div>
+
 <!-- 卡内余额续玩 -->
 <div class="mask" id="rescueMask">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rescueTitle">
@@ -2158,6 +2171,7 @@
       "verdict.win":"你赢了 +{n}","verdict.lose":"你输了 −{n}","verdict.push":"平局 · 退还 {n}",
       "verdict.bj":"BLACKJACK！+{n}","verdict.bust":"爆牌 · −{n}",
       "verdict.dbj":"庄家 BLACKJACK · −{n}","verdict.dbjPush":"双方 BLACKJACK · 平局",
+      "verdict.insWon":"保险 +{n}","verdict.insTaken":"已押保险 {n}（庄家黑杰克则 2:1 赔付）",
       "src.btn":{ trng:"随机源：H743 在线", offline:"随机源：H743 离线" },
       "src.msg.connecting":"连接中…",
       "src.msg.trngReady":"H743 在线 · 串口直供 · 端口 {p}{c}",
@@ -2174,6 +2188,9 @@
       "msg.shuffle":"牌靴余量不足 · 正在用 H743 熵重新洗牌…","msg.norand":"随机源不可用，本手未扣分，请稍后再试",
       "msg.nobet":"请先下注再发牌","msg.cleared":"已清空下注",
       "msg.needIns":"庄家明牌为 A，可押保险",
+      "ins.title":"庄家明牌是 A","ins.body":"是否购买保险？保险注为本注一半；若庄家为黑杰克，保险按 2:1 赔付。",
+      "ins.amtLbl":"保险注","ins.no":"不买","ins.yes":"买保险",
+      "msg.insNo":"未购买保险 · 继续发牌",
       "msg.bust":"爆牌了！超过 21 点本注判负",
       "rules.title":"玩法规则",
       "rules.basic":"基本设定","rules.flow":"下注与流程","rules.act":"玩家动作",
@@ -2240,6 +2257,7 @@
       "verdict.win":"You win +{n}","verdict.lose":"You lose -{n}","verdict.push":"Push · {n} returned",
       "verdict.bj":"BLACKJACK! +{n}","verdict.bust":"Bust -{n}",
       "verdict.dbj":"Dealer Blackjack -{n}","verdict.dbjPush":"Both Blackjack - push",
+      "verdict.insWon":"Insurance +{n}","verdict.insTaken":"Insured {n} (pays 2:1 if dealer has blackjack)",
       "src.btn":{ trng:"Source: H743 live", offline:"Source: H743 offline" },
       "src.msg.connecting":"connecting…",
       "src.msg.trngReady":"H743 online · serial direct · port {p}{c}",
@@ -2256,6 +2274,9 @@
       "msg.shuffle":"Shoe low · reshuffling with H743 entropy…","msg.norand":"Random source unavailable - no bet taken",
       "msg.nobet":"Place a bet first","msg.cleared":"Bet cleared",
       "msg.needIns":"Dealer shows an ace - insurance available",
+      "ins.title":"Dealer shows an Ace","ins.body":"Buy insurance? It costs half your main bet and pays 2:1 if the dealer has blackjack.",
+      "ins.amtLbl":"Insurance bet","ins.no":"No thanks","ins.yes":"Buy insurance",
+      "msg.insNo":"No insurance - continuing",
       "msg.bust":"Bust! Over 21 - bet lost",
       "rules.title":"How to play",
       "rules.basic":"Basics","rules.flow":"Betting & flow","rules.act":"Player actions",
@@ -2510,9 +2531,14 @@
       renderTotals();
       saveHand();
 
-      var pv = handValue(playerHands[0].cards);
       var upA = dealerCards[0].rank === "A";
-      var upTen = dealerCards[0].value === 10;
+
+      // 明 A：先开保险决策窗（赌场流程——保险押注必须发生在庄家 peek 之前，
+      // 否则保险永远买不进：peek 到庄 BJ 直接结算，窗口从未打开过）
+      if (upA && insuranceOn){
+        await askInsurance();
+        saveHand();                // 保险决定落盘（押入后刷新不丢）
+      }
 
       // Peek：庄家明 A 或 10 时看暗牌
       if (isBJ(dealerCards)){
@@ -2527,12 +2553,6 @@
         await settleRound();
         dealing = false; dealBtn.disabled = false;
         return;
-      }
-      if (upA && insuranceOn && holeHidden){
-        // 明 A：可押保险（M4 细化交互，这里先亮圈）
-        var insSpot = document.getElementById("insSpot");
-        if (insSpot) insSpot.classList.add("on");
-        setHintKey("msg.needIns");
       }
 
       // 进入玩家行动阶段
@@ -2550,6 +2570,42 @@
       setHintKey("msg.norand");
       dealing = false; dealBtn.disabled = false;
     }
+  }
+
+  /* ---------------- 保险（M3：明 A 先于 peek 开窗，赌场流程） ----------------
+     askInsurance：发牌后明 A 自动弹决策框（买/不买），玩家选完流程才继续。
+     押入额 = floor(本注/2)；庄 BJ 时 2:1 赔付退 3 倍，正好对冲主注损失。 */
+  var insMask = $("insMask"), insAmount = $("insAmount");
+  function askInsurance(){
+    return new Promise(function(resolve){
+      if (!insMask){ resolve(); return; }
+      var amt = Math.floor(bet.main / 2);
+      if (amt <= 0 || credits < amt){ resolve(); return; }   // 买不起：跳过窗口直接继续
+      if (insAmount) insAmount.textContent = fmtAmt(amt);
+      var done = false;
+      var yes = $("insYes"), no = $("insNo");
+      function finish(buy){
+        if (done) return; done = true;
+        insMask.classList.remove("show");
+        if (yes) yes.removeEventListener("click", onYes);
+        if (no) no.removeEventListener("click", onNo);
+        if (buy){
+          credits -= amt; lsSave(LS.credits, credits);
+          insBet = amt;
+          playSfx("chip");
+          setHintKey("verdict.insTaken", { n: fmtAmt(amt) });
+        } else {
+          setHintKey("msg.insNo");
+        }
+        updateHUD();
+        resolve();
+      }
+      var onYes = function(){ finish(true); };
+      var onNo = function(){ finish(false); };
+      if (yes) yes.addEventListener("click", onYes);
+      if (no) no.addEventListener("click", onNo);
+      insMask.classList.add("show");
+    });
   }
 
   function refreshActionBtns(){
@@ -2753,51 +2809,86 @@
   function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
 
   /* =====================================================================
-   *  结算（M3 完整化；M0 提供基础派彩）
+   *  结算（M3：保险结算 + 专属文案 + 档案/派彩校验）
+   *  资金流：下注时已从 credits 扣除本金（与保险注）。结算只做「回款」：
+   *   赢   → 本金 + 净赢全回；平 → 本金回；输 → 不回（注已在下注时扣走）。
+   *  保险独立结算：庄 BJ 赔 2:1（回 3×insBet），否则没收。
    * ===================================================================== */
   async function settleRound(){
     phase = "settle";
     refreshActionBtns();
     var dv = handValue(dealerCards);
-    var net = 0, wagered = 0;
+    var dbj = isBJ(dealerCards);
+    var net = 0;                       // 主注净额（相对已扣本金）
+    var anyNat = false, anyBust = false;
     playerHands.forEach(function(h){
-      wagered += h.bet;
       var pv = handValue(h.cards);
       var nat = !h.fromSplit && isBJ(h.cards);
-      var dbj = isBJ(dealerCards);
+      if (nat) anyNat = true;
+      if (pv.bust) anyBust = true;
       var res;
-      if (nat && dbj) res = 0;
-      else if (nat) res = 1.5;
-      else if (dbj) res = -1;
-      else if (pv.bust) res = -1;
+      if (nat && dbj) res = 0;         // 双 BJ 平局：退本金
+      else if (nat) res = 1.5;         // 黑杰克 3:2（A 分后 21 不算 BJ，fromSplit 已排除）
+      else if (dbj) res = -1;          // 庄 BJ：未行动玩家主注直接输（Peek 保证不会加倍/分牌后遇庄 BJ）
+      else if (pv.bust) res = -1;      // 爆牌先结算——庄家随后爆也救不回
       else if (dv.bust) res = 1;
       else if (pv.total > dv.total) res = 1;
       else if (pv.total < dv.total) res = -1;
       else res = 0;
+      h.res = res;
       net += res * h.bet;
+      h.bet2 = h.bet * 2;              // double 后注额走 h.bet，这里只留核对位
     });
-    var payout = net > 0 ? (bet.main + net) : Math.max(0, net + wagered);   // net<0 时钱已扣
-    if (net > 0){
-      credits += bet.main + net;          // 本金 + 赢利
-      setWin(net);
-      vtEl.textContent = tt("verdict.win", { n: fmt(net) });
+    // 逐手回款（分牌后每手注额独立——bet.main 只是首注，不能当总本金用）：
+    // 赢 → 本金+赢利全回；平 → 退本金；输 → 不回（下注时已扣走）
+    var ret = 0;
+    playerHands.forEach(function(h){
+      if (h.res > 0) ret += h.bet * (1 + h.res);
+      else if (h.res === 0) ret += h.bet;
+    });
+    // 保险独立结算（与主注无关；insBet 在押入时已扣）：庄 BJ 赔 2:1 → 回 3 倍
+    var insNet = 0;
+    if (insBet > 0 && dbj){
+      insNet = insBet * 2;
+      ret += insBet * 3;
+    }
+    credits += ret;
+    var totalNet = net + insNet;
+    if (totalNet > 0){
+      setWin(totalNet);
       playSfx("win");
+    } else {
+      setWin(0);
+    }
+    // 裁决文案：专属情形优先（双BJ平局 / 玩家BJ / 爆牌 / 庄BJ）
+    if (anyNat && dbj){
+      vtEl.textContent = tt("verdict.dbjPush");
+    } else if (anyNat && net > 0){
+      vtEl.textContent = tt("verdict.bj", { n: fmt(net) });
+    } else if (dbj && net < 0 && insBet > 0 && insNet > 0){
+      // 庄 BJ 但保险赚回部分损失：主注文案 + 保险提示
+      vtEl.textContent = tt("verdict.dbj", { n: fmt(-net) }) + " · " + tt("verdict.insWon", { n: fmt(insNet) });
+    } else if (dbj && net < 0){
+      vtEl.textContent = tt("verdict.dbj", { n: fmt(-net) });
+    } else if (anyBust && net < 0){
+      vtEl.textContent = tt("verdict.bust", { n: fmt(-net) });
+    } else if (net > 0){
+      vtEl.textContent = tt("verdict.win", { n: fmt(net) });
     } else if (net === 0){
-      credits += bet.main;                // 退本金
       vtEl.textContent = tt("verdict.push", { n: fmt(bet.main) });
     } else {
       vtEl.textContent = tt("verdict.lose", { n: fmt(-net) });
     }
     lsSave(LS.credits, credits);
-    // 档案统计
+    // 档案统计（保险净额一并计入输赢）
     statHands++;
-    if (net > 0){ statWon += net; if (net > statMaxWin) statMaxWin = net; }
-    else if (net < 0){ statLost += -net; }
+    if (totalNet > 0){ statWon += totalNet; if (totalNet > statMaxWin) statMaxWin = totalNet; }
+    else if (totalNet < 0){ statLost += -totalNet; }
     var totalAssets = credits + cardBalance;
     if (totalAssets - START_CREDITS > statPeak) statPeak = totalAssets - START_CREDITS;
     saveStats(); renderStats();
     // 收尾
-    bet.main = 0;
+    bet.main = 0; insBet = 0;
     updateHUD();
     // 已结算：清掉进行中手的存档，刷新后从下注阶段重新开始（存 settle 快照会被
     // resumeHand 再结算一遍，等于同一手拿两次派彩）
@@ -2842,16 +2933,28 @@
   function resumeHand(){
     var raw = loadHand();
     if (!raw){ try{ localStorage.removeItem(LS.hand); }catch(e){} return; }
-    // M0 简化：刷新后一律结算到存档快照（不重放动画）——M3 再做完整续局
+    // 续局：恢复快照（不重放动画）。注额/保险注一并恢复——否则平局退不回本金、
+    // 保险押入后刷新会白扣。
     playerHands = raw.playerHands;
     dealerCards = raw.dealerCards;
     holeHidden = raw.holeHidden;
     phase = raw.phase;
+    bet.main = Math.max(0, Math.floor(raw.bet || 0));
+    insBet = Math.max(0, Math.floor(raw.insBet || 0));
     if (phase === "player"){
+      // 防御：所有手都已完成（异常快照）→ 直接进庄家结算，避免按钮全禁用卡死
+      var anyOpen = false;
+      playerHands.forEach(function(h){ if (!h.done) anyOpen = true; });
+      if (!anyOpen){ settleRound(); return; }
       renderCards(); renderTotals(); refreshActionBtns();
+      updateHUD();
       vtEl.textContent = tt("verdict.you");
       setHintKey("msg.resume");
     } else if (phase === "bet"){
+      // 发牌动画/保险窗中刷新：注已扣但本手未成型 → 全额退款重来
+      var back = bet.main + insBet;
+      if (back > 0){ credits += back; lsSave(LS.credits, credits); }
+      bet.main = 0; insBet = 0; updateHUD();
       try{ localStorage.removeItem(LS.hand); }catch(e){}
     } else {
       // dealer/settle：直接按快照结算
@@ -3017,6 +3120,15 @@
   });
   if (btnHit) btnHit.addEventListener("click", actHit);
   if (btnStand) btnStand.addEventListener("click", actStand);
+  /* 保险走 insMask 决策窗（明 A 发牌后自动弹出）；保险圈 insSpot 纯展示 */
+  /* 余额不足弹层（ncMask）：点位由 showNotEnough 填 ncDetail */
+  var ncMask = $("ncMask"), ncDetail = $("ncDetail");
+  function showNotEnough(){
+    if (!ncMask) return;
+    if (ncDetail) ncDetail.textContent = tt("nc.detail", { bet: fmtAmt(bet.main + insBet), cr: fmtAmt(credits) });
+    ncMask.classList.add("show");
+    setTimeout(function(){ ncMask.classList.remove("show"); }, 2200);   // 短暂提示，自动消失
+  }
   document.addEventListener("keydown", function(e){
     if (e.code === "Space" && !dealing){ e.preventDefault(); deal(); }
     if (phase === "player"){
