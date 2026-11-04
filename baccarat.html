@@ -3475,14 +3475,17 @@
   var pcSideEl = document.querySelector(".sidecol");
   function syncProfileRoad(){
     if (!pcEl || !roadCardEl || !pcRowEl || !pcSideEl) return;
-    var rowTop = pcRowEl.getBoundingClientRect().top;
-    // 同一行才谈得上「底边对齐」：窄屏/折行后 .sidecol 换到下一行，直接回退自然贴底
-    var sameLine = Math.abs(pcSideEl.getBoundingClientRect().top - rowTop) <= 2;
+    var pcRect = pcEl.getBoundingClientRect();
+    var sideRect = pcSideEl.getBoundingClientRect();
+    /* 「是否同一行」不能用「sidecol.top === machrow.top」判：
+       .sidecol 是 align-self:flex-end，只要柜机列比右侧列高几像素（不同 DPI / 字体度量
+       就会差这几像素），它就贴到行底、top 比行顶大 —— 判定失效，表现为档案卡压根没上移。
+       改用竖向区间重叠：右侧列与档案卡有交集才算同一行；折行时它整体掉到下方，无交集。 */
+    var sameLine = sideRect.top < pcRect.bottom - 20 && pcRect.top < sideRect.bottom - 20;
     if (!window.matchMedia("(min-width:981px)").matches || !sameLine){
       if (pcEl.style.marginBottom) pcEl.style.marginBottom = "";
       return;
     }
-    var pcRect = pcEl.getBoundingClientRect();
     var sc = pcEl.offsetHeight ? pcRect.height / pcEl.offsetHeight : 1;   // .page 的 zoom(≥1910px 为 1.2)
     if (!sc || sc <= 0) sc = 1;
     /* 关键：rect 里已经含了「上一轮写进去的 margin-bottom」。
