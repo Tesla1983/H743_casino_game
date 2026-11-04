@@ -78,17 +78,36 @@
   /* ---------------- 三颗骰子 ---------------- */
   .dicestage{
     position:relative;z-index:2;display:flex;align-items:flex-end;justify-content:center;
-    gap:48px;padding:30px 0 12px;
+    /* padding-bottom 要容得下骰子旋转后的溢出（向下约 28px）+ 落影高度，
+       否则骰子下沿会被下面的结果条压住、阴影也没地方露出来 */
+    gap:48px;padding:30px 0 40px;
   }
   .dice-slot{position:relative;flex:0 0 auto;width:112px;height:112px;
     perspective:860px;perspective-origin:50% 42%;}
+  /* 桌面落影（贴地投影）。
+     两个必须修正的点：
+     ① 层序 —— ::after 是「子元素之后」生成的，默认就画在骰子上面；骰子旋转后投影会溢出
+        slot 盒（向下约 28px），于是那条阴影直接压在骰子正面下沿，看着像一块黑斑。
+        这里给 .die 显式 z-index:1、阴影 z-index:0，阴影被骰子挡住、只露出四周一圈。
+     ② 位置与软硬 —— 阴影要落在骰子的「接地线」上（不是 slot 盒底边），并比骰子略宽，
+        否则会像一条贴在盒子底部的黑边。骰子投影宽约 1.25 倍盒宽，故取 126%。 */
   .dice-slot::after{
-    content:"";position:absolute;left:50%;bottom:-16px;width:88%;height:16px;
-    transform:translateX(-50%);border-radius:50%;pointer-events:none;
-    background:radial-gradient(ellipse at 50% 50%, rgba(0,0,0,.55), rgba(0,0,0,0) 72%);
-    filter:blur(3px);
+    /* 圆心要对准骰子的「接地线」：静止角度下骰子投影向下溢出 slot 盒 28px（112px 槽），
+       所以圆心取 slot 底边往下 26px → 高度 18 时 bottom = 26 − 9 = 17px。
+       上半部分被骰子本身挡住，只露出贴在桌面上的那一圈，正是接触阴影该有的样子。 */
+    content:"";position:absolute;left:50%;bottom:-42px;width:160%;height:28px;
+    transform:translateX(-50%);border-radius:50%;pointer-events:none;z-index:0;
+    /* 两层叠加：内层紧贴骰子底边做「接触暗部」（真实遮挡阴影在贴地处最深），
+       外层铺开做环境阴影。单层椭圆要么太淡看不见，要么糊成一块黑斑。 */
+    background:
+      radial-gradient(ellipse 44% 34% at 50% 36%, rgba(0,0,0,.72) 0%, rgba(0,0,0,.34) 55%, rgba(0,0,0,0) 78%),
+      radial-gradient(ellipse 50% 50% at 50% 54%, rgba(0,0,0,.34) 0%, rgba(0,0,0,.16) 58%, rgba(0,0,0,0) 88%);
+    filter:blur(4px);
+    transition:opacity .3s ease, transform .3s ease;
   }
-  .die{position:absolute;inset:0;transform-style:preserve-3d;will-change:transform;}
+  /* 投掷中：骰子离桌翻转，落影随之变淡变小，落地再复原 */
+  .dicestage.rolling .dice-slot::after{opacity:.42;transform:translateX(-50%) scale(.86);}
+  .die{position:absolute;inset:0;z-index:1;transform-style:preserve-3d;will-change:transform;}
   .die .face{
     position:absolute;inset:0;border-radius:6px;
     background:linear-gradient(150deg,#fdfdfa 0%,#f2f0e7 62%,#e2dfd3 100%);
@@ -287,9 +306,10 @@
     .brand b{font-size:18px;letter-spacing:5px;}
     .brand span{font-size:10.5px;}
     .felt{padding:16px 14px 14px;border-radius:18px;}
-    .dicestage{gap:34px;padding:18px 0 6px;}
+    .dicestage{gap:34px;padding:18px 0 26px;}
     .dice-slot{width:70px;height:70px;perspective:600px;}
-    .dice-slot::after{bottom:-11px;height:11px;}
+    /* 移动端槽 58px：骰子投影向下溢出 13px，落影下沿比它再低 7px */
+    .dice-slot::after{bottom:-20px;height:14px;filter:blur(3px);}
     .die .face{border-radius:5px;padding:11%;}
     .resultline{gap:9px;padding:7px 10px;min-height:40px;}
     .resultline .tag{display:none;}
@@ -420,6 +440,26 @@
   var START_CREDITS = 20000;
   var SPOT_KEYS = ["small","large","odd","even","f1","f2","f3","f4","f5","f6","triple","sum4","sum5"];
   var LS = { credits:"slot_credits" };   // 与老虎机 / 百家乐共用同一个钱袋
+
+  /* ---------------- 音效 ----------------
+     与老虎机同一套做法：Audio 预缓存 + 版本串强制刷新 + play() 的 Promise 静默兜底
+     （浏览器自动播放策略拒绝时只 console 静默，不影响游戏）。
+     骰子音只用一个：投掷瞬间播放，和 0.95s 的旋转动画基本等长。 */
+  var SFX_MAP = { roll:"sfx/freesound_community-rolling-dice-2-102706.mp3" };
+  var SFX_VOL = { roll:0.60 };
+  var SFX_VER = Date.now();
+  var _sfxCache = {};
+  function playSfx(type){
+    var src = SFX_MAP[type]; if (!src) return;
+    try{
+      var a = _sfxCache[type];
+      if (!a){ a = _sfxCache[type] = new Audio(src + "?v=" + SFX_VER); a.preload = "auto"; }
+      a.volume = SFX_VOL[type] != null ? SFX_VOL[type] : 0.5;
+      try{ a.currentTime = 0; }catch(e){}
+      var pr = a.play();
+      if (pr && pr.catch) pr.catch(function(){});
+    }catch(e){}
+  }
 
   /* 骰面朝向：把点数 n 转到正对观察者所需的 (rotateX, rotateY)
      立方体布局：front 1 / back 6 / right 3 / left 4 / top 2 / bottom 5 */
@@ -741,6 +781,7 @@
   var FACE_TR = { 1:"rotateY(0deg)", 6:"rotateY(180deg)", 3:"rotateY(90deg)",
                   4:"rotateY(-90deg)", 2:"rotateX(90deg)", 5:"rotateX(-90deg)" };
   var dice = [].slice.call(document.querySelectorAll(".die"));
+  var stage = document.querySelector(".dicestage");
 
   function buildDie(el){
     [1,6,3,4,2,5].forEach(function(n){
@@ -837,6 +878,8 @@
     vtagEl.textContent = "";
     rvEls.forEach(function(el){ el.textContent = "–"; el.classList.add("dim"); });
     setHint("");
+    playSfx("roll");          // 骰子落桌音：必须紧跟用户手势，不能放到 await 之后
+    stage.classList.add("rolling");   // 投掷期间落影变淡（骰子离桌）
 
     credits -= total;                     // 先扣注，结算后按赔付返还
     lsSave(LS.credits, credits);
@@ -869,6 +912,7 @@
       detectSrc();
     }finally{
       rolling = false;
+      stage.classList.remove("rolling");
       rollBtn.disabled = false;
       clearBtn.disabled = false;
       Array.prototype.forEach.call(document.querySelectorAll(".spot"), function(el){ el.disabled = false; });
