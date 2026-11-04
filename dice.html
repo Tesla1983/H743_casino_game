@@ -163,9 +163,14 @@
     width:7px;height:7px;border-radius:50%;background:#5a5370;flex:0 0 7px;
     box-shadow:0 0 0 2px rgba(255,255,255,.04);
   }
-  .srcline.on .dot{background:#6ef08a;box-shadow:0 0 8px 1px rgba(110,240,138,.7);}
-  .srcline.off .dot{background:#ffb45a;box-shadow:0 0 8px 1px rgba(255,150,60,.5);}
-  .srcline.err .dot{background:#e23b3b;box-shadow:0 0 8px 1px rgba(226,59,59,.6);}
+  /* 圆点只表示「有没有随机源」，不表示「在线还是离线」——那是后面文字的事。
+       有（在线 / 离线都算）= 绿点
+       没有 = 灰点
+     原来离线用橙色、失败用红色，容易被读成"随机源出问题了"；其实离线源是正常工作状态。
+     在线 / 离线的区别交给文案，颜色只保留「通 / 不通」这一层信息。 */
+  .srcline.on .dot,
+  .srcline.off .dot{background:#6ef08a;box-shadow:0 0 8px 1px rgba(110,240,138,.7);}
+  .srcline.err .dot{background:#8b8b8b;box-shadow:0 0 0 2px rgba(255,255,255,.05);}
   .srcline .txt{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .srcline button{
     font-family:inherit;font-size:11px;letter-spacing:.5px;cursor:pointer;
@@ -442,18 +447,32 @@
   var LS = { credits:"slot_credits" };   // 与老虎机 / 百家乐共用同一个钱袋
 
   /* ---------------- 音效 ----------------
-     与老虎机同一套做法：Audio 预缓存 + 版本串强制刷新 + play() 的 Promise 静默兜底
-     （浏览器自动播放策略拒绝时只 console 静默，不影响游戏）。
-     骰子音只用一个：投掷瞬间播放，和 0.95s 的旋转动画基本等长。 */
-  var SFX_MAP = { roll:"sfx/freesound_community-rolling-dice-2-102706.mp3" };
-  var SFX_VOL = { roll:0.60 };
+     与老虎机 / 21 点同一套做法：Audio 预缓存 + 版本串强制刷新 + play() 的 Promise 静默兜底
+     （浏览器自动播放策略拒绝时只静默，不影响游戏）。
+     用的两组声音：
+       roll —— 骰子落桌（1.25s，与 0.95s 旋转动画基本等长）
+       chip —— 放筹码的「咔哒」，**与 21 点共用同一个文件与音量**
+     下注音会被连点，所以按 type 做多路复用（voices），避免上一声被硬切。 */
+  var SFX_MAP = {
+    roll: "sfx/freesound_community-rolling-dice-2-102706.mp3",
+    chip: "sfx/oxidvideos-placing-poker-chips-522515.mp3"   // 21 点下注同款
+  };
+  var SFX_VOL = { roll:0.60, chip:0.42 };                   // chip 音量与 21 点一致
   var SFX_VER = Date.now();
-  var _sfxCache = {};
-  function playSfx(type){
+  var _sfxPool = {}, _sfxIdx = {};
+  function playSfx(type, voices){
     var src = SFX_MAP[type]; if (!src) return;
     try{
-      var a = _sfxCache[type];
-      if (!a){ a = _sfxCache[type] = new Audio(src + "?v=" + SFX_VER); a.preload = "auto"; }
+      var n = voices || 1;
+      var arr = _sfxPool[type];
+      if (!arr) arr = _sfxPool[type] = [];
+      while (arr.length < n){
+        var a0 = new Audio(src + "?v=" + SFX_VER);
+        a0.preload = "auto";
+        arr.push(a0);
+      }
+      var i = (_sfxIdx[type] = ((_sfxIdx[type] || 0) + 1) % arr.length);
+      var a = arr[i];
       a.volume = SFX_VOL[type] != null ? SFX_VOL[type] : 0.5;
       try{ a.currentTime = 0; }catch(e){}
       var pr = a.play();
@@ -646,12 +665,20 @@
   var srcTextEl = document.getElementById("srcText");
   var srcBtn = document.getElementById("srcBtn");
 
+  /* 状态行文案：主语是「随机源」而不是「H743」。
+     原文案「H743 离线」读起来像这块板子掉线了，实际说的是这次取数不经过串口、
+     用熵快照 + DRBG。在线 / 离线只体现在这两句文案里，圆点颜色只表示通 / 不通。 */
+  function srcLabel(hit){
+    return (useOnline
+        ? "在线随机源 · H743 串口直供 · 端口 "
+        : "离线随机源 · 熵快照 + DRBG · 端口 ") +
+      hit.port + " · 缓冲 " + (hit.st.buffered || 0) + " B";
+  }
   function refreshSrcLine(){
     var hit = _bridgeCache[useOnline ? "online" : "offline"];
     if (!hit) return;
     srcLineEl.className = "srcline " + (useOnline ? "on" : "off");
-    srcTextEl.textContent = (useOnline ? "H743 在线 · 端口 " : "H743 离线 · 端口 ") +
-      hit.port + " · 缓冲 " + (hit.st.buffered || 0) + " B";
+    srcTextEl.textContent = srcLabel(hit);
   }
   async function detectSrc(){
     srcTextEl.textContent = "随机源检测中…";
@@ -663,8 +690,7 @@
         _bridgeCache[order[i]] = hit;
         useOnline = (order[i] === "online");
         srcLineEl.className = "srcline " + (useOnline ? "on" : "off");
-        srcTextEl.textContent = (useOnline ? "H743 在线 · 端口 " : "H743 离线 · 端口 ") +
-          hit.port + " · 缓冲 " + (hit.st.buffered || 0) + " B";
+        srcTextEl.textContent = srcLabel(hit);
         srcBtn.disabled = false;
         return;
       }catch(e){ /* 试下一个源 */ }
@@ -743,6 +769,7 @@
       b.addEventListener("click", function(){
         if (rolling) return;
         chipIdx = i; renderChips();
+        playSfx("chip");        // 选筹码也给一声，与 21 点一致
       });
       tray.appendChild(b);
     });
@@ -759,6 +786,7 @@
     bet[key] = v;
     updateHUD();
     setHint("");
+    if (delta !== 0) playSfx("chip");   // 放 / 撤筹码的咔哒声（同 21 点）；金额没变就不响
   }
 
   Array.prototype.forEach.call(document.querySelectorAll(".spot"), function(el){
@@ -769,9 +797,11 @@
 
   clearBtn.addEventListener("click", function(){
     if (rolling) return;
+    var had = betSum() > 0;
     SPOT_KEYS.forEach(function(k){ bet[k] = 0; });
     updateHUD();
     setHint("已清空下注");
+    if (had) playSfx("chip");   // 本来就是空的就别响
   });
 
   /* =====================================================================
