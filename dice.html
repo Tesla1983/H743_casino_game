@@ -20,7 +20,8 @@
     --felt-1:#12503c; --felt-2:#0a3a2b; --felt-3:#072a20;
   }
   *{box-sizing:border-box;}
-  html,body{height:100%;}
+  html{height:100%;}
+  /* body 不锁死 100%：结算明细会让内容变高，锁死 + flex 居中会把顶部裁掉 */
   body{
     margin:0;min-height:100%;
     font-family:"Segoe UI",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
@@ -155,6 +156,23 @@
   }
 
   /* ---------------- 随机源状态行 ---------------- */
+  /* ---------------- 结算明细（派彩算式） ---------------- */
+  .calcline{
+    position:relative;z-index:2;margin:7px 2px 0;
+    padding:7px 12px;border-radius:10px;text-align:center;
+    font-size:12px;line-height:1.8;letter-spacing:.2px;color:#b9a8d6;
+    background:rgba(0,0,0,.22);border:1px solid rgba(245,197,66,.14);
+    font-variant-numeric:tabular-nums;
+  }
+  .calcline[hidden]{display:none;}
+  .calcline .bet{white-space:nowrap;margin:0 5px;}
+  .calcline b{color:#ffe9a8;font-weight:800;}
+  .calcline .op{color:#8f80ab;margin:0 2px;}
+  .calcline .sep{color:#6f6390;margin:0 4px;}
+  .calcline.win b.net{color:#8ff0b8;}
+  .calcline.lose{color:#a294ab;}
+  .calcline.lose b{color:#ffa8a8;}
+
   .srcline{
     display:flex;align-items:center;gap:8px;padding:0 4px;
     font-size:11px;letter-spacing:.4px;color:var(--muted);
@@ -445,6 +463,9 @@
       <span class="vt" id="vt" data-i18n="res.wait">等待投掷</span>
       <span class="tag" id="vtag" data-i18n="res.tag">大 11–17 · 小 4–10</span>
     </div>
+
+    <!-- 派彩算式：每一注的「本金 + 赔额 = 返还」，再给出「派彩 − 本注 = 净额」 -->
+    <div class="calcline" id="calcline" hidden></div>
   </section>
 
   <div class="srcline" id="srcline">
@@ -820,6 +841,10 @@
       "msg.win":"中奖 {n} 注 · 派彩 {p}","msg.lose":"本局未中奖",
       "msg.srcfail":"随机源不可用，本手未扣分 — 请确认 start_casino.py 已启动",
       "msg.switchOn":"在线源不可用 · 已切到离线源","msg.switchOff":"离线源不可用 · 已切到在线源",
+      "calc.title":"派彩明细：","calc.face":"点数 {n}",
+      "calc.nameSep":"：","calc.opProfit":"＋赔","calc.opEq":"＝","calc.opDot":"·","calc.opBar":"｜",
+      "calc.total":"派彩 {payout} − 本注 {total} ＝ {net}",
+      "calc.lose":"{total} 全部未中","calc.miss":"另 {n} 注未中 {stake}",
       "doc.title":"骰宝 SIC BO · 三颗骰子"
     },
     en:{
@@ -853,6 +878,10 @@
       "msg.win":"{n} bet(s) won · payout {p}","msg.lose":"No winning bet this round",
       "msg.srcfail":"RNG unavailable — this hand was not charged",
       "msg.switchOn":"Online RNG failed — switched to offline","msg.switchOff":"Offline RNG failed — switched to online",
+      "calc.title":"Payout math: ","calc.face":"Face {n}",
+      "calc.nameSep":": ","calc.opProfit":" +","calc.opEq":" = ","calc.opDot":" · ","calc.opBar":" | ",
+      "calc.total":"payout {payout} − bet {total} = {net}",
+      "calc.lose":"{total} all lost","calc.miss":"and {n} losing bet(s) {stake}",
       "doc.title":"Sic Bo · three dice"
     }
   };
@@ -1005,6 +1034,7 @@
   var clearBtn = document.getElementById("clearBtn");
   var hintEl = document.getElementById("hint");
   var resultline = document.getElementById("resultline");
+  var calclineEl = document.getElementById("calcline");
   var vtEl = document.getElementById("vt");
   var vtagEl = document.getElementById("vtag");
   var rvEls = [document.getElementById("rv0"), document.getElementById("rv1"), document.getElementById("rv2")];
@@ -1156,7 +1186,13 @@
   /* 结果行也存一份状态：切语言、或 applyLang 里重放时都靠 drawResult() 重画 */
   var _lastResult = null;
   function renderResult(d, r, net){
-    _lastResult = { d: d.slice(), sum: r.sum, triple: !!r.triple, net: net };
+    /* 结算时刻把「注单 / 命中 / 赔付」一起快照：之后注位被清空或改注，明细仍按这一手算 */
+    var snapBets = {};
+    SPOT_KEYS.forEach(function(k){ snapBets[k] = bet[k] || 0; });
+    var snapHits = {};
+    for (var k in r.hits) snapHits[k] = r.hits[k];
+    _lastResult = { d: d.slice(), sum: r.sum, triple: !!r.triple, net: net,
+      payout: r.payout, hits: snapHits, bets: snapBets };
     _vtState = null;
     drawResult();
   }
@@ -1174,7 +1210,68 @@
     });
     vtagEl.textContent = st.net > 0 ? tt("tag.plus", { n: fmt(st.net) })
       : (st.net < 0 ? tt("tag.minus", { n: fmt(-st.net) }) : tt("tag.push"));
+    drawCalc();
   }
+  /* 派彩算式：逐注列出「本金 ＋ 赔额 ＝ 返还」，再收一行「派彩 − 本注 ＝ 净额」。
+     多注组合时这一行会按注单顺序把所有命中的注都摊开，读者能自己复核加总。 */
+  function calcRows(hits, bets, payout, net){
+    var total = 0, rows = [];
+    SPOT_KEYS.forEach(function(k){ total += bets[k] || 0; });
+    SPOT_KEYS.forEach(function(k){
+      var stake = bets[k] || 0;
+      var rate = hits[k];
+      if (!stake || rate == null) return;
+      rows.push({ key: k, stake: stake, rate: rate,
+        profit: stake * rate, back: stake * (1 + rate) });
+    });
+    return { rows: rows, total: total, payout: payout, net: net };
+  }
+  function spotName(key){
+    if (/^f[1-6]$/.test(key)) return tt("calc.face", { n: key.slice(1) });
+    return tt("spot." + key);
+  }
+  function drawCalc(){
+    if (!calclineEl) return;
+    var st = _lastResult;
+    if (!st){ calclineEl.hidden = true; calclineEl.innerHTML = ""; return; }
+    var c = calcRows(st.hits, st.bets, st.payout, st.net);
+    if (!c.total){ calclineEl.hidden = true; calclineEl.innerHTML = ""; return; }
+
+    var parts = [];
+    c.rows.forEach(function(r){
+      /* 名称后加冒号：「点数 3」本身就带数字，直接接注额会读成「点数 3 25」 */
+      parts.push('<span class="bet">' + spotName(r.key) + tt("calc.nameSep") + '<b>' + fmt(r.stake) + '</b>' +
+        '<span class="op">' + tt("calc.opProfit") + '</span><b>' + fmt(r.profit) + '</b>' +
+        '<span class="op">' + tt("calc.opEq") + '</span><b>' + fmt(r.back) + '</b></span>');
+    });
+    var html = '<span class="sep">' + tt("calc.title") + '</span>';
+    html += parts.length
+      ? parts.join('<span class="op">' + tt("calc.opDot") + '</span>')
+      : '<span class="bet">' + tt("calc.lose", { total: '<b>' + fmt(c.total) + '</b>' }) + '</span>';
+
+    /* 多注组合时把「没中的那些注」也报出来：读者才能把 派彩 / 本注 / 净额 三者对上，
+       否则只列命中注会让人疑惑「我明明押了 4 注」。 */
+    var missStake = 0, missN = 0;
+    SPOT_KEYS.forEach(function(k){
+      var stake = st.bets[k] || 0;
+      if (!stake || st.hits[k] != null) return;
+      missStake += stake; missN++;
+    });
+    /* 全未中时前面已经写了「全部未中」，再报一次「另 N 注未中」就重复了 */
+    if (missN && parts.length) html += '<span class="sep">' + tt("calc.opBar") + '</span>' +
+      '<span class="bet">' + tt("calc.miss", { n: missN, stake: '<b>' + fmt(missStake) + '</b>' }) + '</span>';
+
+    var netStr = (c.net > 0 ? "+" : (c.net < 0 ? "−" : "")) + fmt(Math.abs(c.net));
+    html += '<span class="sep">' + tt("calc.opBar") + '</span>' + tt("calc.total", {
+      payout: '<b>' + fmt(c.payout) + '</b>',
+      total: '<b>' + fmt(c.total) + '</b>',
+      net: '<b class="net">' + netStr + '</b>'
+    });
+    calclineEl.className = "calcline " + (c.net > 0 ? "win" : (c.net < 0 ? "lose" : ""));
+    calclineEl.innerHTML = html;
+    calclineEl.hidden = false;
+  }
+
   /* 「投掷中…」「随机源不可用」这类临时状态同样走 key，切语言能跟着变 */
   function setVt(key, vars){
     _vtState = key ? { key:key, vars:vars || null } : null;
@@ -1208,6 +1305,7 @@
     setVt("vt.rolling");
     vtagEl.textContent = "";
     rvEls.forEach(function(el){ el.textContent = "–"; el.classList.add("dim"); });
+    if (calclineEl){ calclineEl.hidden = true; calclineEl.innerHTML = ""; }
     setHintKey(null);
     playSfx("roll");          // 骰子落桌音：必须紧跟用户手势，不能放到 await 之后
     stage.classList.add("rolling");   // 投掷期间落影变淡（骰子离桌）
@@ -1238,6 +1336,7 @@
       updateHUD();
       resultline.className = "resultline";
       _lastResult = null;
+      if (calclineEl){ calclineEl.hidden = true; calclineEl.innerHTML = ""; }
       setVt("vt.srcerr");
       vtagEl.textContent = "";
       setHintKey("msg.srcfail", null, true);
@@ -1301,6 +1400,7 @@
   /* 测试钩子：只读，供回归脚本直接校验结算表，不参与任何游戏流程 */
   window.__sicboSettle = settleOf;
   window.__sicboFaceTest = function(i, val){ setFace(dice[i], val); };
+  window.__sicboCalcRows = calcRows;          // 纯函数，供回归脚本直接核对算式
 })();
 </script>
 </body>
