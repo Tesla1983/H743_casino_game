@@ -152,7 +152,10 @@
      卡内 5 项统计被 .jp-body 的 space-evenly 均匀摊开、每项之间空出近 200px。
      改为按内容高度（≈348px）贴底对齐，卡片恢复 21 点那种紧凑成群的样子。
      用 ID 选择器覆盖 .sidecard；断点与下方窄屏规则（≤980px 竖排流式）错开，
-     窄屏仍沿用 align-self:center，不受影响。 */
+     窄屏仍沿用 align-self:center，不受影响。
+     底边再往上收一截、对齐右侧「珠盘路」卡片的下沿（那里原本被银行卡圆钮顶住）：
+     收多少取决于银行卡实测高度 + 珠盘路 1.25 倍缩放的向下溢出，写死会随视口/银行卡
+     缩放跑偏，故由 JS(syncProfileRoad) 实测后写 margin-bottom，这里只留对齐锚点。 */
   @media (min-width:981px){
     #playerCard{align-self:flex-end;}
   }
@@ -3458,6 +3461,54 @@
     bankFitPend = true;
     requestAnimationFrame(function(){ bankFitPend = false; fitBankCard(); });
   });
+
+  /* ---------- 玩家档案卡：底边对齐「珠盘路」卡片底边 ----------
+     三卡行是 align-items:flex-end，档案卡原来贴的是整行底（= 银行卡圆钮底部），
+     比珠盘路卡片的视觉下沿低出「银行卡高度 + 列间距」约 218px，看着悬在半空。
+     珠盘路卡还带 1.25 倍 transform 缩放（transform 不占布局，视觉下沿比布局盒多出
+     25% 高度），再加上 ≥1910px 时 .page 的 zoom:1.2，所以只能实测矩形反推：
+       需要的上移量 = (档案卡 rect 底 − 珠盘路 rect 底) ÷ 祖先缩放比
+     rect 已含 transform 与 zoom；换算回布局像素（margin 的单位）要除掉祖先缩放，
+     该缩放当场用「档案卡 rect 高 ÷ offsetHeight」量出来，不写死。
+     银行卡展开/收起、珠盘路多开一列、窗口缩放都会改变这个差值，故用 ResizeObserver 跟随。 */
+  var pcEl = $("playerCard"), pcRowEl = document.querySelector(".machrow");
+  var pcSideEl = document.querySelector(".sidecol");
+  function syncProfileRoad(){
+    if (!pcEl || !roadCardEl || !pcRowEl || !pcSideEl) return;
+    var rowTop = pcRowEl.getBoundingClientRect().top;
+    // 同一行才谈得上「底边对齐」：窄屏/折行后 .sidecol 换到下一行，直接回退自然贴底
+    var sameLine = Math.abs(pcSideEl.getBoundingClientRect().top - rowTop) <= 2;
+    if (!window.matchMedia("(min-width:981px)").matches || !sameLine){
+      if (pcEl.style.marginBottom) pcEl.style.marginBottom = "";
+      return;
+    }
+    var pcRect = pcEl.getBoundingClientRect();
+    var sc = pcEl.offsetHeight ? pcRect.height / pcEl.offsetHeight : 1;   // .page 的 zoom(≥1910px 为 1.2)
+    if (!sc || sc <= 0) sc = 1;
+    /* 关键：rect 里已经含了「上一轮写进去的 margin-bottom」。
+       如果直接拿 rect 底去和珠盘路比，第二次计算就会得出 0（因为已经对齐了），
+       于是写回 0px、卡片又掉下去 —— 来回抖动。先把当前 margin 加回去还原成
+       「不加上移量时的自然底边」，算出的才是绝对上移量，反复调用结果恒定。 */
+    var cur = parseFloat(pcEl.style.marginBottom) || 0;
+    var d = (pcRect.bottom - roadCardEl.getBoundingClientRect().bottom) / sc + cur;
+    var px = Math.max(0, Math.round(d)) + "px";
+    if (px !== pcEl.style.marginBottom) pcEl.style.marginBottom = px;
+  }
+  syncProfileRoad();
+  var pcSyncPend = false;
+  function syncProfileRoadSoon(){
+    if (pcSyncPend) return;
+    pcSyncPend = true;
+    requestAnimationFrame(function(){ pcSyncPend = false; syncProfileRoad(); });
+  }
+  window.addEventListener("resize", syncProfileRoadSoon);
+  window.addEventListener("load", syncProfileRoadSoon);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(syncProfileRoadSoon);
+  if (window.ResizeObserver){
+    // 只观察「会改变差值」的三个盒子；不观察档案卡自身，避免写 margin 后反复回调
+    var pcRo = new ResizeObserver(syncProfileRoadSoon);
+    [roadCardEl, bankEl, pcSideEl].forEach(function(el){ if (el) pcRo.observe(el); });
+  }
 
   /* ---------- 路纸墙：收起 / 展开（横向手风琴，状态记本地） ---------- */
   var roadBookEl = $("roadBook"), rbToggleBtn = $("rbToggle");
