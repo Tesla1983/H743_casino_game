@@ -147,6 +147,15 @@
     box-shadow:0 18px 48px rgba(0,0,0,.55), 0 0 42px rgba(245,197,66,.10),
       inset 0 1px 0 rgba(255,255,255,.07);
   }
+  /* 玩家档案对齐 21 点样式：不要被三卡行 stretch 拉满整行高度。
+     .sidecard 默认 align-self:stretch，会跟着最高的路纸卡一路拉到 1200+ px，
+     卡内 5 项统计被 .jp-body 的 space-evenly 均匀摊开、每项之间空出近 200px。
+     改为按内容高度（≈348px）贴底对齐，卡片恢复 21 点那种紧凑成群的样子。
+     用 ID 选择器覆盖 .sidecard；断点与下方窄屏规则（≤980px 竖排流式）错开，
+     窄屏仍沿用 align-self:center，不受影响。 */
+  @media (min-width:981px){
+    #playerCard{align-self:flex-end;}
+  }
   .sidecard::before{content:"";position:absolute;inset:5px;border-radius:15px;pointer-events:none;
     border:1px solid rgba(245,197,66,.12);}
   /* 路纸点径 15px→30px（2 倍）：6 行 × 8 列放不下，改为 8 行 × 6 列（仍是 48 手），
