@@ -376,11 +376,13 @@
   .flycard img{width:100%;height:100%;display:block;object-fit:cover;}
   .bcard.hot .bf{box-shadow:0 0 18px rgba(255,205,70,.55),0 6px 14px rgba(0,0,0,.6);
     border-color:rgba(255,225,140,.85);}
-  /* 点数不再有边框/背景框：直接在绿呢布（透过近乎透明的 .side 面板）上显示数字 */
+  /* 点数不再有边框/背景框：直接在绿呢布（透过近乎透明的 .side 面板）上显示数字。
+     去掉原来 54×40 的固定框（这就是“爆牌”长文案被挤出的限制），改为按内容自适应尺寸，
+     字体放大 1.25×（22px→27.5px），保留 min-width/min-height 占位避免空态抖动。 */
   .total{
-    flex:0 0 54px;width:54px;height:40px;
+    min-width:54px;min-height:40px;width:auto;height:auto;
     display:flex;align-items:center;justify-content:center;
-    font-size:22px;font-weight:900;color:#ffe9a8;font-variant-numeric:tabular-nums;
+    font-size:27.5px;font-weight:900;color:#ffe9a8;font-variant-numeric:tabular-nums;line-height:1.05;
     background:transparent;border:none;box-shadow:none;
     transition:transform .25s cubic-bezier(.2,1.4,.4,1), color .2s, text-shadow .2s;
   }
@@ -1005,7 +1007,7 @@
 
   /* ---------- 闲 / 庄 两张手牌区：名字牌居中在上，牌在台面正中、点数球平衡在右 ---------- */
   body.arc .side{
-    display:grid;grid-template-columns:56px 1fr 56px;
+    display:grid;grid-template-columns:56px 1fr 140px;
     grid-template-areas:"who who who" "spacer cards total";
     align-items:center;justify-items:center;gap:4px 10px;
     width:100%;max-width:512px;margin:0 auto;padding:8px 12px;min-height:0;
@@ -1025,7 +1027,7 @@
   body.arc .side .who{grid-area:who;width:auto;display:flex;align-items:baseline;justify-content:center;gap:9px;}
   body.arc .side .wen{margin-top:0;}
   body.arc .side .cards{grid-area:cards;justify-content:center;padding-left:0;}
-  body.arc .side .total{grid-area:total;}
+  body.arc .side .total{grid-area:total;justify-self:end;}
   body.arc .side.b{order:1;}
   body.arc .side.p{order:5;margin-top:auto;}
   body.arc .verdict{order:2;margin:10px 0 0;height:auto;min-height:24px;}
