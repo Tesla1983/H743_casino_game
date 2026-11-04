@@ -416,6 +416,12 @@
   .verdict.p .vt{color:#a8c8ff;text-shadow:0 0 14px rgba(90,140,255,.65);}
   .verdict.b .vt{color:#ffa8a8;text-shadow:0 0 14px rgba(255,80,80,.6);}
   .verdict.t .vt{color:#8ff0b8;text-shadow:0 0 14px rgba(60,220,130,.6);}
+  /* 21 点结算文案配色：与百家乐台面用同一套（色值 / 发光半径逐字照搬 .verdict.p/.b/.t 与 .vwin.push），
+     只把类名换成 21 点语义，保证两个游戏的「台面提示文字」视觉完全统一：
+       赢 = 绿（同百家乐 .verdict.t 的绿）、输 = 红（同 .verdict.b）、平 = 金（同 .vwin.push）。 */
+  .verdict.win .vt{color:#8ff0b8;text-shadow:0 0 14px rgba(60,220,130,.6);}
+  .verdict.lose .vt{color:#ffa8a8;text-shadow:0 0 14px rgba(255,80,80,.6);}
+  .verdict.push .vt{color:#ffe9a8;text-shadow:0 0 14px rgba(245,197,66,.6);}
   /* 发牌中：中性色 + 轻微呼吸，明确区别于「上一局结果」 */
   .verdict.dealing .vt{color:#c9b8e8;animation:vtPulse 1.1s ease-in-out infinite;}
   @keyframes vtPulse{0%,100%{opacity:1}50%{opacity:.45}}
@@ -2444,6 +2450,7 @@
   var pCards = $("pCards"), bCards = $("bCards"), pTotalEl = $("pTotal"), bTotalEl = $("bTotal");
   var sideP = $("sideP"), sideB = $("sideB");
   var verdictEl = $("verdict"), vtEl = $("vt");
+  var _vCls = "";          // 裁决行当前状态类（""/dealing/win/lose/push），切语言时原样恢复
   var dealBtn = $("dealBtn");
   /* 动作键 DOM 引用用 btn* 前缀：与同名动作函数（actHit/actStand）区分开。
      命名约定：var btnHit = $("btnHit") 会覆盖同名的 function actHit 声明
@@ -2548,9 +2555,18 @@
     _lastHint = { key:key, vars:vars || null };
     if (hintEl) hintEl.textContent = tt(key, vars);
   }
+  /* 台面提示文字（裁决行）统一入口——与百家乐同一套渲染规则：
+       · 文案写进 #vt，配色/脉冲靠 .verdict 上的状态类（dealing / win / lose / push）
+       · 任何状态切换都整体重置 className，绝不把上一局的颜色或脉冲留在桌上
+     cls 取 ""（中性灰）/ "dealing"（发牌中呼吸）/ "win" / "lose" / "push"。 */
+  function setVerdict(text, cls){
+    if (vtEl && text != null) vtEl.textContent = text;
+    if (verdictEl) verdictEl.className = "verdict" + (cls ? " " + cls : "");
+    _vCls = cls || "";
+  }
   function renderVerdictText(){
     // 静态裁决文案由各状态转移时写入；切语言时按 phase 重写当前行
-    if (phase === "bet" && bet.main === 0) vtEl.textContent = tt("verdict.place");
+    if (phase === "bet" && bet.main === 0) setVerdict(tt("verdict.place"), _vCls);
   }
   function renderInsBtn(){
     if (!insBtn) return;
@@ -2574,7 +2590,7 @@
     bet.main += d;
     playSfx("chip");
     updateHUD();
-    vtEl.textContent = tt("verdict.place");
+    setVerdict(tt("verdict.place"));
   }
   function undoBet(){
     if (bet.main <= 0) return;
@@ -2616,7 +2632,7 @@
     dealing = true;
     dealBtn.disabled = true;
     setWin(0);
-    vtEl.textContent = tt("verdict.dealing");
+    setVerdict(tt("verdict.dealing"), "dealing");
 
     try{
       // 取 4 张：玩家、庄明、玩家、庄暗
@@ -2662,7 +2678,7 @@
 
       // 进入玩家行动阶段
       phase = "player";
-      vtEl.textContent = tt("verdict.you");
+      setVerdict(tt("verdict.you"));
       refreshActionBtns();
       dealing = false; dealBtn.disabled = false;
 
@@ -2810,6 +2826,7 @@
     var vw = $("vwin");
     if (vw){ vw.className = "vwin"; vw.textContent = ""; }
     if (verdictEl) verdictEl.className = "verdict";
+    _vCls = "";
     var insSpot = document.getElementById("insSpot");
     if (insSpot) insSpot.classList.remove("on");
     setWin(0);
@@ -2953,7 +2970,7 @@
     h.doubled = true;
     playSfx("chip");
     updateHUD();
-    vtEl.textContent = tt("verdict.doubling");
+    setVerdict(tt("verdict.doubling"));
     var c = drawCard();
     if (!c){ setHintKey("msg.norand"); return; }
     h.cards.push(c);
@@ -3005,7 +3022,7 @@
       await nextHandOrDealer();
       return;
     }
-    vtEl.textContent = tt("verdict.you");
+    setVerdict(tt("verdict.you"));
     refreshActionBtns();
   }
   async function nextHandOrDealer(){
@@ -3014,14 +3031,24 @@
     if (activeHand < playerHands.length){
       refreshHandMarks(); refreshActionBtns();
       renderTotals();
-      vtEl.textContent = tt("verdict.you");
+      setVerdict(tt("verdict.you"));
       setHintKey("msg.nextHand");
       return;
     }
     // 全部结束：庄家行动
     phase = "dealer";
     refreshActionBtns();
-    vtEl.textContent = tt("verdict.dealer");
+    setVerdict(tt("verdict.dealer"));
+    // 全部手都爆牌：已无对手可比点数，庄家一张都不该再补（只需翻开暗牌）。
+    // 分牌时只要还有一手没爆，庄家照常行动。
+    var allBust = playerHands.length > 0 && playerHands.every(function(h){
+      return handValue(h.cards).bust;
+    });
+    if (allBust){
+      await revealHole();
+      await settleRound();
+      return;
+    }
     await dealerTurn();
   }
   /* 洞牌揭示：不重绘，直接给现有暗牌 DOM 加 .up 走 3D 翻面（重绘会跳过翻面动画） */
@@ -3103,25 +3130,26 @@
       setWin(0);
     }
     // 裁决文案：专属情形优先（双BJ平局 / 玩家BJ / 爆牌 / 庄BJ）
+    // 配色与百家乐台面一致（赢绿 / 输红 / 平金），由 .verdict 的状态类控制，见 setVerdict。
     if (anyNat && dbj){
-      vtEl.textContent = tt("verdict.dbjPush");
+      setVerdict(tt("verdict.dbjPush"), "push");
     } else if (anyNat && net > 0){
-      vtEl.textContent = tt("verdict.bj", { n: fmt(net) });
+      setVerdict(tt("verdict.bj", { n: fmt(net) }), "win");
     } else if (dbj && net < 0 && insBet > 0 && insNet > 0){
       // 庄 BJ 但保险赚回部分损失：主注文案 + 保险提示
-      vtEl.textContent = tt("verdict.dbj", { n: fmt(-net) }) + " · " + tt("verdict.insWon", { n: fmt(insNet) });
+      setVerdict(tt("verdict.dbj", { n: fmt(-net) }) + " · " + tt("verdict.insWon", { n: fmt(insNet) }), "lose");
     } else if (dbj && net < 0){
-      vtEl.textContent = tt("verdict.dbj", { n: fmt(-net) });
+      setVerdict(tt("verdict.dbj", { n: fmt(-net) }), "lose");
     } else if (anyBust && net < 0){
-      vtEl.textContent = tt("verdict.bust", { n: fmt(-net) });
+      setVerdict(tt("verdict.bust", { n: fmt(-net) }), "lose");
     } else if (net > 0){
-      vtEl.textContent = tt("verdict.win", { n: fmt(net) });
+      setVerdict(tt("verdict.win", { n: fmt(net) }), "win");
     } else if (net === 0){
       var pushRet = 0;
       playerHands.forEach(function(h){ if (h.res === 0) pushRet += h.bet; });
-      vtEl.textContent = tt("verdict.push", { n: fmt(pushRet) });
+      setVerdict(tt("verdict.push", { n: fmt(pushRet) }), "push");
     } else {
-      vtEl.textContent = tt("verdict.lose", { n: fmt(-net) });
+      setVerdict(tt("verdict.lose", { n: fmt(-net) }), "lose");
     }
     lsSave(LS.credits, credits);
     // 档案统计（保险净额一并计入输赢）
@@ -3195,7 +3223,7 @@
       if (!anyOpen){ settleRound(); return; }
       renderCards(); renderTotals(); refreshActionBtns();
       updateHUD();
-      vtEl.textContent = tt("verdict.you");
+      setVerdict(tt("verdict.you"));
       setHintKey("msg.resume");
     } else if (phase === "bet"){
       // 发牌动画/保险窗中刷新：注已扣但本手未成型 → 全额退款重来
@@ -3332,7 +3360,7 @@
       clearTable();
       bet.main = 0; insBet = 0;
       phase = "bet";
-      vtEl.textContent = tt("verdict.place");
+      setVerdict(tt("verdict.place"));
       updateHUD(); renderStats(); setWin(0);
     });
   })();
