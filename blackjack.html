@@ -859,6 +859,19 @@
     .topbar .volwrap .btn.small{flex:0 0 32px;width:32px;min-width:32px;}
     .vol-pop{padding:7px;}
     .vol-pop::after{right:11px;}
+    /* 窄屏台面被庄家区 / 下注圈 / 动作键 / 手牌区竖向填满，右侧再挂绝对定位的卡片
+       无论上移下移都会盖住其中一块。改为流内紧凑横条落到台面底部：
+       省略牌背堆，保留余牌数 + 进度条 + 百分比，彻底不覆盖任何元素。
+       选择器带 div 提高特异性，压过后面 body.arc .felt > * 的 position:relative。 */
+    body.arc .felt > div.shoecard{
+      position:static;transform:none;width:auto;order:9;
+      flex-direction:row;align-items:center;justify-content:center;gap:8px;
+      padding:6px 4px;margin:8px 0 0;
+    }
+    body.arc .felt > div.shoecard .sc-stack{display:none;}
+    body.arc .felt > div.shoecard .sc-top{flex:0 0 auto;gap:4px;}
+    body.arc .felt > div.shoecard .sc-bar{flex:1 1 auto;height:6px;margin-right:0;}
+    body.arc .felt > div.shoecard .sc-foot{flex:0 0 auto;}
   }
 
   /* 余牌小牌：去掉 class="arc" 时的降级样式（右侧浮动小字），避免旧柜机外观下变成裸文字 */
@@ -960,8 +973,10 @@
   /* 台呢顶部不再印字：招牌与水印都已去掉，弧顶留白由 .felt 的 padding 控制 */
 
   /* 余牌卡片移入台面右侧：绝对定位到台面右缘、垂直居中、贴边；尺寸等比缩小 */
+  /* 余牌卡片整体上移 52px：原本进度条与「满靴」文字压在「分牌」动作按钮上。
+     上移后卡片底部距动作行约 10px，且不与上方下注圈 / 庄家牌区相撞。 */
   body.arc .felt > .shoecard{
-    position:absolute;right:4px;top:50%;transform:translateY(-50%);z-index:4;
+    position:absolute;right:4px;top:50%;transform:translateY(calc(-50% - 52px));z-index:4;
     width:148px;padding:9px 9px 10px;gap:6px;
     /* 完全融入台面：背景透明，直接露出下面绿呢，无边框、无外投影、无色块 */
     background:transparent;border:0;box-shadow:none;border-radius:14px;
@@ -973,7 +988,8 @@
   body.arc .felt > .shoecard .sc-card:nth-child(2){top:4px;left:8px;}
   body.arc .felt > .shoecard .sc-card:nth-child(3){top:2px;left:12px;}
   body.arc .felt > .shoecard .sc-card:nth-child(4){top:0;left:16px;}
-  body.arc .felt > .shoecard .sc-bar{height:8px;}
+  /* 进度条右端内缩 3px：避开台呢内圈金线（.felt::before inset:15px） */
+  body.arc .felt > .shoecard .sc-bar{height:8px;margin-right:3px;}
   body.arc .felt > .shoecard .sc-foot{font-size:9.5px;}
 
   /* ---------- 闲 / 庄 两张手牌区：名字牌居中在上，牌在台面正中、点数球平衡在右 ---------- */
