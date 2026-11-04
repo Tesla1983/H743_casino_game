@@ -200,17 +200,17 @@
   .pl-reset:hover{filter:brightness(1.08);}
   .pl-reset:active{transform:translateY(1px);}
 
-  /* ---------- 玩家档案：独立放到主牌桌右侧 ----------
-     .sidecard 本来就是 position:relative，用 left 只做视觉平移，原 flex 槽位仍保留，
-     所以柜机 / 右侧列 / 规则区的位置一点不变（不是脱离文档流的 absolute）。
-     位移 = 自身宽 172 + 行间距 16 + 柜机宽 724 + 与牌桌留白 36 = 948px，
-     这是 .machrow 内三个元素连续排列决定的固定相对距离，与视口居中、zoom 都无关。
-     align-self:flex-start 取消 stretch：高度改由内容决定（847px → 348px），
-     .jp-body 的 space-evenly 在没有多余高度后自动收拢，多余留白消失，
-     内部排版 / 字号 / 间距一概不动，内容与交互保持原样。
-     窄于 1240px 时三卡会换行，右侧放不下这张卡，保持原来的行内位置。 */
+  /* ---------- 玩家档案 + 银行卡：桌面布局重排 ----------
+     桌面（≥1240px）三列顺序改为：左 = 银行卡列(.sidecol) / 中 = 主牌桌(柜机) / 右 = 玩家档案。
+     用 flex order 重排，不脱离文档流，柜机 / 规则区位置随整体居中自然保持：
+       .sidecol{order:-1}  → 银行卡列移到最左；
+       #playerCard{order:2; align-self:flex-end} → 排到牌桌之后（右侧），并与牌桌底部对齐（下移）；
+       margin-left:36px 保留与牌桌的留白（原 left:948 内含的 36px 余量）。
+     原来 left:948px 的右移 hack 已去掉：现在由 order 自然排到右侧，不再依赖固定像素位移。
+     窄于 1240px 时三卡换行，order 失效、回到原来的行内位置（银行卡仍在右侧列），保持原有窄屏行为。 */
   @media (min-width:1240px){
-    #playerCard{align-self:flex-start;left:948px;}
+    body.arc .sidecol{order:-1;}
+    #playerCard{align-self:flex-end;position:relative;margin-left:36px;order:2;}
   }
 
   /* ---------- 路纸（珠盘路）：8 行，自上而下、满列换列 ---------- */
@@ -1333,9 +1333,9 @@
 <div class="stage">
   <div class="machine">
 
-    <!-- 银行卡已移入右侧 .sidecol -->
+    <!-- 银行卡在桌面布局里由 CSS order 移到最左（见 @media min-width:1240px 的 .sidecol{order:-1}） -->
 
-    <!-- ==================== 三卡行：玩家档案 / 柜机 / 右侧缩放列（牌靴·珠盘路·银行卡） ==================== -->
+    <!-- ==================== 三卡行：左侧银行卡列 / 柜机(主牌桌) / 右侧玩家档案 ==================== -->
     <div class="machrow">
 
     <!-- ==================== 玩家档案 ==================== -->
@@ -1511,7 +1511,7 @@
       <div class="hintmsg" id="hintMsg"></div>
     </div>
     </div>
-    <!-- ==================== 右侧缩放列（非焦点）：银行卡 ==================== -->
+    <!-- ==================== 缩放列（非焦点，桌面布局里由 order 移到最左）：银行卡 ==================== -->
     <div class="sidecol">
       <!-- ==================== 银行卡（默认收起为迷你卡标） ==================== -->
       <div class="bankcard mini collapsed" id="bankCard">
