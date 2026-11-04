@@ -1014,8 +1014,9 @@
   body.arc .felt > .shoecard .sc-card:nth-child(2){top:4px;left:8px;}
   body.arc .felt > .shoecard .sc-card:nth-child(3){top:2px;left:12px;}
   body.arc .felt > .shoecard .sc-card:nth-child(4){top:0;left:16px;}
-  /* 进度条右端内缩 3px：避开台呢内圈金线（.felt::before inset:15px） */
-  body.arc .felt > .shoecard .sc-bar{height:8px;margin-right:3px;}
+  /* 进度条右端内缩 6px：避开台呢内圈金线（.felt::before inset:15px）。
+     内缩不足时，视觉上像贴着边框，故再左移 3px。 */
+  body.arc .felt > .shoecard .sc-bar{height:8px;margin-right:6px;}
   body.arc .felt > .shoecard .sc-foot{font-size:9.5px;}
 
   /* ---------- 闲 / 庄 两张手牌区：名字牌居中在上，牌在台面正中、点数球平衡在右 ---------- */
@@ -1243,7 +1244,7 @@
     gap:16px 40px;justify-content:center;margin-top:16px;
   }
   body.arc .bspot.main{width:152px;height:76px;border-radius:16px;}
-  body.arc .bspot.ins{width:76px;height:56px;opacity:.92;border-radius:16px;}
+  body.arc .bspot.ins{width:90px;height:66px;margin-left:-14px;opacity:.92;border-radius:16px;}
   body.arc .bspot.ins.on{
     opacity:1;border-color:rgba(255,215,106,.8);border-style:solid;
     box-shadow:0 0 20px rgba(245,197,66,.38), 0 0 0 1px rgba(245,197,66,.26);
