@@ -2167,6 +2167,9 @@
       "btn.deal":"发牌","btn.space":"空格",
       "verdict.place":"请下注 · 按「发牌」开始","verdict.dealing":"发牌中…",
       "verdict.you":"你的回合 · 请选择动作",
+      "verdict.doubling":"加倍中 · 发一张后停牌",
+      "msg.splitAceStop":"分 A · 各补一张后强制停牌",
+      "msg.nextHand":"下一手继续",
       "verdict.dealer":"庄家行动中…",
       "verdict.win":"你赢了 +{n}","verdict.lose":"你输了 −{n}","verdict.push":"平局 · 退还 {n}",
       "verdict.bj":"BLACKJACK！+{n}","verdict.bust":"爆牌 · −{n}",
@@ -2253,6 +2256,9 @@
       "btn.deal":"Deal","btn.space":"Space",
       "verdict.place":"Place a bet · press Deal","verdict.dealing":"Dealing…",
       "verdict.you":"Your turn - choose an action",
+      "verdict.doubling":"Doubling - one card, then stand",
+      "msg.splitAceStop":"Split aces - one card each, no hits",
+      "msg.nextHand":"Playing next hand",
       "verdict.dealer":"Dealer playing…",
       "verdict.win":"You win +{n}","verdict.lose":"You lose -{n}","verdict.push":"Push · {n} returned",
       "verdict.bj":"BLACKJACK! +{n}","verdict.bust":"Bust -{n}",
@@ -2644,6 +2650,11 @@
     if (!pCards || !bCards) return;
     pCards.innerHTML = "";
     playerHands.forEach(function(h, hi){
+      if (hi > 0){
+        var gap = document.createElement("div");
+        gap.className = "split-gap";
+        pCards.appendChild(gap);
+      }
       h.cards.forEach(function(c){
         var n = cardNode(c.code, false);
         if (playerHands.length > 1) n.classList.add(hi === activeHand ? "cur" : "idle");
@@ -2698,7 +2709,10 @@
     var el = cardNode(card.code, true);          // 一律先背面：暗牌停背面，明牌到位后翻面
     if (opts.extraClass) el.classList.add(opts.extraClass);
     el.style.visibility = "hidden";
-    cont.appendChild(el);
+    // 分牌后多手共用一个容器：beforeEl 指定「下一手第一张牌」，
+    // 新牌必须插到当前手末尾（appendChild 会跑错手）
+    if (opts.beforeEl) cont.insertBefore(el, opts.beforeEl);
+    else cont.appendChild(el);
 
     var shoeEl = document.querySelector(".sc-stack");
     var sr = shoeEl ? shoeEl.getBoundingClientRect() : null;
@@ -2738,8 +2752,36 @@
   }
 
   /* =====================================================================
-   *  玩家动作（M4 完整化；M0 提供 hit/stand 最小闭环）
+   *  玩家动作（M4 完整化：hit/stand/double/split 重分至4手 + A分一张停）
+   *  分牌布局：所有手共用 #pCards 容器（bcard 流式排布），手与手之间插
+   *  split-gap 占位节点作分界。当前行动手 .cur 金边，其余手 .idle 压暗。
    * ===================================================================== */
+  /* 当前手下一张牌的插入点：当前手段尾的分界 gap 节点（最后一手无尾 gap → null=容器尾） */
+  function insertBeforeForCurrentHand(){
+    if (playerHands.length <= 1) return null;
+    var gaps = 0;
+    for (var j = 0; j < pCards.children.length; j++){
+      var ch = pCards.children[j];
+      if (ch.classList.contains("split-gap")){
+        if (gaps === activeHand) return ch;   // 当前手段尾 gap = 插入边界
+        gaps++;
+      }
+    }
+    return null;
+  }
+  /* 按容器内 gap 计数刷新每手牌的 cur/idle 高亮（不打断动画节点） */
+  function refreshHandMarks(){
+    if (!pCards) return;
+    for (var i = 0; i < pCards.children.length; i++){
+      var ch = pCards.children[i];
+      if (ch.classList.contains("split-gap")) continue;
+      if (playerHands.length <= 1){ ch.classList.remove("cur"); ch.classList.remove("idle"); continue; }
+      var g = 0;
+      for (var k = 0; k < i; k++){ if (pCards.children[k].classList.contains("split-gap")) g++; }
+      ch.classList.toggle("cur", g === activeHand);
+      ch.classList.toggle("idle", g !== activeHand);
+    }
+  }
   async function actHit(){
     if (phase !== "player") return;
     var h = playerHands[activeHand];
@@ -2747,10 +2789,9 @@
     var c = drawCard();
     if (!c) { setHintKey("msg.norand"); return; }
     h.cards.push(c);
-    // 多手时新牌落到对应手牌容器：单手直接 pCards；多手按 activeHand 定位
-    var target = sideP;
-    await dealCard(target, c);
-    renderTotals(); saveHand();
+    // 多手共用容器：新牌必须插到当前手末尾（appendChild 会落进下一手区域）
+    await dealCard(sideP, c, playerHands.length > 1 ? { beforeEl: insertBeforeForCurrentHand() } : null);
+    renderTotals(); saveHand(); refreshHandMarks();
     var v = handValue(h.cards);
     if (v.bust){
       h.done = true;
@@ -2767,12 +2808,77 @@
     h.done = true;
     await nextHandOrDealer();
   }
+  /* 加倍：再扣一份注 → h.bet 翻倍 → 发一张 → 强制停牌（无论点数）。
+     守卫：仅首两张、余额足够、未加倍过、A 分手不可加倍。 */
+  async function actDouble(){
+    if (phase !== "player") return;
+    var h = playerHands[activeHand];
+    if (!h || h.done || h.cards.length !== 2 || h.doubled || h.splitAce) return;
+    if (credits < h.bet){ showNotEnough(); return; }
+    credits -= h.bet;
+    lsSave(LS.credits, credits);
+    h.bet *= 2;
+    h.doubled = true;
+    playSfx("chip");
+    updateHUD();
+    vtEl.textContent = tt("verdict.doubling");
+    var c = drawCard();
+    if (!c){ setHintKey("msg.norand"); return; }
+    h.cards.push(c);
+    await dealCard(sideP, c, playerHands.length > 1 ? { beforeEl: insertBeforeForCurrentHand() } : null);
+    renderTotals(); saveHand(); refreshHandMarks();
+    h.done = true;
+    await nextHandOrDealer();
+  }
+  /* 分牌：同点值对拆成两手（各补一张），可重分至 4 手；A 分各一张强制停。
+     资金：新注 = h.bet（此刻从 credits 押入），结算时逐手回款。 */
+  async function actSplit(){
+    if (phase !== "player") return;
+    var h = playerHands[activeHand];
+    if (!h || h.done || h.cards.length !== 2 || !isPairCards(h.cards)) return;
+    if (playerHands.length >= 4) return;
+    if (credits < h.bet){ showNotEnough(); return; }
+    credits -= h.bet;
+    lsSave(LS.credits, credits);
+    playSfx("chip");
+    updateHUD();
+    var c2 = h.cards.pop();                    // 第二张挪去新手
+    var isAce = (c2.rank === "A");
+    var nh = { cards:[c2], bet:h.bet, done:false, fromSplit:true, splitAce:isAce, doubled:false };
+    h.fromSplit = true;
+    if (h.cards[0].rank === "A") h.splitAce = true;
+    playerHands.splice(activeHand + 1, 0, nh);
+    // DOM：先把分界 gap 插到被拆牌（现容器尾）之前——此后当前手段尾即此 gap；
+    // 再给当前手补一张（插 gap 前），最后给新手补一张（容器尾）。
+    var gapEl = document.createElement("div");
+    gapEl.className = "split-gap";
+    pCards.appendChild(gapEl);
+    var cA = drawCard(), cB = drawCard();
+    if (!cA || !cB){ setHintKey("msg.norand"); return; }
+    h.cards.push(cA);
+    nh.cards.push(cB);
+    await dealCard(sideP, cA, { beforeEl: insertBeforeForCurrentHand() });
+    renderTotals(); saveHand();
+    await dealCard(sideP, cB, null);
+    renderTotals(); saveHand(); refreshHandMarks();
+    // A 分：两手各一张即停（不给要牌/加倍）；其余：继续行动当前手
+    if (h.splitAce){
+      h.done = true; nh.done = true;
+      setHintKey("msg.splitAceStop");
+      await nextHandOrDealer();
+      return;
+    }
+    vtEl.textContent = tt("verdict.you");
+    refreshActionBtns();
+  }
   async function nextHandOrDealer(){
     // 找下一手未完成的手
     while (activeHand < playerHands.length && playerHands[activeHand].done) activeHand++;
     if (activeHand < playerHands.length){
-      renderCards(); refreshActionBtns();
+      refreshHandMarks(); refreshActionBtns();
+      renderTotals();
       vtEl.textContent = tt("verdict.you");
+      setHintKey("msg.nextHand");
       return;
     }
     // 全部结束：庄家行动
@@ -2837,7 +2943,6 @@
       else res = 0;
       h.res = res;
       net += res * h.bet;
-      h.bet2 = h.bet * 2;              // double 后注额走 h.bet，这里只留核对位
     });
     // 逐手回款（分牌后每手注额独立——bet.main 只是首注，不能当总本金用）：
     // 赢 → 本金+赢利全回；平 → 退本金；输 → 不回（下注时已扣走）
@@ -2875,7 +2980,9 @@
     } else if (net > 0){
       vtEl.textContent = tt("verdict.win", { n: fmt(net) });
     } else if (net === 0){
-      vtEl.textContent = tt("verdict.push", { n: fmt(bet.main) });
+      var pushRet = 0;
+      playerHands.forEach(function(h){ if (h.res === 0) pushRet += h.bet; });
+      vtEl.textContent = tt("verdict.push", { n: fmt(pushRet) });
     } else {
       vtEl.textContent = tt("verdict.lose", { n: fmt(-net) });
     }
@@ -3120,6 +3227,8 @@
   });
   if (btnHit) btnHit.addEventListener("click", actHit);
   if (btnStand) btnStand.addEventListener("click", actStand);
+  if (btnDouble) btnDouble.addEventListener("click", actDouble);
+  if (btnSplit) btnSplit.addEventListener("click", actSplit);
   /* 保险走 insMask 决策窗（明 A 发牌后自动弹出）；保险圈 insSpot 纯展示 */
   /* 余额不足弹层（ncMask）：点位由 showNotEnough 填 ncDetail */
   var ncMask = $("ncMask"), ncDetail = $("ncDetail");
@@ -3134,6 +3243,8 @@
     if (phase === "player"){
       if (e.key === "h" || e.key === "H") actHit();
       if (e.key === "s" || e.key === "S") actStand();
+      if (e.key === "d" || e.key === "D") actDouble();
+      if (e.key === "p" || e.key === "P") actSplit();
     }
   });
 
