@@ -188,7 +188,9 @@
     background:radial-gradient(circle at 50% 20%, rgba(255,255,255,.05), rgba(0,0,0,.34));
     border:1px solid rgba(245,197,66,.30);
   }
-  .meter .label{font-size:10.5px;letter-spacing:1.2px;color:var(--muted);}
+  /* 卡片小字与 21 点对齐：HUD 标签 10.5 → 11px（21 点 body.arc + 中文那一档就是 11px），
+     字距同时从 1.2px 收到 .6px，汉字才不会因为字距过大显得散 */
+  .meter .label{font-size:11px;letter-spacing:.6px;font-weight:600;color:var(--muted);}
   .meter .val{
     font-size:20px;font-weight:900;color:var(--gold-l);font-variant-numeric:tabular-nums;
     line-height:1.1;text-shadow:0 0 10px rgba(245,197,66,.25);
@@ -257,7 +259,7 @@
   .spot .t{font-size:14px;font-weight:900;letter-spacing:1px;color:#ffe9a8;position:relative;z-index:1;}
   .spot .s{font-size:9.5px;letter-spacing:.3px;color:#a99cc0;position:relative;z-index:1;text-align:center;}
   .spot .amt{
-    font-size:11px;font-weight:900;color:rgba(255,233,168,.45);
+    font-size:12px;font-weight:900;      /* 对齐 21 点 .bs-amt 的 12px */color:rgba(255,233,168,.45);
     font-variant-numeric:tabular-nums;position:relative;z-index:1;min-height:13px;
   }
   .spot.on .amt{color:var(--gold-l);}
@@ -298,6 +300,43 @@
     margin-left:10px;padding:2px 6px;border-radius:5px;
     background:rgba(0,0,0,.18);color:rgba(36,21,0,.8);
   }
+  /* ---------------- 右上角：音量 + 语言（结构与 21 点完全一致） ---------------- */
+  .topctl{display:flex;align-items:center;gap:8px;margin-left:12px;}
+  .btn.small{
+    height:32px;min-width:38px;padding:0 10px;border-radius:9px;
+    font-size:13px;font-weight:800;letter-spacing:1px;line-height:1;
+    display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;
+  }
+  .volwrap{position:relative;display:flex;align-items:center;}
+  .volwrap .btn.small{width:38px;min-width:38px;padding:0;}
+  /* 音量浮层：只留一根竖滑杆（0% 在底、100% 在顶），与 21 点同一套 */
+  .vol-pop{
+    position:absolute;right:0;top:calc(100% + 13px);padding:8px;border-radius:12px;
+    display:none;z-index:45;
+    background:linear-gradient(160deg,#2b1a42,#140d20);
+    border:1px solid rgba(245,197,66,.30);
+    box-shadow:0 16px 40px rgba(0,0,0,.72), inset 0 1px 0 rgba(255,255,255,.06);
+  }
+  .vol-pop.show{display:block;}
+  .vol-pop::after{content:"";position:absolute;right:14px;top:-6px;width:10px;height:10px;
+    background:#2b1a42;border-left:1px solid rgba(245,197,66,.30);
+    border-top:1px solid rgba(245,197,66,.30);transform:rotate(45deg);}
+  .vol-slider{position:relative;width:52px;height:148px;margin:0 auto;padding:12px 0;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;touch-action:none;-webkit-user-select:none;user-select:none;outline:none;}
+  .vol-slider:focus-visible .vol-track{box-shadow:0 0 0 2px rgba(245,197,66,.38);}
+  .vol-track{position:relative;width:4px;height:100%;border-radius:3px;
+    background:rgba(255,255,255,.14);}
+  .vol-fill{position:absolute;left:0;right:0;bottom:0;height:100%;border-radius:3px;
+    background:#ffd76a;}
+  .vol-knob{position:absolute;left:50%;width:14px;height:14px;border-radius:50%;
+    transform:translate(-50%,50%);
+    background:radial-gradient(circle at 35% 30%,#fff6d0,#e2a90f);
+    border:1px solid #7a4a00;
+    box-shadow:0 0 8px rgba(255,200,60,.8), 0 2px 4px rgba(0,0,0,.6);
+    transition:box-shadow .15s;}
+  .vol-slider.drag .vol-knob{box-shadow:0 0 12px rgba(255,200,60,.95), 0 2px 4px rgba(0,0,0,.6);}
+
   .hint{text-align:center;font-size:11.5px;letter-spacing:.4px;
     color:rgba(200,186,220,.65);min-height:16px;transition:color .2s;}
   .hint.warn{color:#ffb45a;}
@@ -308,6 +347,11 @@
     .page{gap:10px;}
     .topbar{gap:8px;}
     .brand{flex:1 1 100%;justify-content:center;margin-left:0;order:-1;}
+    .topctl{margin-left:auto;gap:6px;}
+    .topctl .btn.small{height:30px;min-width:34px;font-size:12px;padding:0 8px;}
+    .topctl .volwrap .btn.small{width:34px;min-width:34px;}
+    .vol-pop{padding:7px;}
+    .vol-pop::after{right:11px;}
     .brand b{font-size:18px;letter-spacing:5px;}
     .brand span{font-size:10.5px;}
     .felt{padding:16px 14px 14px;border-radius:18px;}
@@ -331,7 +375,6 @@
     .row-combo{grid-template-columns:repeat(3,1fr);}
     .spot{min-height:52px;padding:7px 4px;}
     .spot .t{font-size:13px;}
-    .spot .s{font-size:10px;letter-spacing:.2px;}
     .actions{flex-direction:column-reverse;gap:8px;}
     .btn.ghost{flex:0 0 auto;height:44px;font-size:14px;}
     .btn.deal{height:54px;}
@@ -340,7 +383,6 @@
   @media (max-width:420px){
     .dicestage{gap:26px;}
     .dice-slot{width:58px;height:58px;}
-    .spot .s{font-size:9px;}
   }
 </style>
 </head>
@@ -348,14 +390,33 @@
 <div class="page">
 
   <div class="topbar">
-    <a class="homelink" href="slot_machine.html">老虎机</a>
-    <a class="homelink" href="baccarat.html">百家乐</a>
-    <a class="homelink" href="blackjack.html">21 点</a>
-    <div class="brand"><b>SIC BO</b><span>骰 宝</span></div>
+    <a class="homelink" href="slot_machine.html"><span data-i18n="nav.slot">老虎机</span></a>
+    <a class="homelink" href="baccarat.html"><span data-i18n="nav.bac">百家乐</span></a>
+    <a class="homelink" href="blackjack.html"><span data-i18n="nav.bj">21 点</span></a>
+    <div class="brand"><b data-i18n="brand.title">SIC BO</b><span data-i18n="brand.sub">骰 宝</span></div>
+
+    <!-- 右上角：音量 + 语言（功能与 21 点一致，音量 / 语言存档键也共用） -->
+    <div class="topctl">
+      <div class="volwrap">
+        <button class="btn small" id="soundBtn" type="button" title="音量 / Volume"
+                aria-haspopup="true" aria-expanded="false"></button>
+        <div class="vol-pop" id="volPop">
+          <div class="vol-slider" id="volSlider" role="slider" tabindex="0"
+               aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100"
+               aria-valuenow="100" aria-label="音量 / Volume">
+            <div class="vol-track">
+              <i class="vol-fill" id="volFill"></i>
+              <b class="vol-knob" id="volKnob"></b>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button class="btn small" id="langBtn" type="button" title="切换语言 / Switch language">EN</button>
+    </div>
   </div>
 
   <section class="felt">
-    <div class="felt-head"><i></i><span>投 掷 区</span><i></i></div>
+    <div class="felt-head"><i></i><span data-i18n="felt.throw">投 掷 区</span><i></i></div>
 
     <div class="dicestage">
       <div class="dice-slot"><div class="die" data-i="0"></div></div>
@@ -368,36 +429,36 @@
         <span class="dv dim" id="rv0">–</span><span class="dv dim" id="rv1">–</span><span class="dv dim" id="rv2">–</span>
       </div>
       <span class="sep"></span>
-      <span class="vt" id="vt">等待投掷</span>
-      <span class="tag" id="vtag">大 11–17 · 小 4–10</span>
+      <span class="vt" id="vt" data-i18n="res.wait">等待投掷</span>
+      <span class="tag" id="vtag" data-i18n="res.tag">大 11–17 · 小 4–10</span>
     </div>
   </section>
 
   <div class="srcline" id="srcline">
     <span class="dot"></span>
     <span class="txt" id="srcText">随机源检测中…</span>
-    <button id="srcBtn" type="button" title="重新探测 / 切换随机源">切换源</button>
+    <button id="srcBtn" type="button" title="重新探测 / 切换随机源" data-i18n="src.switch">切换源</button>
   </div>
 
   <div class="hud">
-    <div class="meter"><span class="label">当前余额</span><span class="val" id="credits">20,000</span></div>
-    <div class="meter hl"><span class="label">本注合计</span><span class="val" id="betTotal">0</span></div>
-    <div class="meter"><span class="label">上局派彩</span><span class="val sm" id="lastWin">—</span></div>
-    <div class="meter"><span class="label">累计手数</span><span class="val sm" id="hands">0</span></div>
+    <div class="meter"><span class="label" data-i18n="hud.credits">当前余额</span><span class="val" id="credits">20,000</span></div>
+    <div class="meter hl"><span class="label" data-i18n="hud.bet">本注合计</span><span class="val" id="betTotal">0</span></div>
+    <div class="meter"><span class="label" data-i18n="hud.last">上局派彩</span><span class="val sm" id="lastWin">—</span></div>
+    <div class="meter"><span class="label" data-i18n="hud.hands">累计手数</span><span class="val sm" id="hands">0</span></div>
   </div>
 
   <section class="betpanel">
-    <div class="panel-title"><span>筹 码</span><i></i><span style="letter-spacing:.5px">点选面额</span></div>
+    <div class="panel-title"><span data-i18n="panel.chip">筹 码</span><i></i><span style="letter-spacing:.5px" data-i18n="panel.chipHint">点选面额</span></div>
     <div class="chips" id="chipTray"></div>
 
-    <div class="panel-title"><span>下 注</span><i></i><span style="letter-spacing:.5px">点注位加注 · 右键撤注</span></div>
+    <div class="panel-title"><span data-i18n="panel.bet">下 注</span><i></i><span style="letter-spacing:.5px" data-i18n="panel.betHint">点注位加注 · 右键撤注</span></div>
 
     <div class="spots">
       <div class="spot-row row-main">
-        <button class="spot" type="button" data-spot="small"><span class="t">小</span><span class="s">4 – 10 · 1:1</span><span class="amt"></span></button>
-        <button class="spot" type="button" data-spot="large"><span class="t">大</span><span class="s">11 – 17 · 1:1</span><span class="amt"></span></button>
-        <button class="spot" type="button" data-spot="odd"><span class="t">单</span><span class="s">奇数 · 1:1</span><span class="amt"></span></button>
-        <button class="spot" type="button" data-spot="even"><span class="t">双</span><span class="s">偶数 · 1:1</span><span class="amt"></span></button>
+        <button class="spot" type="button" data-spot="small"><span class="t" data-i18n="spot.small">小</span><span class="s" data-i18n="pay.small">4 – 10 · 1:1</span><span class="amt"></span></button>
+        <button class="spot" type="button" data-spot="large"><span class="t" data-i18n="spot.large">大</span><span class="s" data-i18n="pay.large">11 – 17 · 1:1</span><span class="amt"></span></button>
+        <button class="spot" type="button" data-spot="odd"><span class="t" data-i18n="spot.odd">单</span><span class="s" data-i18n="pay.odd">奇数 · 1:1</span><span class="amt"></span></button>
+        <button class="spot" type="button" data-spot="even"><span class="t" data-i18n="spot.even">双</span><span class="s" data-i18n="pay.even">偶数 · 1:1</span><span class="amt"></span></button>
       </div>
 
       <div class="spot-row row-face">
@@ -410,17 +471,17 @@
       </div>
 
       <div class="spot-row row-combo">
-        <button class="spot" type="button" data-spot="triple"><span class="t">围骰</span><span class="s">三颗同点 · 1:30</span><span class="amt"></span></button>
-        <button class="spot" type="button" data-spot="sum4"><span class="t">和 4 / 17</span><span class="s">1:30</span><span class="amt"></span></button>
-        <button class="spot" type="button" data-spot="sum5"><span class="t">和 5 / 16</span><span class="s">1:22</span><span class="amt"></span></button>
+        <button class="spot" type="button" data-spot="triple"><span class="t" data-i18n="spot.triple">围骰</span><span class="s" data-i18n="pay.triple">三颗同点 · 1:30</span><span class="amt"></span></button>
+        <button class="spot" type="button" data-spot="sum4"><span class="t" data-i18n="spot.sum4">和 4 / 17</span><span class="s" data-i18n="pay.sum4">1:30</span><span class="amt"></span></button>
+        <button class="spot" type="button" data-spot="sum5"><span class="t" data-i18n="spot.sum5">和 5 / 16</span><span class="s" data-i18n="pay.sum5">1:22</span><span class="amt"></span></button>
       </div>
     </div>
 
     <div class="actions">
-      <button class="btn ghost" type="button" id="clearBtn">清空下注</button>
-      <button class="btn deal" type="button" id="rollBtn">投 掷<kbd>空格</kbd></button>
+      <button class="btn ghost" type="button" id="clearBtn" data-i18n="act.clear">清空下注</button>
+      <button class="btn deal" type="button" id="rollBtn"><span data-i18n="act.roll">投 掷</span><kbd data-i18n="kbd.space">空格</kbd></button>
     </div>
-    <div class="hint" id="hint">选择筹码 → 点击注位下注 → 投掷</div>
+    <div class="hint" id="hint" data-i18n="hint.init">选择筹码 → 点击注位下注 → 投掷</div>
   </section>
 
 </div>
@@ -473,7 +534,8 @@
       }
       var i = (_sfxIdx[type] = ((_sfxIdx[type] || 0) + 1) % arr.length);
       var a = arr[i];
-      a.volume = SFX_VOL[type] != null ? SFX_VOL[type] : 0.5;
+      /* 与老虎机 / 21 点一致：实际音量 = 该音效基准音量 × 全局音量（0~1） */
+      a.volume = Math.max(0, Math.min(1, (SFX_VOL[type] != null ? SFX_VOL[type] : 0.5) * (soundVol / 100)));
       try{ a.currentTime = 0; }catch(e){}
       var pr = a.play();
       if (pr && pr.catch) pr.catch(function(){});
@@ -628,7 +690,7 @@
       return probeBridge(other, true).then(function(){
         useOnline = (other === "online");
         refreshSrcLine();
-        setHint(useOnline ? "在线源不可用 · 已切到离线源" : "离线源不可用 · 已切到在线源", true);
+        setHintKey(useOnline ? "msg.switchOff" : "msg.switchOn", null, true);
         return bridgeBytes(other, n);
       }, function(){ throw e; });
     });
@@ -665,23 +727,29 @@
   var srcTextEl = document.getElementById("srcText");
   var srcBtn = document.getElementById("srcBtn");
 
-  /* 状态行文案：主语是「随机源」而不是「H743」。
-     原文案「H743 离线」读起来像这块板子掉线了，实际说的是这次取数不经过串口、
-     用熵快照 + DRBG。在线 / 离线只体现在这两句文案里，圆点颜色只表示通 / 不通。 */
-  function srcLabel(hit){
-    return (useOnline
-        ? "在线随机源 · H743 串口直供 · 端口 "
-        : "离线随机源 · 熵快照 + DRBG · 端口 ") +
-      hit.port + " · 缓冲 " + (hit.st.buffered || 0) + " B";
+  /* 状态行：主语是「随机源」而不是「H743」——原文案「H743 离线」读起来像这块板子掉线了，
+     实际说的是这次取数不经过串口、用熵快照 + DRBG。在线 / 离线只体现在文案里，
+     圆点颜色只表示通 / 不通（有源绿、无源灰）。状态存在 _lastSrc，切语言时能重放。 */
+  function renderSrc(){
+    if (!_lastSrc) return;
+    if (_lastSrc.mode === "err"){
+      srcLineEl.className = "srcline err";
+      srcTextEl.textContent = tt("src.err");
+      return;
+    }
+    var online = (_lastSrc.mode === "online");
+    srcLineEl.className = "srcline " + (online ? "on" : "off");
+    srcTextEl.textContent = tt(online ? "src.online" : "src.offline",
+      { p:_lastSrc.port, b:_lastSrc.buffered || 0 });
   }
   function refreshSrcLine(){
     var hit = _bridgeCache[useOnline ? "online" : "offline"];
     if (!hit) return;
-    srcLineEl.className = "srcline " + (useOnline ? "on" : "off");
-    srcTextEl.textContent = srcLabel(hit);
+    _lastSrc = { mode: useOnline ? "online" : "offline", port: hit.port, buffered: hit.st.buffered || 0 };
+    renderSrc();
   }
   async function detectSrc(){
-    srcTextEl.textContent = "随机源检测中…";
+    srcTextEl.textContent = tt("src.detecting");
     srcBtn.disabled = true;
     var order = useOnline ? ["online", "offline"] : ["offline", "online"];
     for (var i = 0; i < order.length; i++){
@@ -689,20 +757,215 @@
         var hit = await probeBridge(order[i], true);
         _bridgeCache[order[i]] = hit;
         useOnline = (order[i] === "online");
-        srcLineEl.className = "srcline " + (useOnline ? "on" : "off");
-        srcTextEl.textContent = srcLabel(hit);
+        _lastSrc = { mode: order[i], port: hit.port, buffered: hit.st.buffered || 0 };
+        renderSrc();
         srcBtn.disabled = false;
         return;
       }catch(e){ /* 试下一个源 */ }
     }
-    srcLineEl.className = "srcline err";
-    srcTextEl.textContent = "随机源未连接 · 请先启动 start_casino.py（在线 8765 / 离线 8770）";
+    _lastSrc = { mode:"err" };
+    renderSrc();
     srcBtn.disabled = false;
   }
   srcBtn.addEventListener("click", function(){
     useOnline = !useOnline;          // 手动切换：优先试另一个源
     detectSrc();
   });
+
+  /* =====================================================================
+   *  2.5 语言 / 音量（结构与 21 点、老虎机同一套，存档键也共用）
+   * ===================================================================== */
+  var I18N = {
+    zh:{
+      "nav.slot":"老虎机","nav.bac":"百家乐","nav.bj":"21 点",
+      "brand.title":"SIC BO","brand.sub":"骰 宝",
+      "felt.throw":"投 掷 区",
+      "res.wait":"等待投掷","res.tag":"大 11–17 · 小 4–10",
+      "hud.credits":"当前余额","hud.bet":"本注合计","hud.last":"上局派彩","hud.hands":"累计手数",
+      "panel.chip":"筹 码","panel.chipHint":"点选面额",
+      "panel.bet":"下 注","panel.betHint":"点注位加注 · 右键撤注",
+      "spot.small":"小","spot.large":"大","spot.odd":"单","spot.even":"双",
+      "spot.triple":"围骰","spot.sum4":"和 4 / 17","spot.sum5":"和 5 / 16",
+      "pay.small":"4 – 10 · 1:1","pay.large":"11 – 17 · 1:1",
+      "pay.odd":"奇数 · 1:1","pay.even":"偶数 · 1:1",
+      "pay.triple":"三颗同点 · 1:30","pay.sum4":"1:30","pay.sum5":"1:22",
+      "act.clear":"清空下注","act.roll":"投 掷","kbd.space":"空格",
+      "hint.init":"选择筹码 → 点击注位下注 → 投掷",
+      "src.switch":"切换源",
+      "src.detecting":"随机源检测中…",
+      "src.online":"在线随机源 · H743 串口直供 · 端口 {p} · 缓冲 {b} B",
+      "src.offline":"离线随机源 · 熵快照 + DRBG · 端口 {p} · 缓冲 {b} B",
+      "src.err":"随机源未连接 · 请先启动 start_casino.py（在线 8765 / 离线 8770）",
+      "vt.rolling":"投掷中…","vt.srcerr":"随机源不可用",
+      "res.sum":"合共 {s} 点 · {size} · {parity}",
+      "size.big":"大","size.small":"小","size.triple":"豹子",
+      "parity.odd":"单","parity.even":"双",
+      "tag.plus":"+{n}","tag.minus":"−{n}","tag.push":"和",
+      "msg.nobet":"请先下注（最低 {n}）","msg.noCredit":"积分不足",
+      "msg.cantAdd":"积分不足，无法再加注","msg.max":"单注上限 {n}",
+      "msg.cleared":"已清空下注","msg.topup":"积分已补足到 {n}",
+      "msg.win":"中奖 {n} 注 · 派彩 {p}","msg.lose":"本局未中奖",
+      "msg.srcfail":"随机源不可用，本手未扣分 — 请确认 start_casino.py 已启动",
+      "msg.switchOn":"在线源不可用 · 已切到离线源","msg.switchOff":"离线源不可用 · 已切到在线源",
+      "doc.title":"骰宝 SIC BO · 三颗骰子"
+    },
+    en:{
+      "nav.slot":"Slots","nav.bac":"Baccarat","nav.bj":"Blackjack",
+      "brand.title":"SIC BO","brand.sub":"DICE",
+      "felt.throw":"T H R O W",
+      "res.wait":"Waiting to roll","res.tag":"Big 11–17 · Small 4–10",
+      "hud.credits":"BALANCE","hud.bet":"TOTAL BET","hud.last":"LAST PAYOUT","hud.hands":"HANDS",
+      "panel.chip":"CHIPS","panel.chipHint":"pick a value",
+      "panel.bet":"BETS","panel.betHint":"click to add · right-click to remove",
+      "spot.small":"Small","spot.large":"Big","spot.odd":"Odd","spot.even":"Even",
+      "spot.triple":"Triple","spot.sum4":"Sum 4 / 17","spot.sum5":"Sum 5 / 16",
+      "pay.small":"4 – 10 · 1:1","pay.large":"11 – 17 · 1:1",
+      "pay.odd":"Odd sum · 1:1","pay.even":"Even sum · 1:1",
+      "pay.triple":"Three of a kind · 1:30","pay.sum4":"1:30","pay.sum5":"1:22",
+      "act.clear":"Clear","act.roll":"ROLL","kbd.space":"SPACE",
+      "hint.init":"Pick a chip → tap a bet → roll",
+      "src.switch":"Switch",
+      "src.detecting":"Detecting RNG…",
+      "src.online":"Online RNG · H743 serial · port {p} · {b} B buffered",
+      "src.offline":"Offline RNG · entropy snapshot + DRBG · port {p} · {b} B buffered",
+      "src.err":"RNG not connected · start start_casino.py (online 8765 / offline 8770)",
+      "vt.rolling":"Rolling…","vt.srcerr":"RNG unavailable",
+      "res.sum":"Total {s} · {size} · {parity}",
+      "size.big":"Big","size.small":"Small","size.triple":"Triple",
+      "parity.odd":"Odd","parity.even":"Even",
+      "tag.plus":"+{n}","tag.minus":"−{n}","tag.push":"Push",
+      "msg.nobet":"Place a bet first (min {n})","msg.noCredit":"Not enough credits",
+      "msg.cantAdd":"Not enough credits to raise","msg.max":"Table limit {n}",
+      "msg.cleared":"Bets cleared","msg.topup":"Credits restored to {n}",
+      "msg.win":"{n} bet(s) won · payout {p}","msg.lose":"No winning bet this round",
+      "msg.srcfail":"RNG unavailable — this hand was not charged",
+      "msg.switchOn":"Online RNG failed — switched to offline","msg.switchOff":"Offline RNG failed — switched to online",
+      "doc.title":"Sic Bo · three dice"
+    }
+  };
+  var curLang = (function(){ try { return localStorage.getItem("slot_lang") || "zh"; }catch(e){ return "zh"; } })();
+  var langBtn = document.getElementById("langBtn");
+  var _lastHint = null, _lastSrc = null, _vtState = null;
+
+  function tt(key, vars){
+    var s2 = (I18N[curLang] && I18N[curLang][key]);
+    if (s2 == null) s2 = key;
+    if (vars){ for (var k in vars){ s2 = s2.split("{" + k + "}").join(vars[k]); } }
+    return s2;
+  }
+
+  /* ---------------- 音量（与 21 点同一套：竖滑杆 + 拖动/滚轮/键盘，存 slot_vol） ---------------- */
+  var SPK_ON  = '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M16 8a4 4 0 0 1 0 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18.5 5.5a7 7 0 0 1 0 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+  var SPK_OFF = '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M16 9l5 6M21 9l-5 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+  var SPK_LOW = '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M16 8a4 4 0 0 1 0 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+
+  var soundBtn = document.getElementById("soundBtn"), volPop = document.getElementById("volPop");
+  var volSliderEl = document.getElementById("volSlider"), volFillEl = document.getElementById("volFill");
+  var volKnobEl = document.getElementById("volKnob");
+  var volTrackEl = volSliderEl ? volSliderEl.querySelector(".vol-track") : null;
+  var VOL_STEP = 5;
+  var soundVol = (function(){
+    try{ var raw = localStorage.getItem("slot_vol"); if (raw != null && isFinite(parseFloat(raw))) return Math.max(0, Math.min(100, Math.round(parseFloat(raw)))); }catch(e){}
+    try{ if (localStorage.getItem("slot_sound") === "off") return 0; }catch(e){}
+    return 100;
+  })();
+  function renderSound(){
+    var on = soundVol > 0;
+    if (soundBtn){
+      soundBtn.innerHTML = !on ? SPK_OFF : (soundVol <= 40 ? SPK_LOW : SPK_ON);
+      soundBtn.setAttribute("aria-pressed", on ? "true" : "false");
+      soundBtn.title = on ? ("音量 " + soundVol + "% / Volume " + soundVol + "%") : "已静音 / Muted";
+    }
+    if (volFillEl) volFillEl.style.height = soundVol + "%";
+    if (volKnobEl) volKnobEl.style.bottom = soundVol + "%";
+    if (volSliderEl) volSliderEl.setAttribute("aria-valuenow", String(soundVol));
+  }
+  function setSoundVol(v, save){
+    soundVol = Math.max(0, Math.min(100, Math.round(v)));
+    renderSound();
+    if (save){ try{ localStorage.setItem("slot_vol", String(soundVol)); }catch(e){} }
+  }
+  (function bindVolSlider(){
+    if (!volSliderEl) return;
+    var dragging = false, pctAtDown = soundVol;
+    function volFromY(clientY){
+      var el = volTrackEl || volSliderEl, r = el.getBoundingClientRect();
+      if (!r.height) return soundVol;
+      return Math.max(0, Math.min(100, Math.round((r.bottom - clientY) / r.height * 100)));
+    }
+    volSliderEl.addEventListener("pointerdown", function(e){
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      e.preventDefault();
+      dragging = true; pctAtDown = soundVol;
+      volSliderEl.classList.add("drag");
+      try{ volSliderEl.setPointerCapture(e.pointerId); }catch(err){}
+      setSoundVol(volFromY(e.clientY), false);
+    });
+    volSliderEl.addEventListener("pointermove", function(e){
+      if (!dragging) return;
+      setSoundVol(volFromY(e.clientY), false);
+    });
+    function endDrag(e){
+      if (!dragging) return;
+      dragging = false;
+      volSliderEl.classList.remove("drag");
+      try{ volSliderEl.releasePointerCapture(e.pointerId); }catch(err){}
+      try{ localStorage.setItem("slot_vol", String(soundVol)); }catch(err){}   // 松手才落盘
+      if (soundVol !== pctAtDown) playSfx("chip");                             // 一次拖动只响一次
+      pctAtDown = soundVol;
+    }
+    volSliderEl.addEventListener("pointerup", endDrag);
+    volSliderEl.addEventListener("pointercancel", endDrag);
+    volSliderEl.addEventListener("keydown", function(e){
+      var k = e.key, step = e.shiftKey ? 10 : VOL_STEP, v = soundVol, used = true;
+      if (k === "ArrowUp" || k === "ArrowRight") v += step;
+      else if (k === "ArrowDown" || k === "ArrowLeft") v -= step;
+      else if (k === "Home") v = 0;
+      else if (k === "End") v = 100;
+      else used = false;
+      if (!used) return;
+      e.preventDefault();
+      setSoundVol(v, true);
+      playSfx("chip");
+      pctAtDown = soundVol;
+    });
+    volSliderEl.addEventListener("wheel", function(e){
+      e.preventDefault();
+      setSoundVol(soundVol + (e.deltaY < 0 ? VOL_STEP : -VOL_STEP), true);
+    }, { passive:false });
+  })();
+  function toggleVolPop(show){
+    if (!volPop) return;
+    var willShow = (show != null) ? show : !volPop.classList.contains("show");
+    volPop.classList.toggle("show", willShow);
+    if (soundBtn) soundBtn.setAttribute("aria-expanded", willShow ? "true" : "false");
+  }
+  if (soundBtn) soundBtn.addEventListener("click", function(e){ e.stopPropagation(); toggleVolPop(); });
+  document.addEventListener("click", function(e){
+    if (!volPop || !volPop.classList.contains("show")) return;
+    if (volPop.contains(e.target) || (soundBtn && soundBtn.contains(e.target))) return;
+    toggleVolPop(false);
+  });
+  document.addEventListener("keydown", function(e){ if (e.key === "Escape") toggleVolPop(false); });
+
+  /* ---------------- 语言切换 ---------------- */
+  function applyLang(lang){
+    curLang = lang;
+    document.documentElement.lang = (lang === "zh") ? "zh-CN" : "en";
+    Array.prototype.forEach.call(document.querySelectorAll("[data-i18n]"), function(el){
+      var k = el.getAttribute("data-i18n");
+      var t = I18N[lang] && I18N[lang][k];
+      if (t != null) el.innerHTML = t;
+    });
+    document.title = tt("doc.title");
+    if (_lastSrc) renderSrc();
+    if (_lastHint) setHintKey(_lastHint.key, _lastHint.vars, _lastHint.warn);
+    if (_lastResult) drawResult(); else if (_vtState) renderVt();
+    renderSound();
+    if (langBtn) langBtn.textContent = (lang === "zh") ? "EN" : "中";
+    try{ localStorage.setItem("slot_lang", lang); }catch(e){}
+  }
+  if (langBtn) langBtn.addEventListener("click", function(){ applyLang(curLang === "zh" ? "en" : "zh"); });
 
   /* =====================================================================
    *  3. 状态与存档
@@ -734,7 +997,12 @@
   var rvEls = [document.getElementById("rv0"), document.getElementById("rv1"), document.getElementById("rv2")];
 
   function betSum(){ var s = 0; SPOT_KEYS.forEach(function(k){ s += bet[k]; }); return s; }
-  function setHint(t, warn){ hintEl.textContent = t || ""; hintEl.classList.toggle("warn", !!warn); }
+  /* 提示统一走 key（切语言时能重放）；直接给字符串的老写法保留在 setHintText 里 */
+  function setHintKey(key, vars, warn){
+    _lastHint = key ? { key:key, vars:vars || null, warn:!!warn } : null;
+    hintEl.textContent = key ? tt(key, vars) : "";
+    hintEl.classList.toggle("warn", !!warn);
+  }
 
   function updateHUD(){
     creditsEl.textContent = fmt(credits);
@@ -780,12 +1048,12 @@
     var step = CHIPS[chipIdx];
     var v = (bet[key] || 0) + dir * step;
     if (v < 0) v = 0;
-    if (v > MAX_SPOT){ v = MAX_SPOT; setHint("单注上限 " + fmt(MAX_SPOT), true); }
+    if (v > MAX_SPOT){ v = MAX_SPOT; setHintKey("msg.max", { n: fmt(MAX_SPOT) }, true); }
     var delta = v - (bet[key] || 0);
-    if (delta > 0 && betSum() + delta > credits){ setHint("积分不足，无法再加注", true); return; }
+    if (delta > 0 && betSum() + delta > credits){ setHintKey("msg.cantAdd", null, true); return; }
     bet[key] = v;
     updateHUD();
-    setHint("");
+    setHintKey(null);
     if (delta !== 0) playSfx("chip");   // 放 / 撤筹码的咔哒声（同 21 点）；金额没变就不响
   }
 
@@ -800,7 +1068,7 @@
     var had = betSum() > 0;
     SPOT_KEYS.forEach(function(k){ bet[k] = 0; });
     updateHUD();
-    setHint("已清空下注");
+    setHintKey("msg.cleared");
     if (had) playSfx("chip");   // 本来就是空的就别响
   });
 
@@ -872,16 +1140,36 @@
   /* =====================================================================
    *  6. 投掷与结算
    * ===================================================================== */
+  /* 结果行也存一份状态：切语言、或 applyLang 里重放时都靠 drawResult() 重画 */
+  var _lastResult = null;
   function renderResult(d, r, net){
+    _lastResult = { d: d.slice(), sum: r.sum, triple: !!r.triple, net: net };
+    _vtState = null;
+    drawResult();
+  }
+  function drawResult(){
+    if (!_lastResult) return;
+    var st = _lastResult;
     rvEls.forEach(function(el, i){
-      el.textContent = String(d[i]);
+      el.textContent = String(st.d[i]);
       el.classList.remove("dim");
     });
-    resultline.className = "resultline " + (net > 0 ? "win" : (net < 0 ? "lose" : "push"));
-    var sizeLabel = r.triple ? "豹子" : (r.sum >= 4 && r.sum <= 10 ? "小" : "大");
-    var parity = r.sum % 2 === 1 ? "单" : "双";
-    vtEl.textContent = "合共 " + r.sum + " 点 · " + sizeLabel + " · " + parity;
-    vtagEl.textContent = net > 0 ? ("+" + fmt(net)) : (net < 0 ? ("−" + fmt(-net)) : "和");
+    resultline.className = "resultline " + (st.net > 0 ? "win" : (st.net < 0 ? "lose" : "push"));
+    var sizeKey = st.triple ? "size.triple" : (st.sum >= 4 && st.sum <= 10 ? "size.small" : "size.big");
+    vtEl.textContent = tt("res.sum", {
+      s: st.sum, size: tt(sizeKey), parity: tt(st.sum % 2 === 1 ? "parity.odd" : "parity.even")
+    });
+    vtagEl.textContent = st.net > 0 ? tt("tag.plus", { n: fmt(st.net) })
+      : (st.net < 0 ? tt("tag.minus", { n: fmt(-st.net) }) : tt("tag.push"));
+  }
+  /* 「投掷中…」「随机源不可用」这类临时状态同样走 key，切语言能跟着变 */
+  function setVt(key, vars){
+    _vtState = key ? { key:key, vars:vars || null } : null;
+    renderVt();
+  }
+  function renderVt(){
+    if (!_vtState) return;
+    vtEl.textContent = tt(_vtState.key, _vtState.vars);
   }
 
   async function doRoll(){
@@ -892,22 +1180,22 @@
       lsSave(LS.credits, credits);
       lastWin = null;
       updateHUD();
-      setHint("积分已补足到 " + fmt(START_CREDITS));
+      setHintKey("msg.topup", { n: fmt(START_CREDITS) });
       return;
     }
     var total = betSum();
-    if (total < MIN_BET){ setHint("请先下注（最低 " + MIN_BET + "）", true); return; }
-    if (total > credits){ setHint("积分不足", true); return; }
+    if (total < MIN_BET){ setHintKey("msg.nobet", { n: MIN_BET }, true); return; }
+    if (total > credits){ setHintKey("msg.noCredit", null, true); return; }
 
     rolling = true;
     rollBtn.disabled = true;
     clearBtn.disabled = true;
     Array.prototype.forEach.call(document.querySelectorAll(".spot"), function(el){ el.disabled = true; });
     resultline.className = "resultline rolling";
-    vtEl.textContent = "投掷中…";
+    setVt("vt.rolling");
     vtagEl.textContent = "";
     rvEls.forEach(function(el){ el.textContent = "–"; el.classList.add("dim"); });
-    setHint("");
+    setHintKey(null);
     playSfx("roll");          // 骰子落桌音：必须紧跟用户手势，不能放到 await 之后
     stage.classList.add("rolling");   // 投掷期间落影变淡（骰子离桌）
 
@@ -928,17 +1216,18 @@
       updateHUD();
 
       var hits = Object.keys(r.hits);
-      setHint(hits.length ? ("中奖 " + hits.length + " 注 · 派彩 " + fmt(r.payout)) : "本局未中奖",
-              !hits.length);
+      if (hits.length) setHintKey("msg.win", { n: hits.length, p: fmt(r.payout) });
+      else setHintKey("msg.lose", null, true);
     }catch(e){
       // 随机源不可用：整手退回，不扣分
       credits += total;
       lsSave(LS.credits, credits);
       updateHUD();
       resultline.className = "resultline";
-      vtEl.textContent = "随机源不可用";
+      _lastResult = null;
+      setVt("vt.srcerr");
       vtagEl.textContent = "";
-      setHint("随机源不可用，本手未扣分 — 请确认 start_casino.py 已启动", true);
+      setHintKey("msg.srcfail", null, true);
       detectSrc();
     }finally{
       rolling = false;
@@ -990,6 +1279,8 @@
     });
   });
 
+  renderSound();
+  applyLang(curLang);      // 首屏就按存的语种渲染（含 data-i18n 与标题）
   renderChips();
   updateHUD();
   detectSrc();
