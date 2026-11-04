@@ -1087,18 +1087,42 @@
     /* 下注圈内文字禁止被鼠标拖选复制（避免出现蓝色选中高亮），点击仍落在整圈上 */
     -webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;
     -webkit-touch-callout:none;
-    background:radial-gradient(circle at 50% 28%, rgba(255,255,255,.07), rgba(0,0,0,.34));
-    border:2px dashed rgba(245,197,66,.34);
-    box-shadow:inset 0 0 30px rgba(0,0,0,.45);
+    /* 金线风格（21 点只有主注 / 保险两枚球）：清晰实线金边 + 内侧暗环 + 内圈细金线（::after），
+       金线与台呢内圈、外框同色系；尺寸 / 位置 / 文案 / 文字对比度一概不变 */
+    background:
+      radial-gradient(circle at 50% 24%, rgba(255,238,190,.10), rgba(0,0,0,0) 52%),
+      radial-gradient(circle at 50% 32%, rgba(16,46,36,.20), rgba(0,0,0,.40) 80%);
+    border:2px solid rgba(245,197,66,.84);
+    box-shadow:
+      inset 0 0 0 2px rgba(8,22,18,.42),
+      inset 0 0 0 3px rgba(245,197,66,.16),
+      inset 0 0 24px rgba(0,0,0,.46),
+      0 0 0 1px rgba(245,197,66,.26),
+      0 2px 10px rgba(0,0,0,.46),
+      0 0 14px rgba(245,197,66,.14);
     transition:border-color .2s ease, box-shadow .2s ease, transform .1s ease;
   }
+  /* 内圈细金线 + 上下金属高光：只作用于「BLACKJACK 下注」与「保险」两枚球。
+     用 ::after 而不是 ::before —— 保险球带 .side 类，::before 已被
+     body.arc .side::before 的网格占位占用，不能覆盖掉。
+     z-index:0 保证装饰在文字(z:3) 与筹码堆(z:2) 之下，不影响可读性。 */
+  body.arc .bspot.main::after,
+  body.arc .bspot.ins::after{
+    content:"";position:absolute;inset:7px;border-radius:50%;pointer-events:none;z-index:0;
+    border:1px solid rgba(255,225,150,.44);
+    background:linear-gradient(155deg, rgba(255,242,205,.16), rgba(255,240,200,0) 36%,
+      rgba(255,240,200,0) 72%, rgba(0,0,0,.10));
+    box-shadow:inset 0 1px 0 rgba(255,240,200,.18), inset 0 -8px 14px rgba(0,0,0,.20),
+      0 0 0 1px rgba(0,0,0,.14);
+  }
+
   /* 圈内文字纯展示：不承接指针事件，点击一律穿透到整圈，也避免成为选中/复制的抓手 */
   body.arc .bspot .bs-pay,
   body.arc .bspot .bs-name,
   body.arc .bspot .bs-amt{pointer-events:none;}
   body.arc .bspot.main{width:88px;height:88px;}
   body.arc .bspot.side{width:70px;height:70px;opacity:.94;}
-  body.arc .bspot:hover{border-color:rgba(255,215,106,.55);}
+  body.arc .bspot:hover{border-color:rgba(255,230,150,1);}
   body.arc .bspot:active{transform:translateY(1px) scale(.98);}
   body.arc .bspot.hot{
     border-style:solid;border-color:rgba(255,215,106,.80);
@@ -1212,7 +1236,7 @@
     gap:16px 40px;justify-content:center;margin-top:16px;
   }
   body.arc .bspot.main{width:104px;height:104px;}
-  body.arc .bspot.ins{width:76px;height:76px;opacity:.78;}
+  body.arc .bspot.ins{width:76px;height:76px;opacity:.92;}
   body.arc .bspot.ins.on{
     opacity:1;border-color:rgba(255,215,106,.8);border-style:solid;
     box-shadow:0 0 20px rgba(245,197,66,.38), inset 0 0 24px rgba(245,197,66,.16);
