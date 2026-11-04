@@ -2603,6 +2603,9 @@
       await reshuffle();
     }
 
+    // 开始新一局：只在这里清掉上一局保留在球内的点数 / 结果，并完成空桌初始化。
+    // 放在所有守卫之后，确保「没有真正开局」时不会误清保留内容；与局结束的清牌互不干扰。
+    startNewRound();
     dealing = true;
     dealBtn.disabled = true;
     setWin(0);
@@ -2757,7 +2760,10 @@
     });
   }
   function renderTotals(){
-    var h = playerHands[activeHand];
+    // 结算阶段 activeHand 已被 nextHandOrDealer() 推进到 playerHands.length（所有手完成），
+    // 直接取 playerHands[activeHand] 会把玩家点数球清空。回退到最后一手，
+    // 让本局（含输局）的点数继续留在球内，直到「开始新一局」才由 startNewRound() 清掉。
+    var h = playerHands.length ? playerHands[Math.min(activeHand, playerHands.length - 1)] : null;
     if (h){
       var v = handValue(h.cards);
       pTotalEl.textContent = v.bust ? (v.total + " · " + tt("verdict.bust").split(" · ")[0]) : String(v.total);
@@ -2775,14 +2781,44 @@
       bTotalEl.classList.toggle("empty", !dealerCards.length);
     }
   }
-  function clearTable(){
+  /* =====================================================================
+   *  清桌：两个时机、两种职责，互不干扰且各自幂等
+   *  · 局结束 → clearDealtCards()：只清牌面 DOM 与牌面高亮。本局点数与结果
+   *    （含输局的爆牌点数、裁决、派彩）继续留在点数球 / 裁决区供复盘，不在这里清。
+   *  · 开始新一局 → startNewRound()：清掉上面保留的球内内容并完成空桌初始化。
+   *  · clearTable()：两者都做，仅供「重新开始」按钮与页面初始化（整局重置）使用。
+   *  两个函数都可在任意时刻重复调用而不改变结果，连续多局 / 重复开局状态一致。
+   * ===================================================================== */
+  function clearDealtCards(){
     if (pCards) pCards.innerHTML = "";
     if (bCards) bCards.innerHTML = "";
+    if (pTotalEl) pTotalEl.classList.remove("pop");
+    if (bTotalEl) bTotalEl.classList.remove("pop");
+    if (sideP) sideP.classList.remove("won");
+    if (sideB) sideB.classList.remove("won");
+  }
+  function clearRetained(){
     if (pTotalEl){ pTotalEl.textContent = ""; pTotalEl.classList.add("empty"); }
     if (bTotalEl){ bTotalEl.textContent = ""; bTotalEl.classList.add("empty"); }
+    var vw = $("vwin");
+    if (vw){ vw.className = "vwin"; vw.textContent = ""; }
+    if (verdictEl) verdictEl.className = "verdict";
     var insSpot = document.getElementById("insSpot");
     if (insSpot) insSpot.classList.remove("on");
+    setWin(0);
   }
+  function startNewRound(){
+    clearDealtCards();      // 局结束已清过；再清一次保证重复开局也收敛到空桌
+    clearRetained();        // 只有「开始新一局」才清球内保留内容
+    // 新局展示态初始化。不动 phase / bet.main / credits：
+    // phase 由 saveHand / resumeHand 的续局语义管理，资金状态属于下注流程。
+    playerHands = [];
+    dealerCards = [];
+    activeHand = 0;
+    holeHidden = true;
+    insBet = 0;
+  }
+  function clearTable(){ startNewRound(); }
 
   /* =====================================================================
    *  发牌动画（坑1经验：飞行体用扁平 .flycard 只放牌背图——克隆 3D .bcard 会被
@@ -3095,6 +3131,9 @@
     // resumeHand 再结算一遍，等于同一手拿两次派彩）
     try{ localStorage.removeItem(LS.hand); }catch(e){}
     if (credits < 1 && cardBalance < 1) checkBroke();
+    // 局结束：立即清掉本局牌面（对下一局而言就是「旧牌」），避免与新局牌面混杂。
+    // 点数球 / 裁决 / 派彩等本局结果保留在这里，等 startNewRound() 才清。
+    clearDealtCards();
   }
   function saveStats(){
     try{
