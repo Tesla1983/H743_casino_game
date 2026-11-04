@@ -56,3 +56,7 @@ source_parity.py
 tune_math.py
 test_*.js
 test_dual_source.py
+
+# 无头截图 / CDP 测试 profile（本地验证产物）
+_shots/
+_cdp_*/
