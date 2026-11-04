@@ -239,9 +239,9 @@
   .row-combo{grid-template-columns:repeat(3,1fr);}
 
   .spot{
-    position:relative;cursor:pointer;border:0;padding:8px 6px;background:transparent;
+    position:relative;cursor:pointer;border:0;padding:10px 6px;background:transparent;
     font-family:inherit;color:inherit;display:flex;flex-direction:column;
-    align-items:center;justify-content:center;gap:3px;min-height:56px;
+    align-items:center;justify-content:center;gap:2px;min-height:76px;   /* = 21 点主注卡高度，三行文字才排得开 */
     transition:transform .1s;
   }
   .spot::after{
@@ -256,13 +256,26 @@
     background:rgba(245,197,66,.10);
   }
   .spot:disabled{cursor:default;}
-  .spot .t{font-size:14px;font-weight:900;letter-spacing:1px;color:#ffe9a8;position:relative;z-index:1;}
-  .spot .s{font-size:9.5px;letter-spacing:.3px;color:#a99cc0;position:relative;z-index:1;text-align:center;}
-  .spot .amt{
-    font-size:12px;font-weight:900;      /* 对齐 21 点 .bs-amt 的 12px */color:rgba(255,233,168,.45);
-    font-variant-numeric:tabular-nums;position:relative;z-index:1;min-height:13px;
+  /* 三行文字按 21 点主注卡那一套（赔率 11 / 名称 13 / 注额 15，色板一并照搬）：
+     赔率 #cbb8e6 · 85% 不透明度，名称 #e8ddf2，注额半透明金、有注时提亮 */
+  .spot .t{
+    font-size:13px;font-weight:800;letter-spacing:1.5px;color:#e8ddf2;
+    position:relative;z-index:1;line-height:1.2;
   }
-  .spot.on .amt{color:var(--gold-l);}
+  .spot .s{
+    font-size:11px;letter-spacing:.3px;color:#cbb8e6;opacity:.85;
+    position:relative;z-index:1;text-align:center;line-height:1.2;
+  }
+  /* 注额绝对定位进底部内边距，不参与「名称 + 赔率」的竖向居中计算。
+     原来它是个带 min-height 的空占位，会把这两行一起顶到卡片上半部——
+     这正是「文字都高了、贴着上边框」的原因。 */
+  .spot .amt{
+    position:absolute;left:0;right:0;bottom:6px;text-align:center;
+    font-size:15px;font-weight:900;line-height:1;
+    color:rgba(255,233,168,.45);
+    font-variant-numeric:tabular-nums;z-index:1;
+  }
+  .spot.on .amt{color:var(--gold-l);text-shadow:0 0 10px rgba(245,197,66,.5);}
 
   .minidie{
     width:26px;height:26px;border-radius:5px;position:relative;z-index:1;
@@ -373,8 +386,8 @@
     .row-main{grid-template-columns:repeat(2,1fr);}
     .row-face{grid-template-columns:repeat(3,1fr);}
     .row-combo{grid-template-columns:repeat(3,1fr);}
-    .spot{min-height:52px;padding:7px 4px;}
-    .spot .t{font-size:13px;}
+    .spot{min-height:68px;padding:8px 4px;}
+    .spot .amt{font-size:13px;bottom:4px;}
     .actions{flex-direction:column-reverse;gap:8px;}
     .btn.ghost{flex:0 0 auto;height:44px;font-size:14px;}
     .btn.deal{height:54px;}
