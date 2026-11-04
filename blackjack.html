@@ -376,28 +376,24 @@
   .flycard img{width:100%;height:100%;display:block;object-fit:cover;}
   .bcard.hot .bf{box-shadow:0 0 18px rgba(255,205,70,.55),0 6px 14px rgba(0,0,0,.6);
     border-color:rgba(255,225,140,.85);}
+  /* 点数不再有边框/背景框：直接在绿呢布（透过近乎透明的 .side 面板）上显示数字 */
   .total{
-    flex:0 0 54px;width:54px;height:40px;border-radius:12px;
+    flex:0 0 54px;width:54px;height:40px;
     display:flex;align-items:center;justify-content:center;
     font-size:22px;font-weight:900;color:#ffe9a8;font-variant-numeric:tabular-nums;
-    background:radial-gradient(circle at 50% 28%, rgba(255,255,255,.07), rgba(0,0,0,.34));
-    border:2px solid rgba(245,197,66,.5);
-    box-shadow:0 0 16px rgba(245,197,66,.16), inset 0 0 12px rgba(0,0,0,.72);
-    transition:transform .25s cubic-bezier(.2,1.4,.4,1), color .2s, border-color .2s, box-shadow .2s;
+    background:transparent;border:none;box-shadow:none;
+    transition:transform .25s cubic-bezier(.2,1.4,.4,1), color .2s, text-shadow .2s;
   }
-  .total.empty{color:#5f5478;border-color:rgba(245,197,66,.18);}
+  .total.empty{color:#5f5478;}
   .total.pop{transform:scale(1.14);}
   /* 赢家点数：放大 1.25 倍 + 反白高亮（金底深字），输家保持原样。
      选择器用 .side.won .total（0,3,0），优先级高于 .total.pop（0,2,0），
      所以结算时即使 pop 还没褪，也是赢家尺寸生效。 */
+  /* 赢家点数：去掉金底框，改为金色发光文字（与去框后的无框风格一致，仍突出胜方） */
   .side.won .total{
     transform:scale(1.25);
-    color:#241503;
-    background:radial-gradient(circle at 35% 28%,#fff3c4,#f5c542 72%,#e0a52c);
-    border-color:#fff0b8;
-    box-shadow:0 0 22px rgba(255,205,70,.72),0 0 44px rgba(255,150,30,.32),
-      inset 0 1px 0 rgba(255,255,255,.7), inset 0 0 12px rgba(120,70,0,.28);
-    text-shadow:0 1px 0 rgba(255,255,255,.55);
+    color:#ffd76a;
+    text-shadow:0 0 14px rgba(255,205,70,.9), 0 0 28px rgba(255,150,30,.5);
     animation:totalWin .52s cubic-bezier(.2,1.5,.4,1);
   }
   @keyframes totalWin{
