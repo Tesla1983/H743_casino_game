@@ -1186,6 +1186,16 @@
   .btn.act:active:not(:disabled){transform:translateY(1px);}
   .btn.act:disabled{opacity:.35;cursor:default;filter:saturate(.4);}
 
+  /* 分牌时多手同场：当前行动的手正常亮度 + 金边，其余的手压暗退后 */
+  body.arc .bcard.idle{opacity:.55;filter:saturate(.75) brightness(.85);}
+  body.arc .bcard.cur{box-shadow:0 0 0 2px rgba(245,197,66,.55);}
+  body.arc .bcard.cur .bf{box-shadow:0 0 16px rgba(255,205,70,.4),0 6px 14px rgba(0,0,0,.6);}
+  /* 分牌两手并排：两手之间留出可见间隔（百家乐单手重叠规则在这里放宽） */
+  body.arc #pCards .bcard.split-gap{margin-left:14px;}
+
+  /* 洞牌揭示：庄家暗牌翻面用与发牌一致的节奏，正对玩家可见 */
+  body.arc #bCards .bcard{transition:opacity .25s;}
+
 </style>
 </head>
 <body class="arc">
@@ -2089,13 +2099,14 @@
     updateHUD();
   }
 
-  /* 从牌靴抽一张（UI 发牌走 dealCard 动画时由调用方控制节奏，这里只是数据层） */
+  /* 从牌靴抽一张（数据层）：每张都落盘（刷新后仍是同一副牌）。
+     余牌「显示」不由这里刷新——坑2要求显示与出牌动作（飞牌动画）逐张同步，
+     refreshShoe 由 dealCard 动画完成时调用。 */
   function drawCard(){
     if (!shoe.length) return null;
     var c = shoe.pop();
-    shoeLeft = shoe.length;         // 避坑录坑2：显示计数与数据逐张同步
-    saveShoe();                     // 每张都落盘：刷新后才是「同一副牌」（余牌不回跳）
-    refreshShoe();
+    shoeLeft = shoe.length;         // 数据同步；显示刷新在 dealCard 尾
+    saveShoe();
     return c;
   }
 
@@ -2491,10 +2502,10 @@
       dealerCards = [c2, c4];
       holeHidden = true;
 
-      await dealCard(sideP, c1, 0);
-      await dealCard(sideB, c2, 0);
-      await dealCard(sideP, c3, 1);
-      await dealCard(sideB, c4, 1, true);   // 暗牌：背面朝上
+      await dealCard(sideP, c1);
+      await dealCard(sideB, c2);
+      await dealCard(sideP, c3);
+      await dealCard(sideB, c4, { hidden:true });   // 暗牌：停在背面
 
       renderTotals();
       saveHand();
@@ -2505,20 +2516,19 @@
 
       // Peek：庄家明 A 或 10 时看暗牌
       if (isBJ(dealerCards)){
-        holeHidden = false;
-        renderCards(); renderTotals();
+        await revealHole();                    // 揭示庄家黑杰克（翻面动画）
         await settleRound();
         dealing = false; dealBtn.disabled = false;
         return;
       }
       if (playerHands[0] && isBJ(playerHands[0].cards)){
-        holeHidden = false;
+        holeHidden = false;                    // 玩家 BJ：庄暗牌照例翻开
         renderCards(); renderTotals();
         await settleRound();
         dealing = false; dealBtn.disabled = false;
         return;
       }
-      if (upA && insuranceOn && !holeHidden){
+      if (upA && insuranceOn && holeHidden){
         // 明 A：可押保险（M4 细化交互，这里先亮圈）
         var insSpot = document.getElementById("insSpot");
         if (insSpot) insSpot.classList.add("on");
@@ -2618,13 +2628,57 @@
     if (insSpot) insSpot.classList.remove("on");
   }
 
-  /* M0 简版发牌：直接落点放置（M2 将替换为「牌堆飞牌 + 翻面」动画 dealCard） */
-  function dealCard(sideEl, card, idx, hidden){
+  /* =====================================================================
+   *  发牌动画（坑1经验：飞行体用扁平 .flycard 只放牌背图——克隆 3D .bcard 会被
+   *  position:fixed + will-change:transform 压平内部 preserve-3d，翻面变「牌面转牌面」。
+   *  真实牌先 visibility:hidden 占住最终落点，飞行体到点后揭示真实牌再翻面。）
+   * ===================================================================== */
+  async function dealCard(sideEl, card, opts){
+    opts = opts || {};
+    var hidden = !!opts.hidden;
     var cont = sideEl ? sideEl.querySelector(".cards") : null;
-    if (!cont || !card) return Promise.resolve();
-    cont.appendChild(cardNode(card.code, !!hidden));
+    if (!cont || !card) return;
     cardSfx("deal");
-    return Promise.resolve();
+    var el = cardNode(card.code, true);          // 一律先背面：暗牌停背面，明牌到位后翻面
+    if (opts.extraClass) el.classList.add(opts.extraClass);
+    el.style.visibility = "hidden";
+    cont.appendChild(el);
+
+    var shoeEl = document.querySelector(".sc-stack");
+    var sr = shoeEl ? shoeEl.getBoundingClientRect() : null;
+    var cr = el.getBoundingClientRect();
+
+    if (sr && cr.width){
+      var fly = document.createElement("div");
+      fly.className = "flycard";
+      fly.innerHTML = '<img src="assets/cards/back_red.webp" alt="" draggable="false">';
+      fly.style.left = "0"; fly.style.top = "0"; fly.style.margin = "0";
+      fly.style.zIndex = "9000";
+      fly.style.width = cr.width + "px";
+      fly.style.height = cr.height + "px";
+      fly.style.transformOrigin = "center center";
+      fly.style.willChange = "transform";
+      var sx = sr.left + sr.width / 2 - cr.width / 2;
+      var sy = sr.top + sr.height / 2 - cr.height / 2;
+      fly.style.transform = "translate(" + sx + "px," + sy + "px) rotate(-12deg) scale(.84)";
+      document.body.appendChild(fly);
+      void fly.offsetWidth;                        // 强制 reflow，让起始 transform 生效
+      var dur = 420;
+      fly.style.transition = "transform " + dur + "ms cubic-bezier(.22,1,.36,1)";
+      fly.style.transform = "translate(" + cr.left + "px," + cr.top + "px) rotate(0deg) scale(1)";
+      await sleep(dur + 40);
+      el.style.visibility = "visible";             // 揭示已在落点的真实牌（背面）
+      if (fly.parentNode) fly.parentNode.removeChild(fly);
+    } else {
+      el.style.visibility = "visible";
+    }
+    await sleep(30);
+    if (!hidden){                                  // 明牌：到位后翻面揭示
+      el.classList.add("up");
+      cardSfx("flip");
+      await sleep(380);
+    }
+    refreshShoe();                                 // 坑2：每实际飞出一张，余牌显示才 -1
   }
 
   /* =====================================================================
@@ -2637,8 +2691,10 @@
     var c = drawCard();
     if (!c) { setHintKey("msg.norand"); return; }
     h.cards.push(c);
-    playSfx("deal");
-    renderCards(); renderTotals(); saveHand();
+    // 多手时新牌落到对应手牌容器：单手直接 pCards；多手按 activeHand 定位
+    var target = sideP;
+    await dealCard(target, c);
+    renderTotals(); saveHand();
     var v = handValue(h.cards);
     if (v.bust){
       h.done = true;
@@ -2669,21 +2725,28 @@
     vtEl.textContent = tt("verdict.dealer");
     await dealerTurn();
   }
-  async function dealerTurn(){
+  /* 洞牌揭示：不重绘，直接给现有暗牌 DOM 加 .up 走 3D 翻面（重绘会跳过翻面动画） */
+  async function revealHole(){
     holeHidden = false;
-    renderCards(); renderTotals();
-    playSfx("deal");
-    await sleep(500);
-    // S17：软 17 也停
+    if (bCards){
+      var kids = bCards.children;
+      if (kids.length >= 2) kids[1].classList.add("up");
+    }
+    renderTotals();
+    saveHand();
+    await sleep(480);          // 等翻面动画（.42s）走完
+  }
+  async function dealerTurn(){
+    await revealHole();
+    // S17：所有 17（含软 17）停牌，16 及以下补牌
     while (true){
       var v = handValue(dealerCards);
       if (v.total >= 17) break;
       var c = drawCard();
       if (!c) break;
       dealerCards.push(c);
-      renderCards(); renderTotals();
-      playSfx("deal");
-      await sleep(520);
+      renderTotals();
+      await dealCard(sideB, c);           // 逐张飞牌动画
     }
     await settleRound();
   }
