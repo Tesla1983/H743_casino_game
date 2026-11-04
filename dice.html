@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>骰宝 SIC BO</title>
+<style>
+  /* ============================================================
+   *  骰宝（Sic Bo）界面设计稿
+   *  · 本次只做「界面」：三颗骰子为静态展示，注位与按钮不带任何结算/随机逻辑
+   *  · 视觉语言与 baccarat.html / blackjack.html 同一套：
+   *    金 #f5c542、绿呢 #0a3a2b 系、深棕黑下注面板、1px 细金线方框（inset 描边）
+   * ============================================================ */
+  :root{
+    --gold:#f5c542; --gold-d:#b8860b; --gold-l:#ffe680;
+    --red:#e23b3b; --green:#6ef08a;
+    --ink:#eae2f5; --muted:#9a8fb0;
+    --felt-1:#12503c; --felt-2:#0a3a2b; --felt-3:#072a20;
+    --panel-1:#2b1a10; --panel-2:#190f08;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;min-height:100%;
+    font-family:"Segoe UI",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(120% 90% at 50% -10%, #241736 0%, #160e22 45%, #0b070f 100%);
+    display:flex;justify-content:center;align-items:center;
+    padding:18px 16px 30px;
+  }
+  .page{width:100%;max-width:1080px;margin:auto;display:flex;flex-direction:column;gap:14px;}
+
+  /* ---------------- 顶部：返回导航 + 标题 ---------------- */
+  .topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .homelink{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:7px 12px;border-radius:10px;text-decoration:none;
+    font-size:12px;font-weight:600;letter-spacing:.5px;
+    color:var(--gold);background:linear-gradient(#2b1a10,#190f08);
+    border:1px solid rgba(245,197,66,.30);
+    box-shadow:0 3px 10px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06);
+    transition:filter .15s, transform .08s;
+  }
+  .homelink:hover{filter:brightness(1.18);}
+  .homelink:active{transform:translateY(1px);}
+  .brand{
+    margin-left:auto;display:flex;align-items:baseline;gap:10px;
+  }
+  .brand b{
+    font-size:22px;font-weight:900;letter-spacing:6px;color:var(--gold-l);
+    text-shadow:0 0 14px rgba(255,180,40,.55), 0 0 34px rgba(255,140,20,.28);
+  }
+  .brand span{font-size:11.5px;letter-spacing:3px;color:var(--muted);}
+
+  /* ---------------- 桌面（绿呢 + 金内框） ---------------- */
+  .felt{
+    position:relative;border-radius:22px;padding:26px 24px 22px;
+    background:
+      radial-gradient(130% 120% at 50% -20%, var(--felt-1) 0%, var(--felt-2) 55%, var(--felt-3) 100%);
+    border:1px solid rgba(245,197,66,.34);
+    box-shadow:
+      0 24px 60px rgba(0,0,0,.62),
+      inset 0 1px 0 rgba(255,255,255,.05),
+      inset 0 0 60px rgba(0,0,0,.45);
+    overflow:hidden;
+  }
+  /* 内圈金线：与其它两页同款「inset 描边」，不用 border（避免圆角接缝） */
+  .felt::before{
+    content:"";position:absolute;inset:11px;border-radius:14px;pointer-events:none;
+    box-shadow:inset 0 0 0 1px rgba(245,197,66,.18);
+  }
+  .felt::after{                       /* 桌面上的柔光，压在骰子下面 */
+    content:"";position:absolute;left:50%;top:8%;width:62%;height:70%;
+    transform:translateX(-50%);border-radius:50%;pointer-events:none;
+    background:radial-gradient(circle, rgba(255,220,120,.10), rgba(255,220,120,0) 70%);
+  }
+  .felt-head{
+    position:relative;z-index:2;display:flex;align-items:center;justify-content:center;gap:10px;
+    font-size:11px;letter-spacing:3px;color:rgba(255,231,160,.62);
+  }
+  .felt-head i{flex:1;height:1px;max-width:90px;
+    background:linear-gradient(90deg,rgba(245,197,66,0),rgba(245,197,66,.45));}
+  .felt-head i:last-child{background:linear-gradient(90deg,rgba(245,197,66,.45),rgba(245,197,66,0));}
+
+  /* ---------------- 三颗骰子 ---------------- */
+  /* 关键几何：每颗骰子一个固定 slot（不随旋转改变占位），perspective 挂在 slot 上；
+     三颗共享同样的透视距离，旋转后视觉宽度 ≈ 盒宽×1.4，所以 gap 必须按投影宽度留 */
+  .dicestage{
+    position:relative;z-index:2;
+    display:flex;align-items:flex-end;justify-content:center;
+    gap:48px;padding:34px 0 14px;
+  }
+  .dice-slot{
+    position:relative;flex:0 0 auto;
+    width:112px;height:112px;
+    perspective:860px;perspective-origin:50% 42%;
+  }
+  /* 桌面落影 */
+  .dice-slot::after{
+    content:"";position:absolute;left:50%;bottom:-16px;width:88%;height:16px;
+    transform:translateX(-50%);border-radius:50%;pointer-events:none;
+    background:radial-gradient(ellipse at 50% 50%, rgba(0,0,0,.55), rgba(0,0,0,0) 72%);
+    filter:blur(3px);
+  }
+  .die{
+    position:absolute;inset:0;transform-style:preserve-3d;
+    transition:transform .9s cubic-bezier(.22,.9,.28,1.05);
+  }
+  .die .face{
+    position:absolute;inset:0;border-radius:6px;
+    background:linear-gradient(150deg,#fdfdfa 0%,#f2f0e7 62%,#e2dfd3 100%);
+    /* 1px 同色外扩用来填棱缝（3D 相邻面在亚像素下会露背景） */
+    box-shadow:
+      0 0 2px rgba(255,255,255,.95),
+      inset 0 0 14px rgba(120,105,70,.10),
+      inset 0 0 0 1px rgba(255,255,255,.65);
+    display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);
+    padding:13%;backface-visibility:hidden;
+  }
+  .die .cell{display:flex;align-items:center;justify-content:center;}
+  .die .pip{
+    width:74%;height:0;padding-bottom:74%;border-radius:50%;
+    background:radial-gradient(circle at 34% 28%,#4b4a63 0%,#1a1a26 65%,#0e0e16 100%);
+    box-shadow:inset 0 1px 2px rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.35);
+  }
+
+  /* ---------------- 结果提示 ---------------- */
+  .resultline{
+    position:relative;z-index:2;
+    margin-top:14px;min-height:44px;border-radius:12px;
+    display:flex;align-items:center;justify-content:center;gap:14px;
+    padding:8px 14px;
+    background:linear-gradient(180deg,rgba(0,0,0,.34),rgba(0,0,0,.16));
+    border:1px solid rgba(245,197,66,.16);
+  }
+  .resultline .dice-vals{
+    display:flex;gap:7px;
+  }
+  .resultline .dv{
+    width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+    font-size:15px;font-weight:900;color:#241a06;
+    background:linear-gradient(#fffdf3,#e8e3cf);
+    box-shadow:0 2px 5px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.7);
+  }
+  .resultline .sep{width:1px;height:18px;background:rgba(245,197,66,.28);}
+  .resultline .vt{
+    font-size:16px;font-weight:900;letter-spacing:3px;color:var(--muted);
+  }
+  .resultline .vt .num{color:var(--gold-l);font-variant-numeric:tabular-nums;}
+  .resultline .vt.win{color:var(--green);text-shadow:0 0 14px rgba(60,220,130,.45);}
+  .resultline .tag{
+    font-size:11px;letter-spacing:1px;color:rgba(255,231,160,.55);
+    border:1px solid rgba(245,197,66,.24);border-radius:999px;padding:3px 9px;
+  }
+
+  /* ---------------- HUD：余额 / 本注 / 赔率 / 手数 ---------------- */
+  .hud{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+  .meter{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+    padding:10px 6px;border-radius:12px;
+    background:radial-gradient(circle at 50% 20%, rgba(255,255,255,.05), rgba(0,0,0,.34));
+    border:1px solid rgba(245,197,66,.30);
+  }
+  .meter .label{font-size:10.5px;letter-spacing:1.2px;color:var(--muted);}
+  .meter .val{
+    font-size:20px;font-weight:900;color:var(--gold-l);font-variant-numeric:tabular-nums;
+    line-height:1.1;text-shadow:0 0 10px rgba(245,197,66,.25);
+  }
+  .meter .val.sm{font-size:15px;}
+  .meter.hl{border-color:rgba(245,197,66,.55);
+    background:radial-gradient(circle at 50% 20%, rgba(245,197,66,.14), rgba(0,0,0,.4));}
+
+  /* ---------------- 下注面板 ---------------- */
+  .betpanel{
+    border-radius:18px;padding:14px 14px 16px;
+    background:linear-gradient(180deg,rgba(43,26,16,.94),rgba(25,15,8,.96));
+    border:1px solid rgba(245,197,66,.24);
+    box-shadow:0 16px 40px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.06);
+    display:flex;flex-direction:column;gap:12px;
+  }
+  .panel-title{
+    display:flex;align-items:center;gap:9px;
+    font-size:11px;letter-spacing:2.4px;color:rgba(255,231,160,.62);
+  }
+  .panel-title i{flex:1;height:1px;background:linear-gradient(90deg,rgba(245,197,66,.34),rgba(245,197,66,0));}
+
+  /* 筹码盘 */
+  .chips{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+  .chip{
+    position:relative;width:48px;height:48px;border-radius:50%;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    font-size:13px;font-weight:900;color:#1a1206;
+    background:repeating-conic-gradient(from 0deg, #f6f2e8 0deg 7deg, var(--c) 7deg 21deg);
+    box-shadow:0 5px 12px rgba(0,0,0,.5), inset 0 0 0 2px rgba(0,0,0,.28);
+    transition:transform .1s, filter .15s, box-shadow .15s;
+  }
+  .chip::after{
+    content:"";position:absolute;inset:5px;border-radius:50%;
+    background:radial-gradient(circle at 38% 30%, color-mix(in srgb, var(--c) 72%, #fff), var(--c) 70%);
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.22), inset 0 2px 4px rgba(255,255,255,.35);
+    display:flex;
+  }
+  .chip span{position:relative;z-index:2;color:#20180a;}
+  .chip:hover{transform:translateY(-2px);filter:brightness(1.08);}
+  .chip.sel{box-shadow:0 0 0 2px var(--gold), 0 6px 16px rgba(0,0,0,.55);}
+  .chip.sel::before{
+    content:"";position:absolute;inset:-6px;border-radius:50%;
+    box-shadow:inset 0 0 0 1px rgba(245,197,66,.55);
+  }
+
+  /* 注位网格 */
+  .spots{display:flex;flex-direction:column;gap:10px;}
+  .spot-row{display:grid;gap:10px;}
+  .row-main{grid-template-columns:repeat(4,1fr);}
+  .row-face{grid-template-columns:repeat(6,1fr);}
+  .row-combo{grid-template-columns:repeat(3,1fr);}
+
+  /* 注位：透明底 + 1px 细金线（inset 描边，圆角无接缝）；按下只位移不缩放 */
+  .spot{
+    position:relative;cursor:pointer;border:0;padding:8px 6px;
+    background:transparent;font-family:inherit;color:inherit;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+    min-height:56px;
+    transition:transform .1s;
+  }
+  .spot::after{
+    content:"";position:absolute;inset:0;border-radius:9px;pointer-events:none;z-index:0;
+    box-shadow:inset 0 0 0 1px rgba(255,225,150,.34);
+    transition:box-shadow .18s, background .18s;
+  }
+  .spot:hover::after{box-shadow:inset 0 0 0 1px rgba(255,235,180,.72);}
+  .spot:active{transform:translateY(1px);}
+  .spot.on::after{
+    box-shadow:inset 0 0 0 1px rgba(255,215,106,.95);
+    background:rgba(245,197,66,.10);
+  }
+  .spot .t{font-size:14px;font-weight:900;letter-spacing:1px;color:#ffe9a8;position:relative;z-index:1;}
+  .spot .s{font-size:9.5px;letter-spacing:.4px;color:#a99cc0;position:relative;z-index:1;}
+  .spot .amt{
+    font-size:11px;font-weight:900;color:rgba(255,233,168,.45);
+    font-variant-numeric:tabular-nums;position:relative;z-index:1;min-height:13px;
+  }
+  .spot.on .amt{color:var(--gold-l);}
+  /* 单点注位上的小骰面图标：点用绝对定位按百分比摆位。
+     不用 grid + flex 三层（9 个空单元格会把尺寸算成 0，点根本画不出来）。 */
+  .minidie{
+    width:26px;height:26px;border-radius:5px;position:relative;z-index:1;
+    background:linear-gradient(150deg,#fdfcf6,#e6e2d4);
+    box-shadow:0 1px 3px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.7);
+  }
+  .minidie i{
+    position:absolute;width:17%;height:17%;border-radius:50%;
+    transform:translate(-50%,-50%);background:#1e1e2c;
+  }
+
+  /* 按钮区 */
+  .actions{display:flex;gap:10px;align-items:stretch;}
+  .btn{
+    height:52px;border-radius:13px;cursor:pointer;font-family:inherit;
+    font-size:16px;font-weight:800;letter-spacing:2px;
+    border:1px solid rgba(245,197,66,.32);
+    background:linear-gradient(#2b1a10,#190f08);color:var(--gold);
+    box-shadow:0 6px 16px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08);
+    transition:transform .08s, filter .18s;
+  }
+  .btn:hover{filter:brightness(1.16);}
+  .btn:active{transform:translateY(2px) scale(.99);}
+  .btn.ghost{flex:0 0 132px;color:#d9cdeb;border-color:rgba(255,255,255,.16);}
+  .btn.deal{
+    flex:1;color:#241500;font-size:18px;letter-spacing:4px;
+    background:linear-gradient(180deg,#ffd76a,#f5c542 45%,#d99f14);
+    border-color:rgba(255,255,255,.42);
+    box-shadow:0 10px 26px rgba(245,180,20,.35), inset 0 1px 0 rgba(255,255,255,.55);
+  }
+  .btn.deal kbd{
+    font-family:inherit;font-size:11px;font-weight:700;letter-spacing:0;
+    margin-left:10px;padding:2px 6px;border-radius:5px;
+    background:rgba(0,0,0,.18);color:rgba(36,21,0,.8);
+  }
+  .hint{
+    text-align:center;font-size:11.5px;letter-spacing:.4px;color:rgba(200,186,220,.65);
+    min-height:16px;
+  }
+
+  /* ============================================================
+   *  移动端：骰子缩小、注位两列/三列、HUD 两列
+   * ============================================================ */
+  @media (max-width:760px){
+    body{padding:12px 10px 22px;}
+    .page{gap:11px;}
+    .topbar{gap:8px;}
+    .brand{flex:1 1 100%;justify-content:center;margin-left:0;order:-1;}
+    .brand b{font-size:18px;letter-spacing:5px;}
+    .brand span{display:none;font-size:10.5px;}
+    .felt{padding:18px 14px 16px;border-radius:18px;}
+    .dicestage{gap:34px;padding:16px 0 6px;}
+    .dice-slot{width:70px;height:70px;perspective:600px;}
+    .dice-slot::after{bottom:-11px;height:11px;}
+    .die .face{border-radius:5px;padding:11%;}
+    .resultline{gap:9px;padding:7px 10px;min-height:40px;}
+    .resultline .dtag{display:none;}
+    .resultline .vt{font-size:14px;letter-spacing:2px;}
+    .resultline .dv{width:22px;height:22px;font-size:13px;border-radius:5px;}
+    .hud{grid-template-columns:repeat(2,1fr);gap:8px;}
+    .meter{padding:8px 6px;}
+    .meter .val{font-size:17px;}
+    .betpanel{padding:12px 10px 14px;border-radius:16px;gap:10px;}
+    .chips{gap:7px;}
+    .chip{width:42px;height:42px;font-size:12px;}
+    .row-main{grid-template-columns:repeat(2,1fr);}
+    .row-face{grid-template-columns:repeat(3,1fr);}
+    .row-combo{grid-template-columns:repeat(3,1fr);}
+    .spot{min-height:52px;padding:7px 4px;}
+    .spot .t{font-size:13px;}
+    .spot .s{font-size:10px;letter-spacing:.2px;}
+    .actions{flex-direction:column-reverse;gap:8px;}
+    .btn.ghost{flex:0 0 auto;height:44px;font-size:14px;}
+    .btn.deal{height:54px;}
+    .btn.deal kbd{display:none;}
+  }
+  @media (max-width:420px){
+    .dicestage{gap:26px;}
+    .dice-slot{width:58px;height:58px;}
+    .row-combo{grid-template-columns:repeat(3,1fr);}
+    .spot .s{font-size:9px;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ==================== 顶部：返回 + 标题 ==================== -->
+  <div class="topbar">
+    <a class="homelink" href="slot_machine.html">老虎机</a>
+    <a class="homelink" href="baccarat.html">百家乐</a>
+    <a class="homelink" href="blackjack.html">21 点</a>
+    <div class="brand"><b>SIC BO</b><span>骰 宝</span></div>
+  </div>
+
+  <!-- ==================== 桌面：三颗骰子 + 结果 ==================== -->
+  <section class="felt">
+    <div class="felt-head"><i></i><span>投 掷 区</span><i></i></div>
+
+    <div class="dicestage">
+      <div class="dice-slot"><div class="die" data-val="2"></div></div>
+      <div class="dice-slot"><div class="die" data-val="5"></div></div>
+      <div class="dice-slot"><div class="die" data-val="6"></div></div>
+    </div>
+
+    <!-- 结果提示条：静态示例态（中性灰 = 等待投掷） -->
+    <div class="resultline">
+      <div class="dice-vals">
+        <span class="dv">2</span><span class="dv">5</span><span class="dv">6</span>
+      </div>
+      <span class="sep"></span>
+      <span class="vt">合共 <span class="num">13</span> 点 · 大</span>
+      <span class="tag dtag">示例结果</span>
+    </div>
+  </section>
+
+  <!-- ==================== HUD：余额 / 本注 / 赔率 / 手数 ==================== -->
+  <div class="hud">
+    <div class="meter"><span class="label">当前余额</span><span class="val">20,000</span></div>
+    <div class="meter hl"><span class="label">本注合计</span><span class="val">0</span></div>
+    <div class="meter"><span class="label">上局派彩</span><span class="val sm">—</span></div>
+    <div class="meter"><span class="label">累计手数</span><span class="val sm">0</span></div>
+  </div>
+
+  <!-- ==================== 下注面板 ==================== -->
+  <section class="betpanel">
+    <div class="panel-title"><span>筹 码</span><i></i><span style="letter-spacing:.5px">点选面额</span></div>
+    <div class="chips">
+      <button class="chip" style="--c:#7fb2ff"><span>5</span></button>
+      <button class="chip sel" style="--c:#ffd76a"><span>25</span></button>
+      <button class="chip" style="--c:#ff9a9a"><span>100</span></button>
+      <button class="chip" style="--c:#8ff0b8"><span>500</span></button>
+      <button class="chip" style="--c:#c9b6ff"><span>1K</span></button>
+    </div>
+
+    <div class="panel-title"><span>下 注</span><i></i><span style="letter-spacing:.5px">大 / 小 · 单 / 双 · 点数</span></div>
+
+    <div class="spots">
+      <!-- 大 / 小 / 单 / 双 -->
+      <div class="spot-row row-main">
+        <button class="spot" type="button"><span class="t">小</span><span class="s">4 – 10 · 1:1</span><span class="amt"></span></button>
+        <button class="spot" type="button"><span class="t">大</span><span class="s">11 – 17 · 1:1</span><span class="amt"></span></button>
+        <button class="spot" type="button"><span class="t">单</span><span class="s">奇数 · 1:1</span><span class="amt"></span></button>
+        <button class="spot" type="button"><span class="t">双</span><span class="s">偶数 · 1:1</span><span class="amt"></span></button>
+      </div>
+
+      <!-- 指定点数 1–6 -->
+      <div class="spot-row row-face">
+        <button class="spot" type="button"><span class="minidie" data-pips="1"></span><span class="s">1 · 1:1</span><span class="amt"></span></button>
+        <button class="spot" type="button"><span class="minidie" data-pips="2"></span><span class="s">2 · 1:1</span><span class="amt"></span></button>
+        <button class="spot" type="button"><span class="minidie" data-pips="3"></span><span class="s">3 · 1:2</span><span class="amt"></span></button>
+        <button class="spot" type="button"><span class="minidie" data-pips="4"></span><span class="s">4 · 1:3</span><span class="amt"></span></button>
+        <button class="spot" type="button"><span class="minidie" data-pips="5"></span><span class="s">5 · 1:4</span><span class="amt"></span></button>
+        <button class="spot" type="button"><span class="minidie" data-pips="6"></span><span class="s">6 · 1:5</span><span class="amt"></span></button>
+      </div>
+
+      <!-- 组合注 -->
+      <div class="spot-row row-combo">
+        <button class="spot" type="button"><span class="t">围骰</span><span class="s">三颗同点 · 1:150</span><span class="amt"></span></button>
+        <button class="spot" type="button"><span class="t">全围</span><span class="s">任意豹子 · 1:24</span><span class="amt"></span></button>
+        <button class="spot" type="button"><span class="t">组合</span><span class="s">指定两数 · 1:5</span><span class="amt"></span></button>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn ghost" type="button">清空下注</button>
+      <button class="btn deal" type="button">投 掷<kbd>空格</kbd></button>
+    </div>
+    <div class="hint">选择筹码 → 点击注位下注 → 投掷</div>
+  </section>
+
+</div>
+
+<script>
+/* 只负责「画」：把 6 个骰面按点数生成 pip，并给三颗骰子设定一个静止角度。
+   投掷 / 结算 / 随机数本次一律不实现。 */
+(function(){
+  const PIPS = {1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+  const FACE = {1:"rotateY(0deg)",6:"rotateY(180deg)",3:"rotateY(90deg)",
+                4:"rotateY(-90deg)",2:"rotateX(90deg)",5:"rotateX(-90deg)"};
+  const HALF = 52;   // 104px / 2
+
+  function buildDie(el, half){
+    [1,6,3,4,2,5].forEach(n => {
+      const f = document.createElement("div");
+      f.className = "face";
+      f.style.transform = FACE[n] + " translateZ(" + half + "px)";
+      for (let i = 0; i < 9; i++){
+        const c = document.createElement("div");
+        c.className = "cell";
+        if (PIPS[n].indexOf(i) >= 0){
+          const p = document.createElement("i");
+          p.className = "pip";
+          c.appendChild(p);
+        }
+        f.appendChild(c);
+      }
+      el.appendChild(f);
+    });
+  }
+
+  /* 静止角度：让人一眼看到「顶面 + 正面 + 右侧」三个面，像真的摆在桌上 */
+  const REST = {2:[-22,-28], 5:[-18,-116], 6:[-24,-24]};
+  document.querySelectorAll(".die").forEach(el => {
+    const v = parseInt(el.getAttribute("data-val"), 10) || 1;
+    /* translateZ 必须等于 slot 宽的一半，否则面会外凸出盒外、三颗视觉上互相压住。
+       早先这里写死了 37px，移动端 slot 缩小后就对不上了（实测重叠 10px）。 */
+    const slotW = el.closest(".dice-slot").offsetWidth || HALF * 2;
+    buildDie(el, slotW / 2);
+    const a = REST[v] || [-20,-25];
+    el.style.transform = "rotateX(" + a[0] + "deg) rotateY(" + a[1] + "deg)";
+  });
+
+  /* 注位里的小骰面图标：直接按百分比坐标摆点，不依赖 grid 单元格尺寸 */
+  const PIPPOS = {
+    1:[[50,50]],
+    2:[[30,30],[70,70]],
+    3:[[27,27],[50,50],[73,73]],
+    4:[[30,30],[70,30],[30,70],[70,70]],
+    5:[[30,30],[70,30],[50,50],[30,70],[70,70]],
+    6:[[30,26],[70,26],[30,50],[70,50],[30,74],[70,74]]
+  };
+  document.querySelectorAll(".minidie").forEach(el => {
+    const n = parseInt(el.getAttribute("data-pips"), 10) || 1;
+    (PIPPOS[n] || []).forEach(([x, y]) => {
+      const d = document.createElement("i");
+      d.style.left = x + "%";
+      d.style.top = y + "%";
+      el.appendChild(d);
+    });
+  });
+
+  /* 移动端尺寸变化时重新按 slot 宽度算 translateZ（保持"面贴面"的立方体） */
+  let lastW = document.querySelector(".dice-slot").offsetWidth;
+  window.addEventListener("resize", function(){
+    const w = document.querySelector(".dice-slot").offsetWidth;
+    if (Math.abs(w - lastW) < 1) return;
+    lastW = w;
+    document.querySelectorAll(".die").forEach(el => {
+      el.querySelectorAll(".face").forEach(f => {
+        const t = f.style.transform.replace(/translateZ\([^)]*\)/, "translateZ(" + (w / 2) + "px)");
+        f.style.transform = t;
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>
