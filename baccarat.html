@@ -3245,11 +3245,16 @@
     var h = loadHand();
     if (!h) return;
     if (!shoe.length){
-      // 牌靴存档缺失（被清掉 / 版本不符）：这手已无牌可补，把扣掉的注额原额退回
-      credits += betSum(h.bet);
-      persist(); updateHUD();
+      /* 牌靴存档缺失（被清掉 / 版本不符）：这手已无牌可补。
+         但只有【未结算】的手才该退注 —— 已结算的手，钱早在 applySettle 里派发过
+         （h.settled 先落盘、同一个同步块里派彩再 clearHand），这里不分青红皂白再退一次，
+         同一手就赔了两遍。 */
+      if (h.settled !== true){
+        credits += betSum(h.bet);
+        persist(); updateHUD();
+        setHintKey("msg.void");
+      }
       clearHand();
-      setHintKey("msg.void");
       return;
     }
     clearTable();
