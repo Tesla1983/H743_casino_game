@@ -375,7 +375,7 @@
   .bcard.hot .bf{box-shadow:0 0 18px rgba(255,205,70,.55),0 6px 14px rgba(0,0,0,.6);
     border-color:rgba(255,225,140,.85);}
   .total{
-    flex:0 0 52px;width:52px;height:52px;border-radius:50%;
+    flex:0 0 54px;width:54px;height:40px;border-radius:12px;
     display:flex;align-items:center;justify-content:center;
     font-size:22px;font-weight:900;color:#ffe9a8;font-variant-numeric:tabular-nums;
     background:radial-gradient(circle at 50% 28%, rgba(255,255,255,.07), rgba(0,0,0,.34));
@@ -1108,7 +1108,7 @@
      z-index:0 保证装饰在文字(z:3) 与筹码堆(z:2) 之下，不影响可读性。 */
   body.arc .bspot.main::after,
   body.arc .bspot.ins::after{
-    content:"";position:absolute;inset:7px;border-radius:50%;pointer-events:none;z-index:0;
+    content:"";position:absolute;inset:7px;border-radius:9px;pointer-events:none;z-index:0;
     border:1px solid rgba(255,225,150,.44);
     background:linear-gradient(155deg, rgba(255,242,205,.16), rgba(255,240,200,0) 36%,
       rgba(255,240,200,0) 72%, rgba(0,0,0,.10));
@@ -1120,7 +1120,7 @@
   body.arc .bspot .bs-pay,
   body.arc .bspot .bs-name,
   body.arc .bspot .bs-amt{pointer-events:none;}
-  body.arc .bspot.main{width:88px;height:88px;}
+  body.arc .bspot.main{width:88px;height:66px;border-radius:16px;}
   body.arc .bspot.side{width:70px;height:70px;opacity:.94;}
   body.arc .bspot:hover{border-color:rgba(255,230,150,1);}
   body.arc .bspot:active{transform:translateY(1px) scale(.98);}
@@ -1235,8 +1235,8 @@
     order:4;display:grid;grid-template-columns:repeat(2, auto);
     gap:16px 40px;justify-content:center;margin-top:16px;
   }
-  body.arc .bspot.main{width:104px;height:104px;}
-  body.arc .bspot.ins{width:76px;height:76px;opacity:.92;}
+  body.arc .bspot.main{width:104px;height:76px;border-radius:16px;}
+  body.arc .bspot.ins{width:76px;height:56px;opacity:.92;border-radius:16px;}
   body.arc .bspot.ins.on{
     opacity:1;border-color:rgba(255,215,106,.8);border-style:solid;
     box-shadow:0 0 20px rgba(245,197,66,.38), inset 0 0 24px rgba(245,197,66,.16);
