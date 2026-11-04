@@ -210,7 +210,9 @@
      窄于 1240px 时三卡换行，order 失效、回到原来的行内位置（银行卡仍在右侧列），保持原有窄屏行为。 */
   @media (min-width:1240px){
     body.arc .sidecol{order:-1;}
-    #playerCard{align-self:flex-end;position:relative;margin-left:36px;order:2;}
+    /* 先顶对齐到柜机顶部，再由 JS(syncProfileBottom) 把底边推到牌桌(.screen)底部边框，
+       而不是随 machrow 的 align-items:flex-end 一直垂到柜机底部（会盖过筹码盘/按钮区）。 */
+    #playerCard{align-self:flex-start;position:relative;margin-left:36px;order:2;}
   }
 
   /* ---------- 路纸（珠盘路）：8 行，自上而下、满列换列 ---------- */
@@ -3616,6 +3618,37 @@
     });
     document.body.appendChild(bar);
   })();
+
+  /* =====================================================================
+   *  玩家档案卡片竖向定位（仅桌面三列布局生效）
+   *  machrow 默认 align-items:flex-end，会让 #playerCard 底边垂到柜机最底部
+   *  （盖过筹码盘/按钮区）。这里改成：顶对齐柜机顶部后，把底边精确推到牌桌
+   *  (.screen) 的底部边框——也就是筹码盘之上、不超出筹码卡片。用 ResizeObserver
+   *  监听 .screen，发牌/分牌导致牌桌高度变化时也能自动重算。窄屏不干预（流式）。
+   * ===================================================================== */
+  var _pcRaf = 0;
+  function syncProfileBottom(){
+    var pc = document.getElementById("playerCard");
+    var felt = document.getElementById("felt");   // 牌桌绒布面 = 用户说的「牌桌底部边框」
+    var cabCol = document.querySelector(".cab-col");
+    if(!pc || !felt || !cabCol) return;
+    if(!window.matchMedia("(min-width:1240px)").matches){ pc.style.marginTop = ""; return; }
+    var cabTop = cabCol.getBoundingClientRect().top;
+    var feltBottom = felt.getBoundingClientRect().bottom;
+    // 自然顶边（marginTop=0 时）≈ cabCol 顶部（machrow 顶部与柜机顶对齐）
+    var desiredTop = feltBottom - cabTop - pc.offsetHeight;
+    pc.style.marginTop = Math.max(0, desiredTop) + "px";
+  }
+  function syncProfileBottomSoon(){
+    if(_pcRaf) cancelAnimationFrame(_pcRaf);
+    _pcRaf = requestAnimationFrame(function(){ requestAnimationFrame(syncProfileBottom); });
+  }
+  window.addEventListener("resize", syncProfileBottomSoon);
+  if(window.ResizeObserver){
+    var _pcFelt = document.getElementById("felt");
+    if(_pcFelt) new ResizeObserver(syncProfileBottomSoon).observe(_pcFelt);
+  }
+  syncProfileBottomSoon();
 
 })();
 </script>
