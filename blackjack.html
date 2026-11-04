@@ -360,7 +360,9 @@
   .cards{flex:1;display:flex;align-items:center;min-width:0;padding-left:8px;min-height:106px;}
   .bcard{position:relative;width:76px;height:106px;flex:0 0 76px;perspective:700px;}
   .bcard + .bcard{margin-left:-20px;}
-  .bcard:nth-child(2){z-index:2;} .bcard:nth-child(3){z-index:3;}
+  /* 牌张「左压右」扇形堆叠：所有 .bcard 同为 z-index:auto，靠 DOM 顺序（后发的牌永远在上）即可形成一致扇形。
+     原先只给 :nth-child(2)/:nth-child(3) 写死 z-index:2/3，第 4 张起回到 auto 反而被第 3 张压住，
+     出现『第四张左边压在第三张下面』的错位，故取消这处写死、统一交给 DOM 顺序。 */
   .bcard-in{position:relative;width:100%;height:100%;transform-style:preserve-3d;
     transform:rotateY(180deg);transition:transform .42s cubic-bezier(.3,.9,.25,1);}
   .bcard.up .bcard-in{transform:rotateY(0deg);}
