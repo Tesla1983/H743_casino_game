@@ -3112,7 +3112,7 @@
        res=b → 庄 +利润（有佣 ⌊注×95%⌋ / 免佣满赔、庄 6 点则半赔）、闲 −注、和 −注
        res=t → 闲/庄「退回」、和 +注×8
        附加注：闲对/庄对中则 +注×11，幸运六中则 +注×12 或 ×20，否则 −注
-     只列真正下了注的注位；金额用 fmtAmt 精确整数（战绩才缩写，见 DERIVED 指南 §7）。 */
+     只列真正下了注的注位；金额用 fmtAmt 精确整数（战绩才缩写）。 */
   function brkText(st, bs){
     var segs = [];
     var money = function(d){ return (d > 0 ? "+" : (d < 0 ? "−" : "")) + fmtAmt(Math.abs(d)); };

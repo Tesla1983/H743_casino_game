@@ -2243,7 +2243,7 @@
   }
 
   /* 从牌靴抽一张（数据层）：每张都落盘（刷新后仍是同一副牌）。
-     余牌「显示」不由这里刷新——坑2要求显示与出牌动作（飞牌动画）逐张同步，
+     余牌「显示」不由这里刷新——余牌计数必须与出牌动作（飞牌动画）逐张同步，
      refreshShoe 由 dealCard 动画完成时调用。 */
   function drawCard(){
     if (!shoe.length) return null;
@@ -2454,7 +2454,7 @@
   var insBet = 0;               // 保险注（本注一半，庄家明 A 时可押）
   var insuranceOn = (function(){ return lsLoadStr(LS.insurance, "1") === "1"; })();
   var shoe = loadShoe() || [];
-  var shoeLeft = shoe.length;   // 避坑录坑2：显示计数与出牌动作逐张同步
+  var shoeLeft = shoe.length;   // 显示计数与出牌动作逐张同步
   var dealing = false;
   var phase = "bet";            // bet -> player -> dealer -> settle
   var playerHands = [];         // [{cards:[], bet, done, fromSplit, splitAce, doubled}]
@@ -2891,7 +2891,7 @@
   function clearTable(){ startNewRound(); }
 
   /* =====================================================================
-   *  发牌动画（坑1经验：飞行体用扁平 .flycard 只放牌背图——克隆 3D .bcard 会被
+   *  发牌动画（飞行体用扁平 .flycard 只放牌背图——克隆 3D .bcard 会被
    *  position:fixed + will-change:transform 压平内部 preserve-3d，翻面变「牌面转牌面」。
    *  真实牌先 visibility:hidden 占住最终落点，飞行体到点后揭示真实牌再翻面。）
    * ===================================================================== */
@@ -2943,7 +2943,7 @@
       cardSfx("flip");
       await sleep(380);
     }
-    refreshShoe();                                 // 坑2：每实际飞出一张，余牌显示才 -1
+    refreshShoe();                                 // 每实际飞出一张，余牌显示才 -1
   }
 
   /* =====================================================================
