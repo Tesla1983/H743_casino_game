@@ -1733,6 +1733,7 @@
   </div>
 </div>
 
+<script src="tools/verify/bj_engine.js"></script>
 <script>
 (function(){
   "use strict";
@@ -2181,7 +2182,9 @@
   });
   /* =====================================================================
    *  牌靴（21 点 · 6 副 312 张）
-   *  牌对象 {rank,suit,code,value}，与 tools/verify/bj_engine.js 完全同构。
+   *  牌对象 {rank,suit,code,value}，与 tools/verify/bj_engine.js 同构。
+   *  点数/黑杰克/对子判定直接复用该引擎的 BJ.handValue / BJ.isBlackjack /
+   *  BJ.isPair（见页面底部 <script src> 注入），消除与单测重复的内联实现。
    * ===================================================================== */
   function buildDeck(){
     var arr = [];
@@ -2250,24 +2253,8 @@
     return c;
   }
 
-  /* =====================================================================
-   *  手牌点数（A 双值：先按 11 计，爆了逐个降为 1）
-   * ===================================================================== */
-  function handValue(cards){
-    var total = 0, aces = 0;
-    for (var i = 0; i < cards.length; i++){
-      total += cards[i].value;
-      if (cards[i].rank === "A") aces++;
-    }
-    while (total > 21 && aces > 0){ total -= 10; aces--; }
-    return { total: total, soft: aces > 0, bust: total > 21 };
-  }
-  function isBJ(cards){
-    return cards.length === 2 && handValue(cards).total === 21;
-  }
-  function isPairCards(cards){
-    return cards.length === 2 && cards[0].value === cards[1].value;   // 按 21 点惯例可 10 值混分
-  }
+  /* 点数 / 黑杰克 / 对子判定直接复用 tools/verify/bj_engine.js 的 BJ.*（见页面底部 <script src>）。
+     牌对象 {rank,suit,code,value} 与引擎同构，BJ.handValue/isBlackjack/isPair 即页面原内联实现。 */
 
   /* =====================================================================
    *  i18n（键集合与老虎机同风格；data-i18n 走 innerHTML，允许 <b>）
@@ -2715,13 +2702,13 @@
       }
 
       // Peek：庄家明 A 或 10 时看暗牌
-      if (isBJ(dealerCards)){
+      if (BJ.isBlackjack(dealerCards)){
         await revealHole();                    // 揭示庄家黑杰克（翻面动画）
         await settleRound();
         dealing = false; dealBtn.disabled = false;
         return;
       }
-      if (playerHands[0] && isBJ(playerHands[0].cards)){
+      if (playerHands[0] && BJ.isBlackjack(playerHands[0].cards)){
         holeHidden = false;                    // 玩家 BJ：庄暗牌照例翻开
         renderCards(); renderTotals();
         await settleRound();
@@ -2790,7 +2777,7 @@
     btnHit.disabled = !canAct;
     btnStand.disabled = !canAct;
     btnDouble.disabled = !(canAct && h.cards.length === 2 && credits >= h.bet && !h.doubled);
-    btnSplit.disabled = !(canAct && h.cards.length === 2 && isPairCards(h.cards)
+    btnSplit.disabled = !(canAct && h.cards.length === 2 && BJ.isPair(h.cards)
                           && playerHands.length < 4 && credits >= h.bet);
     /* 发牌键：本手未结束（发牌动画中 / 玩家行动 / 庄家补牌）一律置灰。
        原来这里没管发牌键，deal() 结束时又无条件把它点亮，于是牌局进行中可以直接再按一次
@@ -2847,18 +2834,18 @@
     // 让本局（含输局）的点数继续留在球内，直到「开始新一局」才由 startNewRound() 清掉。
     var h = playerHands.length ? playerHands[Math.min(activeHand, playerHands.length - 1)] : null;
     if (h){
-      var v = handValue(h.cards);
+      var v = BJ.handValue(h.cards);
       pTotalEl.textContent = v.bust ? (v.total + " · " + tt("verdict.bust").split(" · ")[0]) : String(v.total);
       pTotalEl.classList.toggle("empty", false);
     } else {
       pTotalEl.textContent = ""; pTotalEl.classList.add("empty");
     }
     if (holeHidden){
-      var up = handValue([dealerCards[0]]);
+      var up = BJ.handValue([dealerCards[0]]);
       bTotalEl.textContent = dealerCards.length ? String(up.total) : "";
       bTotalEl.classList.toggle("empty", !dealerCards.length);
     } else {
-      var dv = handValue(dealerCards);
+      var dv = BJ.handValue(dealerCards);
       bTotalEl.textContent = dv.bust ? (dv.total + " !") : String(dv.total);
       bTotalEl.classList.toggle("empty", !dealerCards.length);
     }
@@ -3000,7 +2987,7 @@
     // 多手共用容器：新牌必须插到当前手末尾（appendChild 会落进下一手区域）
     await dealCard(sideP, c, playerHands.length > 1 ? { beforeEl: insertBeforeForCurrentHand() } : null);
     renderTotals(); saveHand(); refreshHandMarks();
-    var v = handValue(h.cards);
+    var v = BJ.handValue(h.cards);
     if (v.bust){
       h.done = true;
       setHintKey("msg.bust");
@@ -3043,7 +3030,7 @@
   async function actSplit(){
     if (phase !== "player") return;
     var h = playerHands[activeHand];
-    if (!h || h.done || h.cards.length !== 2 || !isPairCards(h.cards)) return;
+    if (!h || h.done || h.cards.length !== 2 || !BJ.isPair(h.cards)) return;
     if (playerHands.length >= 4) return;
     if (credits < h.bet){ showNotEnough(); return; }
     credits -= h.bet;
@@ -3101,7 +3088,7 @@
     // 全部手都爆牌：已无对手可比点数，庄家一张都不该再补（只需翻开暗牌）。
     // 分牌时只要还有一手没爆，庄家照常行动。
     var allBust = playerHands.length > 0 && playerHands.every(function(h){
-      return handValue(h.cards).bust;
+      return BJ.handValue(h.cards).bust;
     });
     if (allBust){
       await revealHole();
@@ -3123,10 +3110,8 @@
   }
   async function dealerTurn(){
     await revealHole();
-    // S17：所有 17（含软 17）停牌，16 及以下补牌
-    while (true){
-      var v = handValue(dealerCards);
-      if (v.total >= 17) break;
+    // S17：16 及以下补牌，所有 17（含软 17）停牌——规则由引擎 BJ.dealerShouldHit 提供（单测覆盖）
+    while (BJ.dealerShouldHit(dealerCards)){
       var c = drawCard();
       if (!c) break;
       dealerCards.push(c);
@@ -3146,13 +3131,13 @@
   async function settleRound(){
     phase = "settle";
     refreshActionBtns();
-    var dv = handValue(dealerCards);
-    var dbj = isBJ(dealerCards);
+    var dv = BJ.handValue(dealerCards);
+    var dbj = BJ.isBlackjack(dealerCards);
     var net = 0;                       // 主注净额（相对已扣本金）
     var anyNat = false, anyBust = false;
     playerHands.forEach(function(h){
-      var pv = handValue(h.cards);
-      var nat = !h.fromSplit && isBJ(h.cards);
+      var pv = BJ.handValue(h.cards);
+      var nat = !h.fromSplit && BJ.isBlackjack(h.cards);
       if (nat) anyNat = true;
       if (pv.bust) anyBust = true;
       var res;

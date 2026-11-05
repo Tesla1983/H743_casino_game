@@ -80,7 +80,9 @@
       cards.some(function (c) { return c.rank === "A"; });
   }
   function isPair(cards) {
-    return cards.length === 2 && cards[0].rank === cards[1].rank;
+    // 按牌值判对子：10/J/Q/K 同为 10 值，可混合分牌（符合赌场惯例）。
+    // 页面与单测的牌对象均带 .value，故直接比较 value。
+    return cards.length === 2 && cards[0].value === cards[1].value;
   }
 
   /* ---------------- 洗牌：Fisher-Yates + 16-bit 拒绝采样 ----------------
