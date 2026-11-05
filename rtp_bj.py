@@ -1,6 +1,6 @@
 """21 点（Blackjack）RTP / 玩家优势 标定（与 blackjack.html 逻辑逐行对齐）。
 
-规则口径（docs/blackjack_开发规划.md §7 落定）：
+规则口径（与 tools/verify/bj_engine.js 的 CFG 完全一致）：
   - 6 副牌（312 张），切牌点 75%（约 234 张后重洗）
   - 庄家 S17（软 17 停牌）
   - 黑杰克赔付 3:2
