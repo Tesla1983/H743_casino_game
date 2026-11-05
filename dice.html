@@ -254,7 +254,7 @@
   .spot-row{display:grid;gap:10px;}
   .row-main{grid-template-columns:repeat(4,1fr);}
   .row-face{grid-template-columns:repeat(6,1fr);}
-  .row-combo{grid-template-columns:repeat(3,1fr);}
+  .row-combo{grid-template-columns:repeat(5,1fr);}
 
   .spot{
     position:relative;cursor:pointer;border:0;padding:10px 6px;background:transparent;
@@ -284,9 +284,6 @@
     font-size:11px;letter-spacing:.3px;color:#cbb8e6;opacity:.85;
     position:relative;z-index:1;text-align:center;line-height:1.2;
   }
-  /* 注额绝对定位进底部内边距，不参与「名称 + 赔率」的竖向居中计算。
-     原来它是个带 min-height 的空占位，会把这两行一起顶到卡片上半部——
-     这正是「文字都高了、贴着上边框」的原因。 */
   .spot .amt{
     position:absolute;left:0;right:0;bottom:6px;text-align:center;
     font-size:15px;font-weight:900;line-height:1;
@@ -294,6 +291,39 @@
     font-variant-numeric:tabular-nums;z-index:1;
   }
   .spot.on .amt{color:var(--gold-l);text-shadow:0 0 10px rgba(245,197,66,.5);}
+
+  /* ---------------- 注位筹码堆（复用 21 点视觉：迷你筹码 + 掉落动画） ----------------
+     放在卡片右半边空白区，绝对定位、不撑开卡片；z 高于描边装饰与文字，
+     落到最右一列，避开居中的「标题 / 赔率」文字。
+     堆体垂直叠放（column-reverse 后放的压在上面），尺寸与重叠量按 76px 卡高收好，
+     最多 9 枚即收住，保证整堆落在卡内、不被相邻卡片或卡边遮挡。 */
+  .d5{--c:#e23b3b;} .d25{--c:#1f9a5a;} .d100{--c:#161616;}
+  .d500{--c:#2b6fd4;} .d1000{--c:#c8901a;}
+  .minichip{
+    border-radius:50%;position:relative;
+    background:repeating-conic-gradient(from 0deg,#f3efe6 0deg 7deg, var(--c) 7deg 21deg);
+    box-shadow:inset 0 0 0 2px rgba(0,0,0,.28);
+  }
+  .minichip::before{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--c);}
+  .minichip::after{content:"";position:absolute;inset:6px;border-radius:50%;
+    border:1px dashed rgba(245,235,210,.8);}
+
+  .spot .bs-stack{
+    position:absolute; left:75%; top:50%; transform:translate(-50%,-50%);
+    display:flex; flex-direction:column-reverse; align-items:center;
+    z-index:2; pointer-events:none;
+  }
+  /* 1–6 点卡片：内容块（骰子+长标签）居中且较宽，筹码需右移才能落在文字与边框的中间 */
+  .spot[data-spot^="f"] .bs-stack{ transform:translate(calc(-50% + 17px),-50%); }
+  .spot .minichip{
+    width:19px;height:19px;border-radius:50%;margin-bottom:-13px;
+    box-shadow:0 1px 3px rgba(0,0,0,.55), inset 0 0 0 2px rgba(0,0,0,.28);
+  }
+  .spot .minichip.drop{animation:chipDrop .26s cubic-bezier(.2,1.4,.4,1);}
+  @keyframes chipDrop{
+    from{opacity:0;transform:translateY(-9px) scale(.6);}
+    to{opacity:1;transform:translateY(0) scale(1);}
+  }
 
   .minidie{
     width:26px;height:26px;border-radius:5px;position:relative;z-index:1;
@@ -403,7 +433,7 @@
     .chip{width:42px;height:42px;font-size:12px;}
     .row-main{grid-template-columns:repeat(2,1fr);}
     .row-face{grid-template-columns:repeat(3,1fr);}
-    .row-combo{grid-template-columns:repeat(3,1fr);}
+    .row-combo{grid-template-columns:repeat(2,1fr);}
     .spot{min-height:68px;padding:8px 4px;}
     .spot .amt{font-size:13px;bottom:4px;}
     .actions{flex-direction:column-reverse;gap:8px;}
@@ -414,6 +444,35 @@
   @media (max-width:420px){
     .dicestage{gap:26px;}
     .dice-slot{width:58px;height:58px;}
+  }
+
+  /* ---------- rules card（与 21 点同一套视觉，配色用本页变量） ---------- */
+  .rules{
+    width:100%;max-width:100%;
+    background:linear-gradient(160deg,#1d1430,#120b1f);
+    border:1px solid rgba(245,197,66,.22);
+    border-radius:18px;padding:18px 22px 24px;
+    box-shadow:0 18px 50px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.06);
+    font-size:13px;line-height:1.7;color:var(--ink);
+  }
+  .rules h2{margin:0 0 10px;font-size:17px;letter-spacing:3px;color:var(--gold-l);
+    text-shadow:0 0 9px rgba(245,197,66,.35);}
+  .rules h3{margin:16px 0 6px;font-size:13.5px;color:#ffd76a;letter-spacing:1px;}
+  .rules p{margin:6px 0;}
+  .rules ul{margin:6px 0;padding-left:20px;}
+  .rules li{margin:3px 0;}
+  .rules b{color:#fff0c8;font-weight:700;}
+  .rules table{border-collapse:collapse;width:100%;table-layout:fixed;margin:8px 0;font-size:12.5px;}
+  .rules th,.rules td{border:1px solid rgba(255,255,255,.13);padding:5px 8px;text-align:center;}
+  .rules th{background:rgba(245,197,66,.12);color:#ffe680;font-weight:700;}
+  .rules .tag{display:inline-block;padding:1px 8px;border-radius:8px;font-size:11px;font-weight:700;}
+  .rules .tag.s{background:linear-gradient(#8ff0b8,#1f9a5a);color:#04220f;}
+  .rules .tag.b{background:linear-gradient(#ff9a9a,#c02020);color:#fff;}
+  .rules .note{color:var(--muted);font-size:11.5px;}
+  @media (max-width:420px){
+    .rules{padding:14px 14px 18px;font-size:12.5px;}
+    .rules table{font-size:11.5px;}
+    .rules th,.rules td{padding:4px 5px;}
   }
 </style>
 </head>
@@ -506,8 +565,10 @@
 
       <div class="spot-row row-combo">
         <button class="spot" type="button" data-spot="triple"><span class="t" data-i18n="spot.triple">围骰</span><span class="s" data-i18n="pay.triple">三颗同点 · 1:30</span><span class="amt"></span></button>
-        <button class="spot" type="button" data-spot="sum4"><span class="t" data-i18n="spot.sum4">和 4 / 17</span><span class="s" data-i18n="pay.sum4">1:30</span><span class="amt"></span></button>
-        <button class="spot" type="button" data-spot="sum5"><span class="t" data-i18n="spot.sum5">和 5 / 16</span><span class="s" data-i18n="pay.sum5">1:22</span><span class="amt"></span></button>
+        <button class="spot" type="button" data-spot="sum4"><span class="t" data-i18n="spot.sum4">和 4</span><span class="s" data-i18n="pay.sum4">50 : 1</span><span class="amt"></span></button>
+        <button class="spot" type="button" data-spot="sum17"><span class="t" data-i18n="spot.sum17">和 17</span><span class="s" data-i18n="pay.sum17">50 : 1</span><span class="amt"></span></button>
+        <button class="spot" type="button" data-spot="sum5"><span class="t" data-i18n="spot.sum5">和 5</span><span class="s" data-i18n="pay.sum5">30 : 1</span><span class="amt"></span></button>
+        <button class="spot" type="button" data-spot="sum16"><span class="t" data-i18n="spot.sum16">和 16</span><span class="s" data-i18n="pay.sum16">30 : 1</span><span class="amt"></span></button>
       </div>
     </div>
 
@@ -517,6 +578,53 @@
     </div>
     <div class="hint" id="hint" data-i18n="hint.init">选择筹码 → 点击注位下注 → 投掷</div>
   </section>
+
+  <!-- ==================== 规则 ==================== -->
+  <div class="rules">
+    <h2 data-i18n="rules.title">玩法规则</h2>
+
+    <h3 data-i18n="rules.goal">游戏目标</h3>
+    <p data-i18n="rules.goal.p">投掷 <b>三颗骰子</b>，按你事先押注的注位判定是否命中：命中的注位按对应赔率派彩，未命中的注位本金不退还。目标是在一掷之内让所押注位尽可能多地命中。</p>
+
+    <h3 data-i18n="rules.dice">骰子与点数</h3>
+    <ul>
+      <li data-i18n="rules.dice.1">每局投掷 <b>三颗</b> 六面骰，每颗点数 <b>1–6</b>；三颗<b>合共</b>为 <b>3–18</b> 点。</li>
+      <li data-i18n="rules.dice.2"><b>奇偶</b>：合共点数的单双（如 9 为单、10 为双）。</li>
+      <li data-i18n="rules.dice.3"><b>豹子</b>：三颗同点（如 4-4-4）；豹子会<b>通杀</b>大 / 小 / 单 / 双四类注位（详见结算）。</li>
+    </ul>
+
+    <h3 data-i18n="rules.bet">下注方式</h3>
+    <p data-i18n="rules.bet.p">先在<b>筹码盘</b>选好面额（<b>5 / 25 / 100 / 500 / 1000</b>），点击下方<b>注位</b>放注——可累加、可同时押多个注位，<b>右键撤去该注位一注</b>。每注位<b>单注上限 5000</b>、整局<b>最低 5</b>。点「投掷」时一次性扣除本局全部注额，投掷后按命中注位返还（含本金）。</p>
+
+    <h3 data-i18n="rules.types">押注种类与赔率</h3>
+    <table>
+      <thead><tr><th data-i18n="th.bet">注位</th><th data-i18n="th.cond">命中条件</th><th data-i18n="th.pay">赔率（净）</th></tr></thead>
+      <tbody>
+        <tr><td data-i18n="spot.small">小</td><td data-i18n="pay.small.c">合共 4 – 10 点</td><td>1 : 1</td></tr>
+        <tr><td data-i18n="spot.large">大</td><td data-i18n="pay.large.c">合共 11 – 17 点</td><td>1 : 1</td></tr>
+        <tr><td data-i18n="spot.odd">单</td><td data-i18n="pay.odd.c">合共点数为奇数</td><td>1 : 1</td></tr>
+        <tr><td data-i18n="spot.even">双</td><td data-i18n="pay.even.c">合共点数为偶数</td><td>1 : 1</td></tr>
+        <tr><td data-i18n="pay.face">单点 1 – 6</td><td data-i18n="pay.face.c">所押点数出现 k 颗（k = 1 / 2 / 3）</td><td>1 : 1 / 2 : 1 / 3 : 1</td></tr>
+        <tr><td data-i18n="spot.triple">围骰</td><td data-i18n="pay.triple.c">三颗同点（任意点数）</td><td>1 : 30</td></tr>
+        <tr><td data-i18n="spot.sum4">和 4</td><td data-i18n="pay.sum4.c">总和恰为 4</td><td>50 : 1</td></tr>
+        <tr><td data-i18n="spot.sum17">和 17</td><td data-i18n="pay.sum17.c">总和恰为 17</td><td>50 : 1</td></tr>
+        <tr><td data-i18n="spot.sum5">和 5</td><td data-i18n="pay.sum5.c">总和恰为 5</td><td>30 : 1</td></tr>
+        <tr><td data-i18n="spot.sum16">和 16</td><td data-i18n="pay.sum16.c">总和恰为 16</td><td>30 : 1</td></tr>
+      </tbody>
+    </table>
+    <p class="note" data-i18n="rules.types.note">「单点 1–6」押某一颗点数：每颗骰子出现该点数即计一次，出现 <b>k</b> 次赔 <b>k</b> 倍（1 次 1:1、2 次 2:1、3 次 3:1）。若所押点数恰好三颗同点，该单点注按 <b>3 : 1</b> 派彩；想以更高赔率博「三同」，需另押「围骰」。</p>
+
+    <h3 data-i18n="rules.settle">开奖与结算</h3>
+    <ul>
+      <li data-i18n="rules.settle.1">投掷得出三颗骰子与<b>合共点数、奇偶</b>；系统逐注判定命中。</li>
+      <li data-i18n="rules.settle.2"><b>豹子通杀</b>：出现三颗同点时，<b>大 / 小 / 单 / 双</b> 四类注位全部判负（无论和值落在哪一区间）；但「单点」（该点数出现 3 次 → 3:1）与「围骰」（30:1）仍照常派彩。</li>
+      <li data-i18n="rules.settle.3"><b>多注同中</b>：各类押注可同时命中，结算时<b>逐注累加返还</b>；返还额 = 本金 + 赔额（已含本金），未命中的注位本金不退还。</li>
+      <li data-i18n="rules.settle.4"><b>随机源兜底</b>：在线（H743 串口直供）/ 离线（熵快照 + DRBG）两源皆不可用时，本局<b>不扣分、直接取消</b>，已下的注原额保留。</li>
+    </ul>
+
+    <h3 data-i18n="rules.edge">庄家优势提示</h3>
+    <p class="note" data-i18n="rules.edge.p">不同押注的庄家优势不同：大 / 小 / 单 / 双最低（约 2.78%），单点次之（约 7.9%），围骰等高赔率注位风险更高。高赔率注位对应更高风险，请以赔付表为准、量力下注。</p>
+  </div>
 
 </div>
 
@@ -530,7 +638,7 @@
    *  大 / 小：11–17 / 4–10，豹子通吃（庄家赢）
    *  单 / 双：和值奇偶，豹子通吃
    *  单点 1–6：该点数出现 k 次 → 赔 k 倍（k = 1/2/3）
-   *  围骰：三颗同点 1:30；和值 4·17 → 1:30；和值 5·16 → 1:22
+   *  围骰：三颗同点 1:30；总和 4 → 50:1；17 → 50:1；5 → 30:1；16 → 30:1
    *  settleOf 是纯函数：只吃「三颗骰子 + 注额表」，返回每注命中与总派彩，
    *  与 UI / 随机源完全解耦（测试钩子见文末 window.__sicboSettle）。
    * ===================================================================== */
@@ -538,7 +646,7 @@
   var MIN_BET = 5;
   var MAX_SPOT = 5000;          // 单注上限
   var START_CREDITS = 20000;
-  var SPOT_KEYS = ["small","large","odd","even","f1","f2","f3","f4","f5","f6","triple","sum4","sum5"];
+  var SPOT_KEYS = ["small","large","odd","even","f1","f2","f3","f4","f5","f6","triple","sum4","sum17","sum5","sum16"];
   var LS = { credits:"slot_credits" };   // 与老虎机 / 百家乐共用同一个钱袋
 
   /* ---------------- 音效 ----------------
@@ -608,8 +716,10 @@
       if (cnt > 0) win("f" + n, cnt);
     }
     if (triple) win("triple", 30);
-    if (sum === 4 || sum === 17) win("sum4", 30);
-    if (sum === 5 || sum === 16) win("sum5", 22);
+    if (sum === 4)  win("sum4", 50);
+    if (sum === 17) win("sum17", 50);
+    if (sum === 5)  win("sum5", 30);
+    if (sum === 16) win("sum16", 30);
 
     return { dice:[a,b,c], sum:sum, triple:triple, odd:odd, payout:payout, hits:hits };
   }
@@ -819,10 +929,10 @@
       "panel.chip":"筹 码","panel.chipHint":"点选面额",
       "panel.bet":"下 注","panel.betHint":"点注位加注 · 右键撤注",
       "spot.small":"小","spot.large":"大","spot.odd":"单","spot.even":"双",
-      "spot.triple":"围骰","spot.sum4":"和 4 / 17","spot.sum5":"和 5 / 16",
+      "spot.triple":"围骰","spot.sum4":"和 4","spot.sum17":"和 17","spot.sum5":"和 5","spot.sum16":"和 16",
       "pay.small":"4 – 10 · 1:1","pay.large":"11 – 17 · 1:1",
       "pay.odd":"奇数 · 1:1","pay.even":"偶数 · 1:1",
-      "pay.triple":"三颗同点 · 1:30","pay.sum4":"1:30","pay.sum5":"1:22",
+      "pay.triple":"三颗同点 · 1:30","pay.sum4":"50 : 1","pay.sum17":"50 : 1","pay.sum5":"30 : 1","pay.sum16":"30 : 1",
       "act.clear":"清空下注","act.roll":"投 掷","kbd.space":"空格",
       "hint.init":"选择筹码 → 点击注位下注 → 投掷",
       "src.switch":"切换源",
@@ -844,7 +954,19 @@
       "calc.title":"派彩明细：","calc.face":"点数 {n}",
       "calc.nameSep":"：","calc.opProfit":"＋赔","calc.opEq":"＝","calc.opDot":"·","calc.opBar":"｜",
       "calc.total":"派彩 {payout} − 本注 {total} ＝ {net}",
-      "calc.lose":"{total} 全部未中","calc.miss":"另 {n} 注未中 {stake}",
+      "calc.lose":"{total} 全部未中",      "calc.miss":"另 {n} 注未中 {stake}",
+      "rules.title":"玩法规则",
+      "rules.goal":"游戏目标","rules.goal.p":"投掷 <b>三颗骰子</b>，按你事先押注的注位判定是否命中：命中的注位按对应赔率派彩，未命中的注位本金不退还。目标是在一掷之内让所押注位尽可能多地命中。",
+      "rules.dice":"骰子与点数","rules.dice.1":"每局投掷 <b>三颗</b> 六面骰，每颗点数 <b>1–6</b>；三颗<b>合共</b>为 <b>3–18</b> 点。","rules.dice.2":"<b>奇偶</b>：合共点数的单双（如 9 为单、10 为双）。","rules.dice.3":"<b>豹子</b>：三颗同点（如 4-4-4）；豹子会<b>通杀</b>大 / 小 / 单 / 双四类注位（详见结算）。",
+      "rules.bet":"下注方式","rules.bet.p":"先在<b>筹码盘</b>选好面额（<b>5 / 25 / 100 / 500 / 1000</b>），点击下方<b>注位</b>放注——可累加、可同时押多个注位，<b>右键撤去该注位一注</b>。每注位<b>单注上限 5000</b>、整局<b>最低 5</b>。点「投掷」时一次性扣除本局全部注额，投掷后按命中注位返还（含本金）。",
+      "rules.types":"押注种类与赔率",
+      "th.bet":"注位","th.cond":"命中条件","th.pay":"赔率（净）",
+      "pay.small.c":"合共 4 – 10 点","pay.large.c":"合共 11 – 17 点","pay.odd.c":"合共点数为奇数","pay.even.c":"合共点数为偶数",
+      "pay.face":"单点 1 – 6","pay.face.c":"所押点数出现 k 颗（k = 1 / 2 / 3）",
+      "pay.triple.c":"三颗同点（任意点数）","pay.sum4.c":"总和恰为 4","pay.sum17.c":"总和恰为 17","pay.sum5.c":"总和恰为 5","pay.sum16.c":"总和恰为 16",
+      "rules.types.note":"「单点 1–6」押某一颗点数：每颗骰子出现该点数即计一次，出现 <b>k</b> 次赔 <b>k</b> 倍（1 次 1:1、2 次 2:1、3 次 3:1）。若所押点数恰好三颗同点，该单点注按 <b>3 : 1</b> 派彩；想以更高赔率博「三同」，需另押「围骰」。",
+      "rules.settle":"开奖与结算","rules.settle.1":"投掷得出三颗骰子与<b>合共点数、奇偶</b>；系统逐注判定命中。","rules.settle.2":"<b>豹子通杀</b>：出现三颗同点时，<b>大 / 小 / 单 / 双</b> 四类注位全部判负（无论和值落在哪一区间）；但「单点」（该点数出现 3 次 → 3:1）与「围骰」（30:1）仍照常派彩。","rules.settle.3":"<b>多注同中</b>：各类押注可同时命中，结算时<b>逐注累加返还</b>；返还额 = 本金 + 赔额（已含本金），未命中的注位本金不退还。","rules.settle.4":"<b>随机源兜底</b>：在线（H743 串口直供）/ 离线（熵快照 + DRBG）两源皆不可用时，本局<b>不扣分、直接取消</b>，已下的注原额保留。",
+      "rules.edge":"庄家优势提示","rules.edge.p":"不同押注的庄家优势不同：大 / 小 / 单 / 双最低（约 2.78%），单点次之（约 7.9%），围骰（约 13.9%）与总和注更高——和 4 / 17 约 29%、和 5 / 16 约 11%。高赔率注位庄家优势更大、风险更高，请以赔付表为准、量力下注。",
       "doc.title":"骰宝 SIC BO · 三颗骰子"
     },
     en:{
@@ -856,10 +978,10 @@
       "panel.chip":"CHIPS","panel.chipHint":"pick a value",
       "panel.bet":"BETS","panel.betHint":"click to add · right-click to remove",
       "spot.small":"Small","spot.large":"Big","spot.odd":"Odd","spot.even":"Even",
-      "spot.triple":"Triple","spot.sum4":"Sum 4 / 17","spot.sum5":"Sum 5 / 16",
+      "spot.triple":"Triple","spot.sum4":"Sum 4","spot.sum17":"Sum 17","spot.sum5":"Sum 5","spot.sum16":"Sum 16",
       "pay.small":"4 – 10 · 1:1","pay.large":"11 – 17 · 1:1",
       "pay.odd":"Odd sum · 1:1","pay.even":"Even sum · 1:1",
-      "pay.triple":"Three of a kind · 1:30","pay.sum4":"1:30","pay.sum5":"1:22",
+      "pay.triple":"Three of a kind · 1:30","pay.sum4":"50 : 1","pay.sum17":"50 : 1","pay.sum5":"30 : 1","pay.sum16":"30 : 1",
       "act.clear":"Clear","act.roll":"ROLL","kbd.space":"SPACE",
       "hint.init":"Pick a chip → tap a bet → roll",
       "src.switch":"Switch",
@@ -881,7 +1003,19 @@
       "calc.title":"Payout math: ","calc.face":"Face {n}",
       "calc.nameSep":": ","calc.opProfit":" +","calc.opEq":" = ","calc.opDot":" · ","calc.opBar":" | ",
       "calc.total":"payout {payout} − bet {total} = {net}",
-      "calc.lose":"{total} all lost","calc.miss":"and {n} losing bet(s) {stake}",
+      "calc.lose":"{total} all lost",      "calc.miss":"and {n} losing bet(s) {stake}",
+      "rules.title":"How to play",
+      "rules.goal":"Goal","rules.goal.p":"Roll <b>three dice</b> and resolve against the bet spots you wagered beforehand: winning spots pay at their odds, losing spots forfeit the stake. The goal is to hit as many of your wagered spots as possible in a single roll.",
+      "rules.dice":"Dice & totals","rules.dice.1":"Each round rolls <b>three</b> six-sided dice, each showing <b>1–6</b>; the <b>total</b> ranges <b>3–18</b>.","rules.dice.2":"<b>Parity</b>: whether the total is odd or even (e.g. 9 is odd, 10 is even).","rules.dice.3":"<b>Triple</b>: three of a kind (e.g. 4-4-4); a triple <b>kills</b> the Big / Small / Odd / Even spots (see settlement).",
+      "rules.bet":"How to bet","rules.bet.p":"First pick a chip value (<b>5 / 25 / 100 / 500 / 1000</b>), then click a <b>bet spot</b> to place — you may stack and bet multiple spots, <b>right-click to remove one bet from a spot</b>. <b>Table limit 5000 per spot</b>, <b>minimum 5 per round</b>. All bets are deducted when you press Roll, and winning spots are paid back (stake included) afterwards.",
+      "rules.types":"Bet types & odds",
+      "th.bet":"Spot","th.cond":"Wins when","th.pay":"Pays (net)",
+      "pay.small.c":"Total 4 – 10","pay.large.c":"Total 11 – 17","pay.odd.c":"Total is odd","pay.even.c":"Total is even",
+      "pay.face":"Single 1 – 6","pay.face.c":"chosen number shows on k dice (k = 1 / 2 / 3)",
+      "pay.triple.c":"Three of a kind (any number)","pay.sum4.c":"Total is exactly 4","pay.sum17.c":"Total is exactly 17","pay.sum5.c":"Total is exactly 5","pay.sum16.c":"Total is exactly 16",
+      "rules.types.note":"A <b>Single 1–6</b> bet picks one number: each die showing it counts once, and it pays <b>k×</b> (1 time 1:1, 2 times 2:1, 3 times 3:1). If your number comes up as a triple, that single bet pays <b>3 : 1</b>; to win more on three-of-a-kind, also bet <b>Triple</b>.",
+      "rules.settle":"Draw & settlement","rules.settle.1":"The roll yields three dice and their <b>total and parity</b>; each spot is resolved in turn.","rules.settle.2":"<b>Triple kills</b>: when three of a kind appears, the <b>Big / Small / Odd / Even</b> spots all lose (regardless of total); but <b>Single</b> (that number 3 times → 3:1) and <b>Triple</b> (30:1) still pay.","rules.settle.3":"<b>Multiple wins</b>: different bet types can win together; settlement <b>adds each winning spot</b>; payout = stake + winnings (stake included), losing stakes are not returned.","rules.settle.4":"<b>RNG fallback</b>: if both the online (H743 serial) and offline (entropy snapshot + DRBG) sources are unavailable, the round is <b>not charged and is cancelled</b>, and your bets are kept.",
+      "rules.edge":"House edge note","rules.edge.p":"House edge varies by bet: Big / Small / Odd / Even are lowest (about 2.78%), Single is next (about 7.9%), Triple is about 13.9%, and the total spots are higher still — Sum 4 / 17 about 29%, Sum 5 / 16 about 11%. Higher odds mean higher house edge and risk — bet within your means and follow the paytable.",
       "doc.title":"Sic Bo · three dice"
     }
   };
@@ -1019,6 +1153,36 @@
   function lsSave(k, v){ try{ localStorage.setItem(k, String(v)); }catch(e){} }
   function fmt(n){ return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
 
+  /* 把注额拆成「用最少的筹码张数表达」的 denomination 列表（大面额优先），
+     与 21 点同款；maxChips 控制最多画出几枚，超出只作装饰、真实数额仍以 .amt 文字为准 */
+  function chipStackOf(amount, maxChips){
+    var denoms = CHIPS.slice().sort(function(a, b){ return b - a; });
+    var rest = amount, out = [], max = maxChips || 12;
+    for (var i = 0; i < denoms.length && out.length < max; i++){
+      var d = denoms[i];
+      while (rest >= d && out.length < max){ out.push(d); rest -= d; }
+    }
+    return out;
+  }
+  /* 增量渲染筹码堆：只在「张数变多」时给新加在最上面的那一枚播掉落动画，
+     已有筹码不重播，避免整堆闪烁（与 21 点一致）。amount<=0 时清空并复位计数。 */
+  function renderSpotStack(stackEl, amount){
+    if (!stackEl) return;
+    if (amount <= 0){ stackEl.innerHTML = ""; stackEl._prev = 0; return; }
+    var list = chipStackOf(amount, 9);
+    var prev = stackEl._prev || 0;
+    var grow = list.length > prev;
+    stackEl.innerHTML = "";
+    list.forEach(function(d, i){
+      var c = document.createElement("span");
+      c.className = "minichip d" + d;
+      c.title = fmt(d);
+      if (!(grow && i < prev)) c.classList.add("drop");
+      stackEl.appendChild(c);
+    });
+    stackEl._prev = list.length;
+  }
+
   var credits = Math.max(0, Math.floor(lsLoad(LS.credits, START_CREDITS)));
   var bet = {};
   SPOT_KEYS.forEach(function(k){ bet[k] = 0; });
@@ -1061,6 +1225,7 @@
       var v = bet[k] || 0;
       el.classList.toggle("on", v > 0);
       el.querySelector(".amt").textContent = v > 0 ? fmt(v) : "";
+      renderSpotStack(el.querySelector(".bs-stack"), v);
     });
   }
 
@@ -1389,6 +1554,13 @@
       d.style.top = pos[1] + "%";
       el.appendChild(d);
     });
+  });
+
+  /* 给每个注位注入筹码堆容器（span 放进 button 内合法）：下注后筹码落进右半边空白区 */
+  Array.prototype.forEach.call(document.querySelectorAll(".spot"), function(el){
+    var s = document.createElement("span");
+    s.className = "bs-stack";
+    el.appendChild(s);
   });
 
   renderSound();

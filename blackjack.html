@@ -1180,6 +1180,12 @@
   body.arc .bspot .minichip{width:20px;height:20px;border-radius:50%;margin-bottom:-13px;
     box-shadow:0 1px 3px rgba(0,0,0,.55), inset 0 0 0 2px rgba(0,0,0,.28);}
   body.arc .bspot.main .minichip{width:24px;height:24px;margin-bottom:-16px;}
+  /* 仅「本局新加注时落在最上面的那枚」播放掉落动画；已有筹码不重播，避免整堆闪烁 */
+  body.arc .bspot .minichip.drop{animation:chipDrop .26s cubic-bezier(.2,1.4,.4,1);}
+  @keyframes chipDrop{
+    from{opacity:0;transform:translateY(-9px) scale(.6);}
+    to{opacity:1;transform:translateY(0) scale(1);}
+  }
 
   /* 筹码盘：经典黏土筹码（外圈边斑 + 虚线缝线环 + 中央凸面 + 高光） */
   body.arc .chiptray{display:flex;width:100%;justify-content:space-evenly;align-items:center;flex-wrap:wrap;padding:6px 4px;}
@@ -1598,10 +1604,13 @@
   <div class="rules">
     <h2 data-i18n="rules.title">玩法规则</h2>
 
+    <h3 data-i18n="rules.goal">游戏目标</h3>
+    <p data-i18n="rules.goal.p">让你的手牌点数尽量接近 <b>21 点</b> 且不超过（超过即「爆牌」判负）；比庄家更接近 21 点，或庄家自己爆牌，你即获胜。头两张凑成 <b>A + 10 值牌</b> 即为<b>黑杰克</b>，按 <b>3 : 2</b> 优先赔付。</p>
+
     <h3 data-i18n="rules.basic">基本设定</h3>
     <ul>
       <li data-i18n="rules.basic.1">本机以标准<b>赌场 21 点</b>为内核：<b>6 副牌</b>混成一副牌靴（<b>312 张</b>），用到约 <b>75%</b>（切牌点）后整靴重洗。庄家按 <b>S17</b> 规则——所有 17 点（含软 17）停牌。</li>
-      <li data-i18n="rules.basic.2">牌面点数：<b>A</b> 可算 <b>1 或 11</b>（自动取对你更有利的一边），<b>2~9</b> 按面值，<b>10 / J / Q / K = 10</b>。手牌有 A 且不爆的算法叫<b>软点数</b>（如 A+6 是软 17）。</li>
+      <li data-i18n="rules.basic.2">牌面点数：<b>A</b> 可算 <b>1 或 11</b>（不爆时自动取 11，否则降为 1），<b>2~9</b> 按面值，<b>10 / J / Q / K = 10</b>。手牌含 A 且仍可按 11 计而不爆，称为<b>软手</b>（如 A+6 为软 17）。</li>
       <li data-i18n="rules.basic.3"><b>黑杰克（Blackjack）</b>：头两张就是 <b>A + 任意 10 值牌</b>，直接以 <b>3 : 2</b> 赔付（押 100 净赢 150）；分牌后凑出的 21 点不算黑杰克。庄家明牌为 A 或 10 值牌时会先<b>偷看暗牌</b>（Peek）：庄家若已是黑杰克，本局立即结束。</li>
       <li data-i18n="rules.basic.4"><b>资金共通</b>：积分与银行卡余额是本机<b>全局钱袋</b>，与<b>老虎机 / 百家乐</b>游戏页共用同一对存储键。最高盈利与破产次数也是全局口径。</li>
     </ul>
@@ -1614,7 +1623,7 @@
       <li data-i18n="rules.act.1"><b>要牌（Hit）</b>：再拿一张。累计超过 <b>21</b> 即<b>爆牌</b>，本注立即输掉（不论庄家最后什么点数）。</li>
       <li data-i18n="rules.act.2"><b>停牌（Stand）</b>：不再拿牌，轮到庄家行动。</li>
       <li data-i18n="rules.act.3"><b>加倍（Double）</b>：注额翻倍，但<b>只再拿一张</b>就强制停牌。任何两张首手都可加倍。</li>
-      <li data-i18n="rules.act.4"><b>分牌（Split）</b>：头两张<b>同点数</b>时拆成两手独立牌，各下等额注，逐手行动。允许<b>重分至 4 手</b>；<b>A 分牌后每手只发一张</b>，且 A 分后凑出的 21 按 1:1 赔付。</li>
+      <li data-i18n="rules.act.4"><b>分牌（Split）</b>：头两张<b>同点数</b>时拆成两手独立牌，各下等额注，逐手行动。允许<b>重分至 4 手</b>；<b>A 分牌后每手只发一张</b>，且 A 分后凑出的 21 按 1:1 赔付。<b>分出的每一手都可在两张时正常要牌或加倍（加倍后仍只发一张）；A 分出的手只发一张、不可再动也不可再分，逐手独立结算。</b></li>
       <li data-i18n="rules.act.5"><b>保险（Insurance）</b>：庄家明牌为 A 时可押「保险」，注额为<b>本注一半</b>。庄家暗牌是 10 值牌（黑杰克）时保险按 <b>2 : 1</b> 赔付、主注因庄 BJ 判负；否则保险输掉、对局继续。保险为负 EV，可一键关闭。</li>
     </ul>
 
@@ -1624,11 +1633,11 @@
       <tbody>
         <tr><td data-i18n="pay.win">普通胜</td><td>1 : 1</td><td data-i18n="pay.win.c">最终点数高于庄家，或庄家爆牌</td></tr>
         <tr><td data-i18n="pay.bj">黑杰克</td><td>3 : 2</td><td data-i18n="pay.bj.c">头两张 A+10 值牌，且庄家不是黑杰克</td></tr>
-        <tr><td data-i18n="pay.push">平局</td><td data-i18n="pay.push.v">退还本金</td><td data-i18n="pay.push.c">与庄家点数相同（非 BJ 对 BJ）</td></tr>
-        <tr><td data-i18n="pay.ins">保险</td><td>2 : 1</td><td data-i18n="pay.ins.c">庄家明牌为 A 时押注，暗牌确为 10 值牌</td></tr>
+        <tr><td data-i18n="pay.push">平局</td><td data-i18n="pay.push.v">退还本金</td><td data-i18n="pay.push.c">玩家与庄家最终点数相同（含双方同为黑杰克），本注退还</td></tr>
+        <tr><td data-i18n="pay.ins">保险</td><td>2 : 1</td><td data-i18n="pay.ins.c">独立于主注的旁注（注额为本注一半）；仅庄家暗牌确为 10 值牌（黑杰克）时赔付</td></tr>
       </tbody>
     </table>
-    <p class="note" data-i18n="rules.pay.note">爆牌立即判负——即使庄家随后也爆，你的爆牌在先、已结算。庄家黑杰克时所有未行动玩家的主注直接输掉（Peek 规则保证你不会在明知庄 BJ 后还加倍/分牌）。</p>
+    <p class="note" data-i18n="rules.pay.note">爆牌立即判负——即使庄家随后也爆，你的爆牌在先、已结算。庄家黑杰克时所有未行动玩家的主注直接输掉（Peek 规则保证你不会在明知庄 BJ 后还加倍/分牌）。保险是独立于主注的旁注，仅当庄家确为黑杰克时按 2:1 赔付；若庄家非黑杰克，保险注直接输掉、对局照常进行。</p>
 
     <h3 data-i18n="rules.shoe">牌靴与换牌</h3>
     <ul>
@@ -1639,7 +1648,7 @@
     </ul>
 
     <h3 data-i18n="rules.rtp">RTP 与庄家优势</h3>
-    <p data-i18n="rules.rtp.p">按本机规则（6 副 / S17 / 3:2 / 全范围加倍 / 重分至 4 手 / A 分一张）用基本策略长期游玩：</p>
+    <p data-i18n="rules.rtp.p">按本机规则（6 副 / S17 / 3:2 / 全范围加倍 / <b>分牌后可再加倍（DAS）</b> / 重分至 4 手 / A 分一张）用基本策略长期游玩：</p>
     <table>
       <thead><tr><th data-i18n="rtp.item">项目</th><th data-i18n="rtp.val">数值</th></tr></thead>
       <tbody>
@@ -1647,7 +1656,7 @@
         <tr><td data-i18n="rtp.he">庄家优势</td><td><b>0.40%</b></td></tr>
       </tbody>
     </table>
-    <p class="note" data-i18n="rtp.note.c">对照说明</p>
+    <p class="note" data-i18n="rtp.note.c">这是赌场里优势最低的桌面游戏之一——前提是严格按基本策略行动（本机内置策略提示可对照参考）。</p>
 
     <h3 data-i18n="rules.rand">随机源</h3>
     <p data-i18n="rules.rand.p">和老虎机 / 百家乐<b>用的是同一条随机链</b>。洗牌用 <b>Fisher-Yates</b>：从牌靴尾部开始，每步向随机源要一个均匀整数（16 bit 拒绝采样，消除取模偏差）决定与前面哪一张交换，全程<b>不使用浏览器随机数</b>。两种来源：<b>H743 在线 · 串口直供</b>——直接向 STM32H743 的片上 TRNG 要新字节；<b>H743 离线 · 熵快照</b>（默认）——用这颗芯片某次采到的 <b>4096 B</b> 物理熵当种子，喂给 <b>ChaCha20 DRBG</b> 扩展成字节流，不占串口。</p>
@@ -2315,30 +2324,31 @@
       "msg.insNo":"未购买保险 · 继续发牌",
       "msg.bust":"爆牌了！超过 21 点本注判负",
       "rules.title":"玩法规则",
+      "rules.goal":"游戏目标","rules.goal.p":"让你的手牌点数尽量接近 <b>21 点</b> 且不超过（超过即「爆牌」判负）；比庄家更接近 21 点，或庄家自己爆牌，你即获胜。头两张凑成 <b>A + 10 值牌</b> 即为<b>黑杰克</b>，按 <b>3 : 2</b> 优先赔付。",
       "rules.basic":"基本设定","rules.flow":"下注与流程","rules.act":"玩家动作",
       "rules.pay":"胜负与派彩","rules.shoe":"牌靴与换牌","rules.rtp":"RTP 与庄家优势",
       "rules.rand":"随机源","rules.assets":"牌面素材",
       "rules.basic.1":"本机以标准<b>赌场 21 点</b>为内核：<b>6 副牌</b>混成一副牌靴（<b>312 张</b>），用到约 <b>75%</b>（切牌点）后整靴重洗。庄家按 <b>S17</b> 规则——所有 17 点（含软 17）停牌。",
-      "rules.basic.2":"牌面点数：<b>A</b> 可算 <b>1 或 11</b>（自动取对你更有利的一边），<b>2~9</b> 按面值，<b>10 / J / Q / K = 10</b>。手牌有 A 且不爆的算法叫<b>软点数</b>（如 A+6 是软 17）。",
+      "rules.basic.2":"牌面点数：<b>A</b> 可算 <b>1 或 11</b>（不爆时自动取 11，否则降为 1），<b>2~9</b> 按面值，<b>10 / J / Q / K = 10</b>。手牌含 A 且仍可按 11 计而不爆，称为<b>软手</b>（如 A+6 为软 17）。",
       "rules.basic.3":"<b>黑杰克（Blackjack）</b>：头两张就是 <b>A + 任意 10 值牌</b>，直接以 <b>3 : 2</b> 赔付（押 100 净赢 150）；分牌后凑出的 21 点不算黑杰克。庄家明牌为 A 或 10 值牌时会先<b>偷看暗牌</b>（Peek）：庄家若已是黑杰克，本局立即结束。",
       "rules.basic.4":"<b>资金共通</b>：积分与银行卡余额是本机<b>全局钱袋</b>，与<b>老虎机 / 百家乐</b>游戏页共用同一对存储键。最高盈利与破产次数也是全局口径。",
       "rules.flow.p":"先在<b>筹码盘</b>选好面额（<b>5 / 25 / 100 / 500 / 1000</b>），点击台面中央的<b>下注圈</b>放注（可累加，右键撤一注），再点「发牌」。发牌后你先行动，庄家后行动：<b>庄家 16 点及以下必须补牌，17 点及以上必须停牌</b>，规则固定、无任何决策。",
       "rules.act.1":"<b>要牌（Hit）</b>：再拿一张。累计超过 <b>21</b> 即<b>爆牌</b>，本注立即输掉（不论庄家最后什么点数）。",
       "rules.act.2":"<b>停牌（Stand）</b>：不再拿牌，轮到庄家行动。",
       "rules.act.3":"<b>加倍（Double）</b>：注额翻倍，但<b>只再拿一张</b>就强制停牌。任何两张首手都可加倍。",
-      "rules.act.4":"<b>分牌（Split）</b>：头两张<b>同点数</b>时拆成两手独立牌，各下等额注，逐手行动。允许<b>重分至 4 手</b>；<b>A 分牌后每手只发一张</b>，且 A 分后凑出的 21 按 1:1 赔付。",
+      "rules.act.4":"<b>分牌（Split）</b>：头两张<b>同点数</b>时拆成两手独立牌，各下等额注，逐手行动。允许<b>重分至 4 手</b>；<b>A 分牌后每手只发一张</b>，且 A 分后凑出的 21 按 1:1 赔付。<b>分出的每一手都可在两张时正常要牌或加倍（加倍后仍只发一张）；A 分出的手只发一张、不可再动也不可再分，逐手独立结算。</b>",
       "rules.act.5":"<b>保险（Insurance）</b>：庄家明牌为 A 时可押「保险」，注额为<b>本注一半</b>。庄家暗牌是 10 值牌（黑杰克）时保险按 <b>2 : 1</b> 赔付、主注因庄 BJ 判负；否则保险输掉、对局继续。保险为负 EV，可一键关闭。",
       "th.res":"结果","th.pay":"赔率","th.cond":"成立条件",
       "pay.win":"普通胜","pay.win.c":"最终点数高于庄家，或庄家爆牌",
       "pay.bj":"黑杰克","pay.bj.c":"头两张 A+10 值牌，且庄家不是黑杰克",
-      "pay.push":"平局","pay.push.v":"退还本金","pay.push.c":"与庄家点数相同（非 BJ 对 BJ）",
-      "pay.ins":"保险","pay.ins.c":"庄家明牌为 A 时押注，暗牌确为 10 值牌",
-      "rules.pay.note":"爆牌立即判负——即使庄家随后也爆，你的爆牌在先、已结算。庄家黑杰克时所有未行动玩家的主注直接输掉（Peek 规则保证你不会在明知庄 BJ 后还加倍/分牌）。",
+      "pay.push":"平局","pay.push.v":"退还本金","pay.push.c":"玩家与庄家最终点数相同（含双方同为黑杰克），本注退还",
+      "pay.ins":"保险","pay.ins.c":"独立于主注的旁注（注额为本注一半）；仅庄家暗牌确为 10 值牌（黑杰克）时赔付",
+      "rules.pay.note":"爆牌立即判负——即使庄家随后也爆，你的爆牌在先、已结算。庄家黑杰克时所有未行动玩家的主注直接输掉（Peek 规则保证你不会在明知庄 BJ 后还加倍/分牌）。保险是独立于主注的旁注，仅当庄家确为黑杰克时按 2:1 赔付；若庄家非黑杰克，保险注直接输掉、对局照常进行。",
       "rules.shoe.1":"<b>切牌点 75%</b>：312 张用到约 234 张后，下一局开始前整靴重洗。与真实赌场一致——牌靴从不见底，但尾部不会参与。",
       "rules.shoe.2":"<b>换靴即重洗</b>：用 H743 熵整靴重洗（Fisher-Yates + 16 bit 拒绝采样），余牌照 <b>312 张</b>重新计数，旧牌序完全作废。",
       "rules.shoe.3":"<b>洗不出来就不发</b>：两块桥都连不上时本手<b>直接取消</b>、注额<b>原额退回</b>，牌靴保持原样，绝不拿假随机补上。",
       "rules.shoe.4":"<b>刷新不换靴</b>：牌靴与进行中的一手都已落盘，刷新页面后接着打<b>同一副牌</b>。",
-      "rules.rtp.p":"按本机规则（6 副 / S17 / 3:2 / 全范围加倍 / 重分至 4 手 / A 分一张）用基本策略长期游玩：",
+      "rules.rtp.p":"按本机规则（6 副 / S17 / 3:2 / 全范围加倍 / <b>分牌后可再加倍（DAS）</b> / 重分至 4 手 / A 分一张）用基本策略长期游玩：",
       "rtp.item":"项目","rtp.val":"数值",
       "rtp.rtp":"RTP（总返还率）","rtp.he":"庄家优势",
       "rtp.note":"对照说明","rtp.note.c":"这是赌场里优势最低的桌面游戏之一——前提是严格按基本策略行动（本机内置策略提示可对照参考）。",
@@ -2405,30 +2415,31 @@
       "msg.insNo":"No insurance - continuing",
       "msg.bust":"Bust! Over 21 - bet lost",
       "rules.title":"How to play",
+      "rules.goal":"Goal","rules.goal.p":"Get your hand as close to <b>21</b> as possible without going over (over = bust, you lose). Beat the dealer's total, or have the dealer bust, and you win. A natural <b>A + 10-value</b> on the first two cards is a <b>blackjack</b>, paid <b>3 : 2</b> first.",
       "rules.basic":"Basics","rules.flow":"Betting & flow","rules.act":"Player actions",
       "rules.pay":"Payouts","rules.shoe":"Shoe & reshuffle","rules.rtp":"RTP & house edge",
       "rules.rand":"Random source","rules.assets":"Card assets",
       "rules.basic.1":"Standard<b> casino blackjack</b>: <b>6 decks</b> shuffled into one shoe (<b>312 cards</b>), reshuffled after about <b>75%</b> penetration. Dealer follows <b>S17</b> - stands on all 17s including soft 17.",
-      "rules.basic.2":"Card values: <b>A</b> counts as <b>1 or 11</b> (whichever helps you), <b>2-9</b> face value, <b>10/J/Q/K = 10</b>. A hand with a usable ace is <b>soft</b> (A+6 = soft 17).",
+      "rules.basic.2":"Card values: <b>A</b> counts as <b>1 or 11</b> (11 when it does not bust, otherwise 1), <b>2-9</b> face value, <b>10/J/Q/K = 10</b>. A hand that still counts an ace as 11 without busting is a <b>soft hand</b> (A+6 = soft 17).",
       "rules.basic.3":"<b>Blackjack</b>: your first two cards are <b>A + any 10-value</b> - paid <b>3 : 2</b> (bet 100, win 150). A 21 made after splitting is not blackjack. When the dealer shows an ace or a 10-value the dealer <b>peeks</b> at the hole card: a dealer blackjack ends the round immediately.",
       "rules.basic.4":"<b>Shared wallet</b>: credits and the bank card are the <b>global money bag</b> shared with the <b>slots / baccarat</b> pages. Peak profit and busts are global too.",
       "rules.flow.p":"Pick a chip (<b>5 / 25 / 100 / 500 / 1000</b>), click the <b>betting spot</b> in the middle of the table (click again to add, right-click to remove one), then press Deal. You act first, the dealer follows fixed rules: <b>draw to 16, stand on 17</b>.",
       "rules.act.1":"<b>Hit</b>: take another card. Over <b>21</b> you <b>bust</b> and the bet is lost immediately, whatever the dealer does later.",
       "rules.act.2":"<b>Stand</b>: keep your total; the dealer plays.",
       "rules.act.3":"<b>Double</b>: double the bet and take <b>exactly one</b> more card. Allowed on any first two cards.",
-      "rules.act.4":"<b>Split</b>: two cards of equal value become two independent hands, each with an equal bet. <b>Re-split up to 4 hands</b>; <b>split aces get one card each</b> and a 21 after splitting aces pays 1:1.",
+      "rules.act.4":"<b>Split</b>: two cards of equal value become two independent hands, each with an equal bet. <b>Re-split up to 4 hands</b>; <b>split aces get one card each</b> and a 21 after splitting aces pays 1:1. <b>Each split hand may then hit or double (double still deals exactly one card); an ace split gets only one card and cannot be hit, split again, or doubled.</b>",
       "rules.act.5":"<b>Insurance</b>: when the dealer shows an ace you may insure for <b>half your bet</b>. If the hole card is a 10-value (dealer blackjack) insurance pays <b>2 : 1</b> and the main bet loses; otherwise insurance is lost and play continues. Negative EV - can be turned off.",
       "th.res":"Outcome","th.pay":"Pays","th.cond":"Condition",
       "pay.win":"Normal win","pay.win.c":"Final total beats the dealer, or the dealer busts",
       "pay.bj":"Blackjack","pay.bj.c":"First two cards A + 10-value, dealer not blackjack",
-      "pay.push":"Push","pay.push.v":"Stake returned","pay.push.c":"Same total as the dealer (BJ vs BJ included)",
-      "pay.ins":"Insurance","pay.ins.c":"Offered when the dealer shows an ace; wins if the hole card is a 10-value",
-      "rules.pay.note":"Bust and you lose immediately - even if the dealer busts later, your bust settled first. A dealer blackjack takes every unacted main bet (the peek rule guarantees you never double or split against a known BJ).",
+      "pay.push":"Push","pay.push.v":"Stake returned","pay.push.c":"Same total as the dealer (including both being blackjack); stake returned",
+      "pay.ins":"Insurance","pay.ins.c":"Side bet separate from the main bet (half the main bet); pays only if the hole card is a 10-value (dealer blackjack)",
+      "rules.pay.note":"Bust and you lose immediately - even if the dealer busts later, your bust settled first. A dealer blackjack takes every unacted main bet (the peek rule guarantees you never double or split against a known BJ). Insurance is a side bet separate from the main bet; it pays 2:1 only if the dealer is blackjack, otherwise the insurance bet is lost and play continues.",
       "rules.shoe.1":"<b>Cut card at 75%</b>: after about 234 of 312 cards the shoe is reshuffled before the next round - like a real table, the tail never enters play.",
       "rules.shoe.2":"<b>Reshuffle = full re-mix</b>: Fisher-Yates with H743 entropy (16-bit rejection sampling); the count restarts at <b>312</b> and the old order is void.",
       "rules.shoe.3":"<b>No entropy, no deal</b>: if neither bridge answers the round is <b>cancelled</b> and every bet is <b>refunded</b> - never topped up with fake randomness.",
       "rules.shoe.4":"<b>Refresh keeps the shoe</b>: the shoe and any in-progress round are saved; after a reload you continue the <b>same shoe</b>.",
-      "rules.rtp.p":"Playing basic strategy under these rules (6 decks / S17 / 3:2 / double any two / re-split to 4 / one card on split aces):",
+      "rules.rtp.p":"Playing basic strategy under these rules (6 decks / S17 / 3:2 / double any two / <b>double after split (DAS)</b> / re-split to 4 / one card on split aces):",
       "rtp.item":"Item","rtp.val":"Value",
       "rtp.rtp":"RTP (return to player)","rtp.he":"House edge",
       "rtp.note":"Note","rtp.note.c":"One of the lowest-edge table games - provided you follow basic strategy (the built-in hint can be used as a reference).",
@@ -2507,14 +2518,20 @@
     return out;
   }
   function renderSpotStack(stackEl, amount){
+    if (!stackEl) return;
+    if (amount <= 0){ stackEl.innerHTML = ""; stackEl._prev = 0; return; }
+    var list = chipStackOf(amount);
+    var prev = stackEl._prev || 0;
+    var grow = list.length > prev;
     stackEl.innerHTML = "";
-    if (amount <= 0) return;
-    chipStackOf(amount).forEach(function(d){
+    list.forEach(function(d, i){
       var c = document.createElement("span");
       c.className = "minichip d" + d;
       c.title = fmtAmt(d);
+      if (!(grow && i < prev)) c.classList.add("drop");
       stackEl.appendChild(c);
     });
+    stackEl._prev = list.length;
   }
   function renderChipTray(){
     Array.prototype.forEach.call(document.querySelectorAll("#chipTray .chip"), function(c){
