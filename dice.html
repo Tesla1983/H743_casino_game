@@ -81,7 +81,7 @@
     position:relative;z-index:2;display:flex;align-items:flex-end;justify-content:center;
     /* padding-bottom 要容得下骰子旋转后的溢出（向下约 28px）+ 落影高度，
        否则骰子下沿会被下面的结果条压住、阴影也没地方露出来 */
-    gap:48px;padding:30px 0 40px;
+    gap:72px;padding:30px 0 40px;
   }
   .dice-slot{position:relative;flex:0 0 auto;width:112px;height:112px;
     perspective:860px;perspective-origin:50% 42%;}
@@ -416,7 +416,7 @@
     .brand b{font-size:18px;letter-spacing:5px;}
     .brand span{font-size:10.5px;}
     .felt{padding:16px 14px 14px;border-radius:18px;}
-    .dicestage{gap:34px;padding:18px 0 26px;}
+    .dicestage{gap:46px;padding:18px 0 26px;}
     .dice-slot{width:70px;height:70px;perspective:600px;}
     /* 移动端槽 58px：骰子投影向下溢出 13px，落影下沿比它再低 7px */
     .dice-slot::after{bottom:-20px;height:14px;filter:blur(3px);}
@@ -442,7 +442,7 @@
     .btn.deal kbd{display:none;}
   }
   @media (max-width:420px){
-    .dicestage{gap:26px;}
+    .dicestage{gap:34px;}
     .dice-slot{width:58px;height:58px;}
   }
 
