@@ -4,12 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lucky Sevens · 老虎机</title>
+<link rel="stylesheet" href="assets/ui.css">
 <style>
-  :root{
-    --gold:#f5c542; --gold-d:#b8860b; --gold-l:#ffe680;
-    --red:#e23b3b; --green:#6ef08a;
-    --ink:#eae2f5; --muted:#9a8fb0;
-  }
+  /* 设计令牌与响应式断点契约统一见 assets/ui.css；本页只写专有组件样式。 */
   *{box-sizing:border-box;}
   html,body{height:100%;margin:0;}
   body{
@@ -35,16 +32,16 @@
     border:1px solid rgba(245,197,66,.22);
     border-radius:18px;padding:18px 22px 24px;
     box-shadow:0 18px 50px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.06);
-    font-size:13px;line-height:1.7;color:#d9cdeb;
+    font-size:var(--fs-fluid);line-height:1.7;color:#d9cdeb;
   }
   .rules h2{margin:0 0 10px;font-size:17px;letter-spacing:3px;color:var(--gold);
     text-shadow:0 0 9px rgba(245,197,66,.35);}
-  .rules h3{margin:16px 0 6px;font-size:13.5px;color:#ffd76a;letter-spacing:1px;}
+  .rules h3{margin:16px 0 6px;font-size:var(--fs-sm);color:#ffd76a;letter-spacing:1px;}
   .rules p{margin:6px 0;}
   .rules ul{margin:6px 0;padding-left:20px;}
   .rules li{margin:3px 0;}
   .rules b{color:#fff0c8;font-weight:700;}
-  .rules table{border-collapse:collapse;width:100%;table-layout:fixed;margin:8px 0;font-size:12.5px;}
+  .rules table{border-collapse:collapse;width:100%;table-layout:fixed;margin:8px 0;font-size:var(--fs-xs);}
   .rules th,.rules td{border:1px solid rgba(255,255,255,.13);padding:5px 8px;text-align:center;}
   .rules th{background:rgba(245,197,66,.12);color:#ffe680;font-weight:700;}
   .rules td.sym{text-align:center;vertical-align:middle;width:54px;}
@@ -52,12 +49,12 @@
     filter:drop-shadow(0 2px 3px rgba(0,0,0,.6));}
   .rules svg.scico{width:18px;height:18px;display:inline-block;vertical-align:-3px;margin:0 2px;
     filter:drop-shadow(0 1px 2px rgba(0,0,0,.6));}
-  .rules .tag{display:inline-block;padding:1px 8px;border-radius:8px;font-size:11px;font-weight:700;}
+  .rules .tag{display:inline-block;padding:1px 8px;border-radius:8px;font-size:var(--fs-xs);font-weight:700;}
   .rules .tag.wild{background:linear-gradient(#ff7ad9,#7a5cff);color:#1a0a2e;}
   .rules .tag.scat{background:linear-gradient(#ff9d2e,#c43b00);color:#fff3c0;margin-left:2px;}
-  .rules .note{color:#968bad;font-size:11.5px;}
+  .rules .note{color:#968bad;font-size:var(--fs-xs);}
 
-  .machine{display:flex;align-items:flex-end;gap:16px;zoom:1.12;flex-wrap:wrap;justify-content:center;
+  .machine{display:flex;align-items:flex-end;gap:16px;zoom:var(--zoom-hero);flex-wrap:wrap;justify-content:center;
     position:relative;--bank-w:248px;}
   /* 玩家档案 / 老虎机 / JACKPOT 三张主卡在页面正中：银行卡用绝对定位移出常规流，
      不占宽度、不参与居中计算；它悬浮在三卡组合的右侧，底部对齐。 */
@@ -80,7 +77,7 @@
     justify-content:space-between;padding:0 2px;}
   .jp-title{margin-top:12px;font-weight:900;font-size:14px;letter-spacing:3px;color:var(--gold-l);
     text-shadow:0 0 8px rgba(245,197,66,.85),0 0 18px rgba(255,140,20,.5);}
-  .jp-sub{font-size:10.5px;letter-spacing:1px;color:#a896c4;margin-top:3px;}
+  .jp-sub{font-size:var(--fs-xs);letter-spacing:1px;color:#a896c4;margin-top:3px;}
   .jp-body{flex:1;width:100%;display:flex;flex-direction:column;align-items:center;
     justify-content:center;gap:10px;padding:8px 0;}
   /* 7 图标：放大 1.25 倍（38 → 47.5px） */
@@ -103,9 +100,9 @@
     0%,100%{box-shadow:0 18px 48px rgba(0,0,0,.55),0 0 42px rgba(245,197,66,.10),inset 0 1px 0 rgba(255,255,255,.07);}
     50%{box-shadow:0 0 70px rgba(255,200,60,.95),0 0 120px rgba(255,140,20,.5),inset 0 0 40px rgba(255,200,60,.45);}
   }
-  .jp-foot{font-size:10px;color:#8f80ab;letter-spacing:.4px;text-align:center;line-height:1.55;}
+  .jp-foot{font-size:var(--fs-xs);color:#8f80ab;letter-spacing:.4px;text-align:center;line-height:1.55;}
   .jp-foot b{color:#ffd76a;}
-  .jp-freeze{display:none;font-size:10px;letter-spacing:.4px;color:#8fb6ff;
+  .jp-freeze{display:none;font-size:var(--fs-xs);letter-spacing:.4px;color:#8fb6ff;
     text-align:center;line-height:1.55;text-shadow:0 0 8px rgba(120,170,255,.45);}
   /* 免费转期间：奖池暂停累积（灯泡停闪 + 整卡转冷 + 数字变暗） */
   .jackpot.frozen{filter:saturate(.45) brightness(.9);
@@ -125,7 +122,7 @@
   /* ---------- JACKPOT 派发资格徽标（最大注才亮） ---------- */
   .jp-elig{
     margin-top:9px;width:100%;padding:5px 6px;border-radius:9px;text-align:center;
-    font-size:10px;font-weight:700;letter-spacing:.3px;line-height:1.45;
+    font-size:var(--fs-xs);font-weight:700;letter-spacing:.3px;line-height:1.45;
     background:rgba(255,255,255,.045);color:#8b7ea6;
     border:1px solid rgba(255,255,255,.10);
     transition:background .2s, color .2s, border-color .2s;
@@ -186,7 +183,7 @@
   .pl-num.sm{font-size:15px;line-height:1.2;}
   .pl-num.win{color:#9fe8b0;text-shadow:0 0 5px rgba(80,230,130,.28);}
   .pl-num.lost{color:#efb0b0;text-shadow:0 0 5px rgba(255,90,90,.22);}
-  .pl-lbl{font-size:10px;letter-spacing:1px;color:#9a8fb0;}
+  .pl-lbl{font-size:var(--fs-xs);letter-spacing:1px;color:#9a8fb0;}
   /* 玩家档案数字：全页唯一"不发光的数字"——压到比 HUD 更暗，
      确保视觉焦点只落在 JACKPOT 上（原先双层光晕比奖池还扎眼） */
   .pl-num{font-size:22px;font-weight:900;color:#e9dcc0;font-variant-numeric:tabular-nums;
@@ -196,7 +193,7 @@
   .pl-reset{
     position:relative;overflow:hidden;
     width:100%;padding:8px 10px;border-radius:12px;cursor:pointer;
-    font-weight:800;font-size:12px;letter-spacing:1px;font-family:inherit;
+    font-weight:800;font-size:var(--fs-sm);letter-spacing:1px;font-family:inherit;
     color:#1a0a2e;background:linear-gradient(#ffd76a,#e2a90f);
     border:1px solid rgba(255,255,255,.35);
     box-shadow:0 6px 16px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.5);
@@ -238,12 +235,12 @@
     box-shadow:0 24px 64px rgba(0,0,0,.72), inset 0 1px 0 rgba(255,255,255,.07);}
   .modal h3{margin:0 0 10px;font-size:16px;letter-spacing:2px;color:var(--gold);
     text-shadow:0 0 9px rgba(245,197,66,.35);}
-  .modal p{margin:0 0 10px;font-size:13px;line-height:1.7;color:#d9cdeb;}
+  .modal p{margin:0 0 10px;font-size:var(--fs-sm);line-height:1.7;color:#d9cdeb;}
   .modal p b{color:#fff0c8;}
-  .modal .m-amt{font-size:13px;color:#9a8fb0;margin-bottom:16px;}
+  .modal .m-amt{font-size:var(--fs-sm);color:#9a8fb0;margin-bottom:16px;}
   .modal .m-amt b{color:#ffd76a;font-size:16px;}
   .modal-btns{display:flex;gap:10px;justify-content:flex-end;}
-  .modal-btns button{padding:8px 18px;border-radius:10px;font-weight:700;font-size:13px;
+  .modal-btns button{padding:8px 18px;border-radius:10px;font-weight:700;font-size:var(--fs-sm);
     cursor:pointer;font-family:inherit;border:1px solid rgba(255,255,255,.18);}
   .modal-btns button:disabled{opacity:.38;cursor:not-allowed;filter:grayscale(.55);}
   .m-cancel{background:#241638;color:#d9cdeb;}
@@ -279,7 +276,7 @@
     font-size:27px;font-weight:900;letter-spacing:5px;color:#ff8f8f;
     text-shadow:0 0 14px rgba(255,80,80,.65),0 0 34px rgba(255,40,40,.35);
   }
-  .bk-sub{font-size:12px;color:#9a8fb0;letter-spacing:1px;}
+  .bk-sub{font-size:var(--fs-sm);color:#9a8fb0;letter-spacing:1px;}
   .bk-crack{
     position:absolute;left:50%;top:-6px;bottom:-6px;width:3px;transform:translateX(-50%) rotate(1.5deg);
     opacity:0;border-radius:3px;
@@ -318,9 +315,9 @@
     font-size:25px;font-weight:900;letter-spacing:5px;color:#ffd76a;
     text-shadow:0 0 14px rgba(245,180,40,.6),0 0 34px rgba(255,140,20,.32);
   }
-  .nc-sub{font-size:13px;color:#cfc2e2;letter-spacing:.6px;}
+  .nc-sub{font-size:var(--fs-sm);color:#cfc2e2;letter-spacing:.6px;}
   .nc-sub b{color:#ffd76a;}
-  .nc-hint{font-size:11px;color:#8f84a8;letter-spacing:.4px;line-height:1.5;}
+  .nc-hint{font-size:var(--fs-xs);color:#8f84a8;letter-spacing:.4px;line-height:1.5;}
 
   /* ---------- 银行卡（Visa 风格卡面，可存可取储蓄账户；可收起，收起后只剩圆形卡标按钮） ---------- */
   .bankcard{display:flex;flex-direction:column;gap:8px;width:var(--bank-w,248px);
@@ -366,7 +363,7 @@
       rgba(55,60,245,1) 0%, rgba(234,161,15,.9) 100.2%);
     border:1px solid rgba(255,255,255,.12);
     box-shadow:0 12px 30px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.22);}
-  .bc-bank-name{position:absolute;top:13px;left:16px;font-size:11px;font-weight:800;
+  .bc-bank-name{position:absolute;top:13px;left:16px;font-size:var(--fs-xs);font-weight:800;
     letter-spacing:2px;color:#fff;opacity:.92;text-shadow:0 1px 3px rgba(0,0,0,.45);}
   .bc-logo{position:absolute;top:0;right:0;display:flex;align-items:center;justify-content:flex-end;
     padding:12px 16px;pointer-events:none;}
@@ -379,21 +376,21 @@
   .bc-mi-name{width:60%;}
   .bc-mi-mid{width:30%;}
   .bc-mi-end{width:10%;}
-  .bc-ml{font-size:8px;letter-spacing:1.5px;color:#e2e2e2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .bc-ml{font-size:var(--fs-xs);letter-spacing:1.5px;color:#e2e2e2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .bc-ctrl{display:flex;flex-direction:column;gap:6px;}
   .bc-amt{display:flex;gap:6px;}
-  .bc-q{flex:1;padding:6px 0;border-radius:8px;cursor:pointer;font-weight:700;font-size:12px;
+  .bc-q{flex:1;padding:6px 0;border-radius:8px;cursor:pointer;font-weight:700;font-size:var(--fs-sm);
     color:#1a0a2e;background:linear-gradient(#ffd76a,#e2a90f);border:1px solid rgba(255,255,255,.35);
     font-family:inherit;transition:filter .12s ease, transform .12s ease;}
   .bc-q:hover{filter:brightness(1.08);}
   .bc-q:active{transform:translateY(1px);}
   .bc-q:disabled{opacity:.4;cursor:not-allowed;filter:none;}
-  .bc-in{flex:1.4;min-width:0;padding:6px 8px;border-radius:8px;font-family:inherit;font-size:12px;
+  .bc-in{flex:1.4;min-width:0;padding:6px 8px;border-radius:8px;font-family:inherit;font-size:var(--fs-sm);
     color:#ffe9a8;background:rgba(10,6,18,.6);border:1px solid rgba(245,197,66,.4);text-align:center;}
   .bc-in::placeholder{color:#9a8fb0;}
   .bc-in:disabled{opacity:.5;cursor:not-allowed;}
   .bc-actions{display:flex;gap:6px;}
-  .bc-dep,.bc-wd{flex:1;padding:8px 0;border-radius:9px;cursor:pointer;font-weight:800;font-size:12px;
+  .bc-dep,.bc-wd{flex:1;padding:8px 0;border-radius:9px;cursor:pointer;font-weight:800;font-size:var(--fs-sm);
     letter-spacing:1px;font-family:inherit;border:1px solid transparent;
     transition:filter .12s ease, transform .12s ease;}
   .bc-dep{color:#1a0a2e;background:linear-gradient(#9dffb9,#36c46a);border-color:rgba(255,255,255,.35);}
@@ -543,11 +540,11 @@
   @media (prefers-reduced-motion: reduce){
     .meter::before{animation:none;}
   }
-  .meter .label{font-size:10px;letter-spacing:2px;color:var(--muted);}
+  .meter .label{font-size:var(--fs-xs);letter-spacing:2px;color:var(--muted);}
   /* 这套 10px + 2px 字距是为英文大写（CREDITS/LINES/BET/LINE…）定的：大写字母笔画简单，
      宽字距是装饰节奏。换成汉字后 10px 让笔画落到 1px 以下（发灰变细），
      2px 字距比汉字本身还宽，两个字被推散、显得又小又孤立 —— 中文单独给度量并提亮。 */
-  html[lang="zh-CN"] .meter .label{font-size:11.5px;letter-spacing:.5px;font-weight:600;color:#b7a8d2;}
+  html[lang="zh-CN"] .meter .label{font-size:var(--fs-xs);letter-spacing:.5px;font-weight:600;color:#b7a8d2;}
   .meter .val{font-size:22px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums;
     color:var(--gold);text-shadow:0 0 10px rgba(245,197,66,.4);
     transition:transform .26s cubic-bezier(.2,1.35,.4,1), color .2s ease, text-shadow .2s ease;}
@@ -622,7 +619,7 @@
   .btn.spin.short{filter:saturate(.28) brightness(.6);cursor:not-allowed;}
   /* SPIN 按钮里的「空格」快捷键提示 */
   .kb-space{
-    font:inherit;font-size:11px;font-weight:800;letter-spacing:0;line-height:1.5;
+    font:inherit;font-size:var(--fs-xs);font-weight:800;letter-spacing:0;line-height:1.5;
     padding:2px 7px;border-radius:6px;
     background:rgba(58,34,0,.16);color:#4a2c00;
     border:1px solid rgba(58,34,0,.32);
@@ -638,7 +635,7 @@
   .max-tag{
     position:absolute;left:50%;top:-12px;z-index:3;
     padding:1px 7px;border-radius:999px;white-space:nowrap;
-    font-size:9.5px;font-weight:800;letter-spacing:.6px;line-height:1.5;
+    font-size:var(--fs-xs);font-weight:800;letter-spacing:.6px;line-height:1.5;
     color:#ffd76a;text-shadow:0 0 6px rgba(255,190,60,.55);
     background:linear-gradient(180deg,rgba(58,40,8,.96),rgba(28,18,2,.96));
     border:1px solid rgba(245,197,66,.55);
@@ -663,12 +660,12 @@
   /* 圆形按钮的悬停高光：沿用 .btn 的亮化，再补一圈金色外发光 */
   .stepgrp .btn.small:hover{filter:brightness(1.18);
     box-shadow:0 6px 18px rgba(245,197,66,.22), inset 0 1px 0 rgba(255,255,255,.10);}
-  .steplbl{font-size:12px;color:#cbb8e6;white-space:nowrap;}
+  .steplbl{font-size:var(--fs-sm);color:#cbb8e6;white-space:nowrap;}
   .steplbl b{color:var(--gold);font-size:14px;}
 
   /* ---------- 猜大小 按钮行（自动转已移除：真机无 autoplay） ---------- */
   .featrow{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:12px;flex-wrap:wrap;}
-  .btn.feat{padding:6px 14px;border-radius:9px;font-size:12px;font-weight:800;letter-spacing:1px;
+  .btn.feat{padding:6px 14px;border-radius:9px;font-size:var(--fs-sm);font-weight:800;letter-spacing:1px;
     color:#1a0a2e;background:linear-gradient(#ffd76a,#e2a90f);border:1px solid rgba(255,255,255,.35);
     cursor:pointer;font-family:inherit;transition:filter .12s ease, transform .12s ease;}
   .btn.feat:hover{filter:brightness(1.08);}
@@ -697,7 +694,7 @@
   .gm-btns button{flex:1;font-weight:800;}
   #gmRed{background:linear-gradient(#ff8a8a,#c83030);color:#fff;border-color:rgba(255,255,255,.3);}
   #gmBlack{background:linear-gradient(#4a4a66,#20202e);color:#fff;border-color:rgba(255,255,255,.3);}
-  .gm-result{margin-top:8px;min-height:18px;text-align:center;font-size:12px;color:#a294bd;letter-spacing:.5px;}
+  .gm-result{margin-top:8px;min-height:18px;text-align:center;font-size:var(--fs-sm);color:#a294bd;letter-spacing:.5px;}
   /* 翻牌开奖：真机 Double-up 的「翻一张牌猜红黑」，牌面花色决定输赢 */
   .gm-stage{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px;min-height:96px;}
   .gm-card{width:62px;height:86px;flex:0 0 auto;perspective:640px;}
@@ -739,15 +736,21 @@
   .srcrow{display:flex;align-items:center;gap:10px;margin-top:10px;}
   /* ---------- 左上角：游戏跳转按钮组（与右上角工具条同款按钮语言，fixed 不受 zoom 影响） ----------
      容器统一 fixed 定位，多入口横向排列；子项不再各自 fixed，否则第二个按钮会叠在第一个上。 */
+  /* 顶部导航行：原先 fixed 悬浮在视口左上角，会盖住 PLAYER 玩家档案卡片顶部
+     （灯泡/边框被压，链接与档案互相遮挡）。改为常规流中独立一行后，它与 .page
+     上下相邻、互不重叠；行高由内容决定，极窄屏自动换行，无需魔法高度预留空间。 */
   .homelinks{
-    position:fixed;top:14px;left:20px;z-index:70;
-    display:flex;align-items:center;gap:10px;
+    position:static;
+    align-self:flex-start;                  /* body 为 column flex：靠内容区左上对齐 */
+    margin:0 0 18px -6px;                  /* -6px 抵消 26px 内边距，视觉左缘仍是 20px */
+    max-width:calc(100vw - 52px);
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
   }
   .homelink{
-    position:static;
+    position:static;flex:0 0 auto;white-space:nowrap;
     display:inline-flex;align-items:center;gap:8px;
     padding:7px 14px;border-radius:11px;text-decoration:none;
-    font-size:12.5px;font-weight:800;letter-spacing:1px;
+    font-size:var(--fs-sm);font-weight:800;letter-spacing:1px;
     color:var(--gold);background:linear-gradient(#2b1a10,#190f08);
     border:1px solid rgba(245,197,66,.32);
     box-shadow:0 6px 16px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08);
@@ -764,7 +767,7 @@
     display:inline-flex;align-items:center;justify-content:center;
     border-radius:4px;background:rgba(245,197,66,.14);
     border:1px solid rgba(245,197,66,.38);
-    font-size:10px;font-weight:900;letter-spacing:0;line-height:1;
+    font-size:var(--fs-xs);font-weight:900;letter-spacing:0;line-height:1;
     color:var(--gold);
   }
   .homelink .hl-ico.hl-cards{width:24px;height:16px;}
@@ -772,17 +775,17 @@
   /* file:// + Firefox 内核时提示"两页不同源"，见 warnFileOrigin() */
   .filewarn{position:fixed;left:0;right:0;bottom:0;z-index:9999;display:flex;align-items:center;gap:12px;
     padding:8px 14px;background:#3a1420;border-top:1px solid rgba(200,162,74,.55);color:#ffe9b8;
-    font-size:12.5px;line-height:1.45;box-shadow:0 -6px 18px rgba(0,0,0,.45);}
+    font-size:var(--fs-sm);line-height:1.45;box-shadow:0 -6px 18px rgba(0,0,0,.45);}
   .filewarn span{flex:1;}
   .filewarn b{color:#f5c542;}
-  .filewarn i{color:#e8c07a;font-style:normal;font-size:11.5px;opacity:.85;}
+  .filewarn i{color:#e8c07a;font-style:normal;font-size:var(--fs-xs);opacity:.85;}
   .filewarn button{flex:none;background:none;border:1px solid rgba(200,162,74,.45);color:#ffe9b8;
     border-radius:6px;width:26px;height:26px;font-size:16px;line-height:1;cursor:pointer;}
   /* 间距用 margin 而非 flex gap：老浏览器不支持 flex gap 会导致两个按钮贴死/重叠 */
   .langrow{display:flex;justify-content:flex-end;align-items:center;margin-top:6px;}
   .langrow > *{flex:0 0 auto;}                 /* 任何子项都不允许被压缩（压缩会让喇叭按钮溢出压到 EN） */
   .langrow > * + *{margin-left:14px;}
-  .langrow .btn.small{min-width:46px;font-size:13px;padding:2px 9px;letter-spacing:1px;}
+  .langrow .btn.small{min-width:46px;font-size:var(--fs-sm);padding:2px 9px;letter-spacing:1px;}
   /* 顶部工具条：喇叭 + EN 已移出柜机卡片，固定到网页右上角，无底框（纯按钮悬浮）。
      用 fixed 而非 absolute/sticky —— fixed 相对视口定位，页面缩放(zoom)与滚动都不影响它。 */
   .topbar{position:fixed;top:14px;right:20px;z-index:70;margin-top:0;}
@@ -825,12 +828,12 @@
     flex:0 0 auto;padding:7px 12px;border-radius:10px;cursor:pointer;
     border:1px solid rgba(245,197,66,.28);
     background:linear-gradient(#1c1327,#120c1a);color:#c9b8e0;
-    font-size:12px;letter-spacing:.5px;font-weight:600;
+    font-size:var(--fs-sm);letter-spacing:.5px;font-weight:600;
     transition:filter .15s;
   }
   .srcbtn:hover{filter:brightness(1.15);}
   .srcbtn.on{color:#3a2200;background:linear-gradient(#ffd857,#e8a300);border-color:#ffd857;}
-  .srcmsg{font-size:11px;color:#8f84a8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .srcmsg{font-size:var(--fs-xs);color:#8f84a8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
   /* ---------- 随机源选择菜单 ---------- */
   .srcwrap{position:relative;flex:0 0 auto;}
@@ -845,7 +848,7 @@
   .src-opt{
     display:flex;align-items:center;gap:9px;width:100%;padding:9px 10px;border-radius:9px;
     background:none;border:0;cursor:pointer;text-align:left;font-family:inherit;
-    color:#d9cdeb;font-size:12.5px;transition:background .12s;
+    color:#d9cdeb;font-size:var(--fs-sm);transition:background .12s;
   }
   .src-opt:hover{background:rgba(245,197,66,.10);}
   .src-opt.cur{background:rgba(245,197,66,.16);color:#fff0c8;}
@@ -853,32 +856,35 @@
   .so-dot.on{background:#6ef08a;box-shadow:0 0 8px rgba(110,240,138,.85);}
   .so-dot.off{background:#8a4040;}
   .so-name{flex:1;}
-  .so-state{font-size:10.5px;color:#8f84a8;white-space:nowrap;}
+  .so-state{font-size:var(--fs-xs);color:#8f84a8;white-space:nowrap;}
   .src-opt.cur .so-state{color:#ffd76a;}
   /* 外部熵源（STM32H743 硬件 RNG）状态行：不是可选项，只做只读展示 */
   .src-ent{
     display:flex;align-items:center;gap:9px;margin:4px 2px 2px;padding:8px 10px;
     border-top:1px solid rgba(255,255,255,.07);border-radius:0 0 9px 9px;
-    color:#a396bb;font-size:11.5px;
+    color:#a396bb;font-size:var(--fs-xs);
   }
-  .src-ent .so-state{font-size:10.5px;color:#8f84a8;max-width:150px;
+  .src-ent .so-state{font-size:var(--fs-xs);color:#8f84a8;max-width:150px;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .src-ent.on .so-state{color:#9ef0b4;}
 
   /* ---------- responsive ---------- */
   /* 整体（机器+卡片）同步缩放，保证两者始终等宽对齐 */
-  @media (max-width:900px){ .page{zoom:.92;} }
-  @media (max-width:680px){ .page{zoom:.76;} }
-  @media (max-width:500px){ .page{zoom:.6;} }
+  @media (max-width:900px){ .page{zoom:var(--zoom-s1);} }
+  @media (max-width:680px){ .page{zoom:var(--zoom-s3);} }
+  @media (max-width:500px){ .page{zoom:var(--zoom-s5);} }
+  /* 右上角 .topbar 仍 fixed（右缘 10px、宽约 108px）：给导航行留出右侧净空，
+     避免换行后的链接横向伸到工具条下面。导航行变高时 .page 会自动下移。 */
+  @media (max-width:500px){ .homelinks{max-width:calc(100vw - 140px);} }
   /* 窄屏时工具条自己不受 .page 的 zoom 影响，需要单独收一档：
      贴边更近 + 按钮缩小，避免压到柜机卡片右上角的内容 */
   @media (max-width:960px){
     .topbar{top:8px;right:10px;}
-    .homelinks{top:8px;left:10px;gap:6px;}
-    .homelink{padding:5px 10px;font-size:11px;}
+    .homelinks{margin-left:-16px;gap:6px;}   /* 视觉左缘仍是 10px，且随内容自动撑高 */
+    .homelink{padding:5px 10px;font-size:var(--fs-xs);}
     .homelink .hl-ico{width:22px;height:15px;}
     .homelink .hl-ico.hl-cards{width:20px;height:14px;}
-    .topbar .btn.small{min-width:38px;font-size:12px;padding:1px 6px;}
+    .topbar .btn.small{min-width:38px;font-size:var(--fs-sm);padding:1px 6px;}
     .topbar .volwrap .btn.small{flex:0 0 32px;width:32px;min-width:32px;}
     .vol-pop{padding:7px;}
     .vol-pop::after{right:11px;}
@@ -890,11 +896,12 @@
      把两三个字推散。这里给中文统一一套度量：+1px / 600 字重 / 收紧字距 /
      提亮一档（仍明显弱于数值的金色，保持「标签为辅、数字为主」的层次）。 */
   html[lang="zh-CN"] .pl-lbl,
-  html[lang="zh-CN"] .steplbl .sl-name{font-size:11px;letter-spacing:.3px;font-weight:600;color:#b7a8d2;}
-  html[lang="zh-CN"] .jp-sub{font-size:11.5px;letter-spacing:.5px;font-weight:600;color:#b7a8d2;}
+  html[lang="zh-CN"] .steplbl .sl-name{font-size:var(--fs-xs);letter-spacing:.3px;font-weight:600;color:#b7a8d2;}
+  html[lang="zh-CN"] .jp-sub{font-size:var(--fs-xs);letter-spacing:.5px;font-weight:600;color:#b7a8d2;}
 </style>
 </head>
 <body>
+<h1 class="sr-only">Lucky Sevens · 老虎机</h1>
 
 <!-- 左上角：游戏入口组。老虎机 → 百家乐 / 21点，与各自页的「回到老虎机」互为往返 -->
 <div class="homelinks">
@@ -1124,7 +1131,7 @@
 
       <div class="srcrow">
         <div class="srcwrap">
-          <button class="srcbtn" id="srcBtn" type="button" aria-haspopup="true" aria-expanded="false">随机源：H743 离线 ▾</button>
+          <button class="srcbtn" id="srcBtn" type="button" aria-haspopup="true" aria-expanded="false">随机源：离线随机源 ▾</button>
           <div class="src-pop" id="srcPop">
             <button class="src-opt" type="button" data-mode="trng">
               <i class="so-dot" id="dotTrng"></i>
@@ -1133,7 +1140,7 @@
             </button>
             <button class="src-opt" type="button" data-mode="offline">
               <i class="so-dot" id="dotOffline"></i>
-              <span class="so-name" data-i18n="src.opt.offline">H743 离线 · 熵快照</span>
+              <span class="so-name" data-i18n="src.opt.offline">H743 离线随机源</span>
               <span class="so-state" id="stateOffline" data-i18n="src.state.check">检测中…</span>
             </button>
             <!-- 熵源链路：只读展示当前这条随机链的物理来源（H743 直供 / H743 混流 / 快照） -->
@@ -1234,8 +1241,8 @@
   </div>
 </div>
 
-  <div class="rules">
-    <h2 data-i18n="rules.title">玩法规则</h2>
+  <details class="rules">
+    <summary><h2 data-i18n="rules.title">玩法规则</h2></summary>
 
     <h3 data-i18n="rules.basic">基本设定</h3>
     <ul>
@@ -1295,7 +1302,7 @@
     <h3 data-i18n="rules.rtp">RTP（Return to Player，玩家回报率 / 返奖率）</h3>
     <p data-i18n="rules.rtp.p">指<b>长期</b>来看，玩家每投入 100 元平均能拿回的金额。例如 RTP ≈ 95% 表示：在海量 spin 之后，玩家每投 100 元平均拿回约 95 元，赌场（或本机）长期保留约 5 元。它不是单局胜率，而是数学期望意义上的返还比例。本机经蒙特卡洛仿真标定，<b>9 线全开时 RTP ≈ 93.8%</b>（基础线奖约 67.6%、免费转线奖约 24.3%、scatter 派彩约 1.9%）。<b>线数会影响 RTP</b>：只开前 5 线时实测约 <b>91.2%</b>，因为前 5 条线的价值分布不同于后 4 条。</p>
     <p class="note" data-i18n="rules.rtp.note">说明：以上数字由 rtp_sim.py 蒙特卡洛模拟得出（300 万次基础转，已计入免费转链、扩展 WILD 与 5000× 单局封顶）：命中率约 <b>32.4%</b>（约 1/3.1），波动率约 <b>4.4 × 总注</b>。与页面赔率表、条带、payline 完全一致。</p>
-  </div>
+  </details>
 
 </div><!-- /.page -->
 
@@ -1771,7 +1778,7 @@
           dot.className = "so-dot on";
           var d = st.drbg || {};
           var seedLabel = (d.seed_from === "os") ? (L["src.state.os"] || "OS CSPRNG")
-                        : d.certified_only ? (L["src.state.snapshot"] || "熵快照")
+                        : d.certified_only ? (L["src.state.snapshot"] || "离线样本")
                         : (L["src.state.pool"] || "种子池");
           stateEl.textContent = seedLabel
             + (d.reseeds ? (" · " + d.reseeds + (L["src.state.reseeds"] || " 次重播种")) : "");
@@ -1998,10 +2005,10 @@
       "btn.spin":"旋转", "btn.space":"空格", "lbl.lines":"线数", "lbl.perline":"每线", "lbl.denom":"面额",
       "bet.max":"已达最大值",
       "btn.src.offline":"随机源：H743 离线", "btn.src.trng":"随机源：H743 在线",
-      "src.opt.trng":"H743 在线 · 串口直供", "src.opt.offline":"H743 离线 · 熵快照",
+      "src.opt.trng":"H743 在线 · 串口直供", "src.opt.offline":"H743 离线随机源",
       "src.state.check":"检测中…", "src.state.ok":"可用 · 端口", "src.state.none":"未启动",
       "src.state.noboard":"熵源未连（检查 CH340 / USB 线）",
-      "src.state.direct":"直供", "src.state.mixed":"混流", "src.state.snapshot":"熵快照",
+      "src.state.direct":"直供", "src.state.mixed":"混流", "src.state.snapshot":"离线样本",
       "src.state.pool":"种子池", "src.state.os":"OS CSPRNG", "src.state.reseeds":" 次重播种",
       "src.ent.title":"熵源链路", "src.ent.ok":"已接入", "src.ent.off":"未启用",
       "src.ent.degraded":"未接入 · 单源运行", "src.ent.wait":"探测中…",
@@ -2010,7 +2017,7 @@
       "src.ent.os":"OS CSPRNG · 不可复现",
       "src.msg.connecting":"连接中…",
       "src.msg.trngReady":"H743 在线 · 串口直供 · 端口 {p}{c}",
-      "src.msg.offlineReady":"H743 离线 · 熵快照 + DRBG · 端口 {p}",
+      "src.msg.offlineReady":"离线随机源已就绪 · 端口 {p}",
       "src.msg.trngMissing":"H743 在线源未就绪（检查 CH340/USB，或运行 start_casino.py）；也可先切到 H743 离线源",
       "src.msg.offlineMissing":"H743 离线源未就绪（跑 start_casino.py，或 trng_server.py --offline --entropy file）；也可先切到在线源",
       "src.msg.bothBlock":"两个随机源都未就绪，无法旋转：请双击 start_casino.py 启动离线桥，或接板子运行 trng_server.py（在线桥）",
@@ -2093,10 +2100,10 @@
       "btn.spin":"SPIN", "btn.space":"Space", "lbl.lines":"LINES", "lbl.perline":"BET", "lbl.denom":"DENOM",
       "bet.max":"MAX",
       "btn.src.offline":"Source: H743 offline", "btn.src.trng":"Source: H743 online",
-      "src.opt.trng":"H743 online · serial", "src.opt.offline":"H743 offline · snapshot",
+      "src.opt.trng":"H743 online · serial", "src.opt.offline":"H743 offline RNG",
       "src.state.check":"checking…", "src.state.ok":"ok · port", "src.state.none":"not running",
       "src.state.noboard":"entropy link down (check CH340 / USB)",
-      "src.state.direct":"direct", "src.state.mixed":"mixed", "src.state.snapshot":"snapshot",
+      "src.state.direct":"direct", "src.state.mixed":"mixed", "src.state.snapshot":"offline sample",
       "src.state.pool":"seed pool", "src.state.os":"OS CSPRNG", "src.state.reseeds":" reseeds",
       "src.ent.title":"Entropy link", "src.ent.ok":"connected", "src.ent.off":"off",
       "src.ent.degraded":"absent · single source", "src.ent.wait":"probing…",
@@ -2105,7 +2112,7 @@
       "src.ent.os":"OS CSPRNG · not reproducible",
       "src.msg.connecting":"connecting…",
       "src.msg.trngReady":"H743 online · serial direct · port {p}{c}",
-      "src.msg.offlineReady":"H743 offline · snapshot + DRBG · port {p}",
+      "src.msg.offlineReady":"Offline RNG ready · port {p}",
       "src.msg.trngMissing":"H743 online source not ready (check CH340/USB, or run start_casino.py) - you can switch to the offline source meanwhile",
       "src.msg.offlineMissing":"H743 offline source not ready (run start_casino.py, or trng_server.py --offline --entropy file) - you can switch to the online source meanwhile",
       "src.msg.bothBlock":"Neither random source is ready - cannot spin. Run start_casino.py to start the offline bridge, or connect the board and run trng_server.py (online bridge).",

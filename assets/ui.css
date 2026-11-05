@@ -1,0 +1,87 @@
+/* ============================================================================
+ * ui.css — 四个游戏页共用的设计令牌与可访问性基线
+ *
+ * 引用者：slot_machine.html / baccarat.html / dice.html / blackjack.html
+ * 约定：本文件是颜色、字阶、间距、缩放倍率、焦点环的唯一来源。
+ *       页面 <style> 只写该页专有组件，不再重复定义 :root。
+ *
+ * 断点契约（CSS 自定义属性无法用于 @media 条件，故以注释固定）：
+ *   --bp-wide:1200px    桌面 / 宽屏
+ *   --bp-mid:760px      平板 / 窄桌面
+ *   --bp-narrow:420px   手机
+ *   新增响应式规则一律先用上面三档；各页既有的组件级精调阈值
+ *   （1663 / 1909 / 981 / 980 / 900 / 680 / 560）保留，改动它们会破坏
+ *   已按像素对齐的柜机与牌桌布局，详见 开发文档.md。
+ * ========================================================================== */
+:root{
+  /* 色板：深紫柜机 + 金边 + 红绿状态色。--gold-d 为历史死令牌，已清理。 */
+  --gold:#f5c542;  --gold-l:#ffe680;
+  --red:#e23b3b;   --green:#6ef08a;
+  --ink:#eae2f5;   --muted:#9a8fb0;
+
+  /* 绿呢桌布：骰宝专属表面，其余三页不使用（见 开发文档.md） */
+  --felt-1:#12503c; --felt-2:#0a3a2b; --felt-3:#072a20;
+
+  /* 字阶：装饰性小字 ≥12px，正文 ≥14px，流式正文用 clamp 而非继续加缩放档 */
+  --fs-xs:12px; --fs-sm:14px; --fs-base:16px;
+  --fs-fluid:clamp(14px, 1.05vw, 16px);
+
+  /* 字体：正文沿用系统 UI 栈；标题用展示衬线栈（全本地字体，离线可用） */
+  --font-ui:"Segoe UI",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  --font-display:Georgia,"Times New Roman","Songti SC","STSong",serif;
+
+  /* 4px 间距基准 */
+  --space:4px; --space-2:8px; --space-3:12px; --space-4:16px;
+
+  /* 焦点环与最小触控目标 */
+  --focus-ring:2px solid var(--gold-l);
+  --tap:44px;
+
+  /* 整页等比缩放：数值的唯一来源，页面只引用令牌、不再散写字面量。
+     保留 zoom 机制是因为百家乐 / 21 点的珠盘路偏移由 JS 实测 rect 反推，
+     依赖祖先缩放比；Firefox 126+ 亦已支持 zoom。新增组件请用 --fs-fluid /
+     flex / grid 表达响应式，不要再新增缩放档位。 */
+  --zoom-hero:1.12; --zoom-wide:1.2; --zoom-normal:1;
+  --zoom-s1:.92; --zoom-s2:.86; --zoom-s3:.76; --zoom-s4:.74; --zoom-s5:.6;
+}
+
+body{font-family:var(--font-ui);}
+h1,h2,.brand b{font-family:var(--font-display);}
+
+/* 全局焦点可见：改造前四页只有音量滑块一处自定义焦点样式。
+   !important 用于压过各页后来加载的 outline:none（键盘可达性优先）。 */
+:focus-visible{outline:var(--focus-ring)!important;outline-offset:2px;}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+
+/* 减少动效偏好：全局兜底，覆盖装饰动画与过渡（WCAG 2.3.3） */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important;scroll-behavior:auto!important;
+  }
+}
+
+/* 触控设备：小按钮命中区 ≥44px（WCAG 2.5.8）；桌面保持原尺寸，不撑开密集布局 */
+@media (pointer:coarse){
+  .btn.small,.srcbtn,.homelink,.topctl button,.topbar button{
+    min-width:var(--tap)!important;min-height:var(--tap)!important;
+  }
+}
+
+/* 渐进披露：规则卡统一折叠样式（四页 .rules 容器已改为 <details class="rules">） */
+details.rules > summary{
+  list-style:none;cursor:pointer;display:flex;align-items:center;
+  gap:var(--space-2);
+}
+details.rules > summary::-webkit-details-marker{display:none;}
+details.rules > summary > h2{flex:1 1 auto;}
+details.rules > summary::after{
+  content:"＋";flex:0 0 auto;color:var(--gold-l);
+  font-family:var(--font-ui);font-size:var(--fs-sm);
+}
+details.rules[open] > summary::after{content:"－";}
+details.rules:not([open]) > summary h2{margin-bottom:0;}
+
+/* 极小刻度升到 12px 后不撑破格子 */
+.rb-lbl span,.bc-ml,.side .wen{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
