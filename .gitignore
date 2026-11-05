@@ -57,6 +57,12 @@ tune_math.py
 test_*.js
 test_dual_source.py
 
+# 随机源审计脚本的运行产物（报告 / 中间数据，按需重生成，不入库）
+audit_random_raw.json
+audit_random_raw.md
+audit_sicbo_stream.json
+audit_sicbo_stream.md
+
 # 无头截图 / CDP 测试 profile（本地验证产物）
 _shots/
 _cdp_*/
