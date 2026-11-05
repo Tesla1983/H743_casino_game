@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>骰宝 SIC BO</title>
+<link rel="stylesheet" href="assets/ui.css">
 <style>
   /* ============================================================
    *  骰宝（Sic Bo）
@@ -13,12 +14,7 @@
    *    16bit 拒绝采样消除取模偏差；一局取 3 个 1–6
    *  · 钱包与两页共用 localStorage.slot_credits（同一笔钱）
    * ============================================================ */
-  :root{
-    --gold:#f5c542; --gold-d:#b8860b; --gold-l:#ffe680;
-    --red:#e23b3b; --green:#6ef08a;
-    --ink:#eae2f5; --muted:#9a8fb0;
-    --felt-1:#12503c; --felt-2:#0a3a2b; --felt-3:#072a20;
-  }
+  /* 设计令牌与响应式断点契约统一见 assets/ui.css；本页只写专有组件样式。 */
   *{box-sizing:border-box;}
   html{height:100%;}
   /* body 不锁死 100%：结算明细会让内容变高，锁死 + flex 居中会把顶部裁掉 */
@@ -36,7 +32,7 @@
   .topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
   .homelink{
     display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:10px;
-    text-decoration:none;font-size:12px;font-weight:600;letter-spacing:.5px;
+    text-decoration:none;font-size:var(--fs-sm);font-weight:600;letter-spacing:.5px;
     color:var(--gold);background:linear-gradient(#2b1a10,#190f08);
     border:1px solid rgba(245,197,66,.30);
     box-shadow:0 3px 10px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06);
@@ -49,7 +45,7 @@
     font-size:22px;font-weight:900;letter-spacing:6px;color:var(--gold-l);
     text-shadow:0 0 14px rgba(255,180,40,.55), 0 0 34px rgba(255,140,20,.28);
   }
-  .brand span{font-size:11.5px;letter-spacing:3px;color:var(--muted);}
+  .brand span{font-size:var(--fs-xs);letter-spacing:3px;color:var(--muted);}
 
   /* ---------------- 桌面 ---------------- */
   .felt{
@@ -70,7 +66,7 @@
   }
   .felt-head{
     position:relative;z-index:2;display:flex;align-items:center;justify-content:center;gap:10px;
-    font-size:11px;letter-spacing:3px;color:rgba(255,231,160,.62);
+    font-size:var(--fs-xs);letter-spacing:3px;color:rgba(255,231,160,.62);
   }
   .felt-head i{flex:1;height:1px;max-width:90px;
     background:linear-gradient(90deg,rgba(245,197,66,0),rgba(245,197,66,.45));}
@@ -150,7 +146,7 @@
   .resultline.push .vt{color:var(--gold-l);}
   .resultline.rolling .vt{color:#c9b8e8;}
   .resultline .tag{
-    font-size:11px;letter-spacing:1px;color:rgba(255,231,160,.55);
+    font-size:var(--fs-xs);letter-spacing:1px;color:rgba(255,231,160,.55);
     border:1px solid rgba(245,197,66,.24);border-radius:999px;padding:3px 9px;
     white-space:nowrap;
   }
@@ -160,7 +156,7 @@
   .calcline{
     position:relative;z-index:2;margin:7px 2px 0;
     padding:7px 12px;border-radius:10px;text-align:center;
-    font-size:12px;line-height:1.8;letter-spacing:.2px;color:#b9a8d6;
+    font-size:var(--fs-sm);line-height:1.8;letter-spacing:.2px;color:#b9a8d6;
     background:rgba(0,0,0,.22);border:1px solid rgba(245,197,66,.14);
     font-variant-numeric:tabular-nums;
   }
@@ -175,7 +171,7 @@
 
   .srcline{
     display:flex;align-items:center;gap:8px;padding:0 4px;
-    font-size:11px;letter-spacing:.4px;color:var(--muted);
+    font-size:var(--fs-xs);letter-spacing:.4px;color:var(--muted);
   }
   .srcline .dot{
     width:7px;height:7px;border-radius:50%;background:#5a5370;flex:0 0 7px;
@@ -191,7 +187,7 @@
   .srcline.err .dot{background:#8b8b8b;box-shadow:0 0 0 2px rgba(255,255,255,.05);}
   .srcline .txt{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .srcline button{
-    font-family:inherit;font-size:11px;letter-spacing:.5px;cursor:pointer;
+    font-family:inherit;font-size:var(--fs-xs);letter-spacing:.5px;cursor:pointer;
     color:var(--gold);background:transparent;border:1px solid rgba(245,197,66,.28);
     border-radius:7px;padding:3px 9px;transition:filter .15s;
   }
@@ -208,7 +204,7 @@
   }
   /* 卡片小字与 21 点对齐：HUD 标签 10.5 → 11px（21 点 body.arc + 中文那一档就是 11px），
      字距同时从 1.2px 收到 .6px，汉字才不会因为字距过大显得散 */
-  .meter .label{font-size:11px;letter-spacing:.6px;font-weight:600;color:var(--muted);}
+  .meter .label{font-size:var(--fs-xs);letter-spacing:.6px;font-weight:600;color:var(--muted);}
   .meter .val{
     font-size:20px;font-weight:900;color:var(--gold-l);font-variant-numeric:tabular-nums;
     line-height:1.1;text-shadow:0 0 10px rgba(245,197,66,.25);
@@ -219,6 +215,69 @@
   .meter.hl{border-color:rgba(245,197,66,.55);
     background:radial-gradient(circle at 50% 20%, rgba(245,197,66,.14), rgba(0,0,0,.4));}
 
+  /* ---------------- 首屏信息栏：玩家档案 + 银行卡 ----------------
+     桌面与绿呢桌布同排：两卡都落在首屏 65–365px 内，无需滚动；
+     .felt 仍占主列，骰子 / 结果条 / 下注面板尺寸一律不变（不挤压核心内容）。
+     ≤920px 时骰子组需要 ≥560px 内宽，改为信息列落到桌布下方、两卡并排一行。 */
+  .tabletop{display:grid;grid-template-columns:minmax(0,1fr) 248px;gap:12px;align-items:stretch;}
+  .felt{min-width:0;}
+  .infocol{position:relative;min-width:0;min-height:0;}
+  .infocard{
+    position:absolute;left:0;right:0;height:calc(50% - 6px);
+    overflow:hidden;min-width:0;min-height:0;
+    display:flex;flex-direction:column;gap:4px;padding:8px 12px;border-radius:16px;
+    background:linear-gradient(165deg,#2b1a42 0%,#180f26 55%,#0c0714 100%);
+    border:1px solid rgba(245,197,66,.30);
+    box-shadow:0 14px 34px rgba(0,0,0,.5), 0 0 30px rgba(245,197,66,.08),
+      inset 0 1px 0 rgba(255,255,255,.07);
+  }
+  .infocol > .infocard:first-child{top:0;}
+  .infocol > .infocard:last-child{bottom:0;}
+  .infocard::before{content:"";position:absolute;inset:5px;border-radius:11px;pointer-events:none;
+    border:1px solid rgba(245,197,66,.12);}
+  .info-head{display:flex;align-items:baseline;gap:8px;min-width:0;flex-wrap:wrap;}
+  .info-kicker{font-size:var(--fs-xs);font-weight:900;letter-spacing:2px;color:var(--gold-l);
+    text-shadow:0 0 8px rgba(245,197,66,.45);white-space:nowrap;}
+  .info-title{margin:0;font-family:var(--font-ui);font-size:var(--fs-xs);font-weight:700;
+    letter-spacing:1px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .info-grid{flex:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-template-rows:repeat(2,minmax(0,1fr));gap:4px 8px;min-height:0;}
+  .info-stat{display:flex;flex-direction:column;justify-content:center;min-width:0;text-align:center;}
+  .info-lbl{font-size:var(--fs-xs);letter-spacing:.3px;color:var(--muted);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .info-num{font-size:16px;font-weight:900;line-height:1.15;color:#e9dcc0;
+    font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    text-shadow:0 0 5px rgba(245,197,66,.22);}
+  .info-num.gain{color:var(--green);}
+  .info-num.loss{color:#ffa8a8;}
+  .info-foot{font-size:var(--fs-xs);color:#8f80ab;line-height:1.3;letter-spacing:.2px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  /* 银行卡面：复用老虎机 .bc-face 的蓝金渐变，压缩成只读展示；存取仍在老虎机页 */
+  .bankface{position:relative;flex:1;min-height:0;border-radius:10px;overflow:hidden;
+    padding:6px 12px;display:flex;flex-direction:column;justify-content:flex-end;gap:1px;
+    background-image:radial-gradient(circle 620px at 9% 80.3%,
+      rgba(55,60,245,1) 0%, rgba(234,161,15,.9) 100.2%);
+    border:1px solid rgba(255,255,255,.12);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.22);}
+  .bf-chip{position:absolute;top:9px;right:12px;width:22px;height:16px;border-radius:3px;
+    background:linear-gradient(135deg,#ffe9a8,#c8901a);box-shadow:inset 0 0 0 1px rgba(0,0,0,.2);}
+  .bf-label{flex:0 0 auto;font-size:var(--fs-xs);letter-spacing:1px;color:rgba(255,255,255,.82);}
+  .bf-num{flex:0 0 auto;font-family:"Courier New",ui-monospace,monospace;font-size:17px;font-weight:700;
+    letter-spacing:1px;color:#fff;line-height:1.1;font-variant-numeric:tabular-nums;
+    text-shadow:0 1px 4px rgba(0,0,0,.35);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .homelink.mini{padding:2px 9px;font-size:var(--fs-xs);border-radius:8px;align-self:flex-start;}
+  @media (max-width:920px){
+    .tabletop{grid-template-columns:1fr;}
+    .infocol{position:static;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto;}
+    .infocard{position:relative;left:auto;right:auto;top:auto;bottom:auto;height:auto;padding:8px 11px;}
+  }
+  @media (max-width:420px){
+    .infocol{gap:8px;}
+    .infocard{padding:9px 8px;gap:4px;}
+    .info-num{font-size:15px;}
+    .bf-num{font-size:16px;}
+    .bf-chip{display:none;}
+  }
   /* ---------------- 下注面板 ---------------- */
   .betpanel{
     border-radius:18px;padding:14px 14px 16px;
@@ -228,14 +287,14 @@
     display:flex;flex-direction:column;gap:11px;
   }
   .panel-title{display:flex;align-items:center;gap:9px;
-    font-size:11px;letter-spacing:2.4px;color:rgba(255,231,160,.62);}
+    font-size:var(--fs-xs);letter-spacing:2.4px;color:rgba(255,231,160,.62);}
   .panel-title i{flex:1;height:1px;background:linear-gradient(90deg,rgba(245,197,66,.34),rgba(245,197,66,0));}
 
   .chips{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
   .chip{
     position:relative;width:48px;height:48px;border-radius:50%;cursor:pointer;
     display:flex;align-items:center;justify-content:center;font-family:inherit;
-    font-size:13px;font-weight:900;color:#1a1206;border:0;
+    font-size:var(--fs-sm);font-weight:900;color:#1a1206;border:0;
     background:repeating-conic-gradient(from 0deg, #f6f2e8 0deg 7deg, var(--c) 7deg 21deg);
     box-shadow:0 5px 12px rgba(0,0,0,.5), inset 0 0 0 2px rgba(0,0,0,.28);
     transition:transform .1s, filter .15s, box-shadow .15s;
@@ -251,10 +310,15 @@
   .chip:disabled{opacity:.4;cursor:default;transform:none;}
 
   .spots{display:flex;flex-direction:column;gap:10px;}
+  .spot-group{display:flex;flex-direction:column;gap:var(--space-2);}
+  .group-title{display:flex;align-items:center;gap:var(--space-2);
+    font-size:var(--fs-xs);letter-spacing:2px;color:rgba(255,231,160,.72);}
+  .group-title::after{content:"";flex:1 1 auto;height:1px;
+    background:linear-gradient(90deg,rgba(245,197,66,.34),transparent);}
   .spot-row{display:grid;gap:10px;}
   .row-main{grid-template-columns:repeat(4,1fr);}
   .row-face{grid-template-columns:repeat(6,1fr);}
-  .row-combo{grid-template-columns:repeat(5,1fr);}
+  .row-sum{grid-template-columns:repeat(5,1fr);}
 
   .spot{
     position:relative;cursor:pointer;border:0;padding:10px 6px;background:transparent;
@@ -277,11 +341,11 @@
   /* 三行文字按 21 点主注卡那一套（赔率 11 / 名称 13 / 注额 15，色板一并照搬）：
      赔率 #cbb8e6 · 85% 不透明度，名称 #e8ddf2，注额半透明金、有注时提亮 */
   .spot .t{
-    font-size:13px;font-weight:800;letter-spacing:1.5px;color:#e8ddf2;
+    font-size:var(--fs-sm);font-weight:800;letter-spacing:1.5px;color:#e8ddf2;
     position:relative;z-index:1;line-height:1.2;
   }
   .spot .s{
-    font-size:11px;letter-spacing:.3px;color:#cbb8e6;opacity:.85;
+    font-size:var(--fs-xs);letter-spacing:.3px;color:#cbb8e6;opacity:.85;
     position:relative;z-index:1;text-align:center;line-height:1.2;
   }
   .spot .amt{
@@ -357,7 +421,7 @@
   .btn.deal:disabled{background:linear-gradient(#6d6455,#4d4637);color:#b9b2a2;
     box-shadow:none;border-color:rgba(255,255,255,.12);}
   .btn.deal kbd{
-    font-family:inherit;font-size:11px;font-weight:700;letter-spacing:0;
+    font-family:inherit;font-size:var(--fs-xs);font-weight:700;letter-spacing:0;
     margin-left:10px;padding:2px 6px;border-radius:5px;
     background:rgba(0,0,0,.18);color:rgba(36,21,0,.8);
   }
@@ -365,7 +429,7 @@
   .topctl{display:flex;align-items:center;gap:8px;margin-left:12px;}
   .btn.small{
     height:32px;min-width:38px;padding:0 10px;border-radius:9px;
-    font-size:13px;font-weight:800;letter-spacing:1px;line-height:1;
+    font-size:var(--fs-sm);font-weight:800;letter-spacing:1px;line-height:1;
     display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;
   }
   .volwrap{position:relative;display:flex;align-items:center;}
@@ -398,7 +462,7 @@
     transition:box-shadow .15s;}
   .vol-slider.drag .vol-knob{box-shadow:0 0 12px rgba(255,200,60,.95), 0 2px 4px rgba(0,0,0,.6);}
 
-  .hint{text-align:center;font-size:11.5px;letter-spacing:.4px;
+  .hint{text-align:center;font-size:var(--fs-xs);letter-spacing:.4px;
     color:rgba(200,186,220,.65);min-height:16px;transition:color .2s;}
   .hint.warn{color:#ffb45a;}
 
@@ -409,12 +473,12 @@
     .topbar{gap:8px;}
     .brand{flex:1 1 100%;justify-content:center;margin-left:0;order:-1;}
     .topctl{margin-left:auto;gap:6px;}
-    .topctl .btn.small{height:30px;min-width:34px;font-size:12px;padding:0 8px;}
+    .topctl .btn.small{height:30px;min-width:34px;font-size:var(--fs-sm);padding:0 8px;}
     .topctl .volwrap .btn.small{width:34px;min-width:34px;}
     .vol-pop{padding:7px;}
     .vol-pop::after{right:11px;}
     .brand b{font-size:18px;letter-spacing:5px;}
-    .brand span{font-size:10.5px;}
+    .brand span{font-size:var(--fs-xs);}
     .felt{padding:16px 14px 14px;border-radius:18px;}
     .dicestage{gap:46px;padding:18px 0 26px;}
     .dice-slot{width:70px;height:70px;perspective:600px;}
@@ -424,18 +488,20 @@
     .resultline{gap:9px;padding:7px 10px;min-height:40px;}
     .resultline .tag{display:none;}
     .resultline .vt{font-size:14px;letter-spacing:2px;}
-    .resultline .dv{width:22px;height:22px;font-size:13px;border-radius:5px;}
+    .resultline .dv{width:22px;height:22px;font-size:var(--fs-sm);border-radius:5px;}
     .hud{grid-template-columns:repeat(2,1fr);gap:8px;}
     .meter{padding:8px 6px;}
     .meter .val{font-size:17px;}
     .betpanel{padding:12px 10px 14px;border-radius:16px;gap:10px;}
     .chips{gap:7px;}
-    .chip{width:42px;height:42px;font-size:12px;}
+    .chip{width:42px;height:42px;font-size:var(--fs-sm);}
     .row-main{grid-template-columns:repeat(2,1fr);}
     .row-face{grid-template-columns:repeat(3,1fr);}
-    .row-combo{grid-template-columns:repeat(2,1fr);}
+    .row-sum{grid-template-columns:repeat(2,1fr);}
+    /* 5 张卡在 2 列下会多出一张落单；让「围骰」通栏收尾，避免半行空位 */
+    .row-sum .spot[data-spot="triple"]{grid-column:1 / -1;}
     .spot{min-height:68px;padding:8px 4px;}
-    .spot .amt{font-size:13px;bottom:4px;}
+    .spot .amt{font-size:var(--fs-sm);bottom:4px;}
     .actions{flex-direction:column-reverse;gap:8px;}
     .btn.ghost{flex:0 0 auto;height:44px;font-size:14px;}
     .btn.deal{height:54px;}
@@ -453,30 +519,31 @@
     border:1px solid rgba(245,197,66,.22);
     border-radius:18px;padding:18px 22px 24px;
     box-shadow:0 18px 50px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.06);
-    font-size:13px;line-height:1.7;color:var(--ink);
+    font-size:var(--fs-fluid);line-height:1.7;color:var(--ink);
   }
   .rules h2{margin:0 0 10px;font-size:17px;letter-spacing:3px;color:var(--gold-l);
     text-shadow:0 0 9px rgba(245,197,66,.35);}
-  .rules h3{margin:16px 0 6px;font-size:13.5px;color:#ffd76a;letter-spacing:1px;}
+  .rules h3{margin:16px 0 6px;font-size:var(--fs-sm);color:#ffd76a;letter-spacing:1px;}
   .rules p{margin:6px 0;}
   .rules ul{margin:6px 0;padding-left:20px;}
   .rules li{margin:3px 0;}
   .rules b{color:#fff0c8;font-weight:700;}
-  .rules table{border-collapse:collapse;width:100%;table-layout:fixed;margin:8px 0;font-size:12.5px;}
+  .rules table{border-collapse:collapse;width:100%;table-layout:fixed;margin:8px 0;font-size:var(--fs-xs);}
   .rules th,.rules td{border:1px solid rgba(255,255,255,.13);padding:5px 8px;text-align:center;}
   .rules th{background:rgba(245,197,66,.12);color:#ffe680;font-weight:700;}
-  .rules .tag{display:inline-block;padding:1px 8px;border-radius:8px;font-size:11px;font-weight:700;}
+  .rules .tag{display:inline-block;padding:1px 8px;border-radius:8px;font-size:var(--fs-xs);font-weight:700;}
   .rules .tag.s{background:linear-gradient(#8ff0b8,#1f9a5a);color:#04220f;}
   .rules .tag.b{background:linear-gradient(#ff9a9a,#c02020);color:#fff;}
-  .rules .note{color:var(--muted);font-size:11.5px;}
+  .rules .note{color:var(--muted);font-size:var(--fs-xs);}
   @media (max-width:420px){
-    .rules{padding:14px 14px 18px;font-size:12.5px;}
-    .rules table{font-size:11.5px;}
+    .rules{padding:14px 14px 18px;font-size:var(--fs-fluid);}
+    .rules table{font-size:var(--fs-xs);}
     .rules th,.rules td{padding:4px 5px;}
   }
 </style>
 </head>
 <body>
+<h1 class="sr-only">骰宝 SIC BO</h1>
 <div class="page">
 
   <div class="topbar">
@@ -505,6 +572,7 @@
     </div>
   </div>
 
+  <div class="tabletop">
   <section class="felt">
     <div class="felt-head"><i></i><span data-i18n="felt.throw">投 掷 区</span><i></i></div>
 
@@ -526,6 +594,36 @@
     <!-- 派彩算式：每一注的「本金 + 赔额 = 返还」，再给出「派彩 − 本注 = 净额」 -->
     <div class="calcline" id="calcline" hidden></div>
   </section>
+  <aside class="infocol" aria-label="玩家档案与银行卡 / Player profile and bank card">
+    <section class="infocard" aria-labelledby="profileTitle">
+      <div class="info-head">
+        <span class="info-kicker">PLAYER</span>
+        <h2 class="info-title" id="profileTitle" data-i18n="profile.title">玩家档案</h2>
+      </div>
+      <div class="info-grid">
+        <div class="info-stat"><span class="info-lbl" data-i18n="profile.best">最高派彩</span><b class="info-num" id="pfBest">0</b></div>
+        <div class="info-stat"><span class="info-lbl" data-i18n="profile.net">净收益</span><b class="info-num" id="pfNet">0</b></div>
+        <div class="info-stat"><span class="info-lbl" data-i18n="profile.won">累计赢分</span><b class="info-num" id="pfWon">0</b></div>
+        <div class="info-stat"><span class="info-lbl" data-i18n="profile.lost">累计输分</span><b class="info-num" id="pfLost">0</b></div>
+      </div>
+      <div class="info-foot" data-i18n="profile.foot">本机档案 · 随游玩更新</div>
+    </section>
+
+    <section class="infocard" aria-labelledby="bankTitle">
+      <div class="info-head">
+        <span class="info-kicker">BANK</span>
+        <h2 class="info-title" id="bankTitle" data-i18n="bank.title">银行卡</h2>
+      </div>
+      <div class="bankface">
+        <span class="bf-chip" aria-hidden="true"></span>
+        <span class="bf-label" data-i18n="bank.balance">卡内积分</span>
+        <b class="bf-num" id="bkBalance">0</b>
+      </div>
+      <div class="info-foot" data-i18n="bank.foot">全局钱袋 · 跨页共用</div>
+      <a class="homelink mini" href="slot_machine.html" data-i18n="bank.manage">去存取 →</a>
+    </section>
+  </aside>
+  </div>
 
   <div class="srcline" id="srcline">
     <span class="dot"></span>
@@ -547,29 +645,36 @@
     <div class="panel-title"><span data-i18n="panel.bet">下 注</span><i></i><span style="letter-spacing:.5px" data-i18n="panel.betHint">点注位加注 · 右键撤注</span></div>
 
     <div class="spots">
-      <div class="spot-row row-main">
-        <button class="spot" type="button" data-spot="small"><span class="t" data-i18n="spot.small">小</span><span class="s" data-i18n="pay.small">4 – 10 · 1:1</span><span class="amt"></span></button>
-        <button class="spot" type="button" data-spot="large"><span class="t" data-i18n="spot.large">大</span><span class="s" data-i18n="pay.large">11 – 17 · 1:1</span><span class="amt"></span></button>
-        <button class="spot" type="button" data-spot="odd"><span class="t" data-i18n="spot.odd">单</span><span class="s" data-i18n="pay.odd">奇数 · 1:1</span><span class="amt"></span></button>
-        <button class="spot" type="button" data-spot="even"><span class="t" data-i18n="spot.even">双</span><span class="s" data-i18n="pay.even">偶数 · 1:1</span><span class="amt"></span></button>
-      </div>
-
-      <div class="spot-row row-face">
-        <button class="spot" type="button" data-spot="f1"><span class="minidie" data-pips="1"></span><span class="s">1 · 1:1 2:1 3:1</span><span class="amt"></span></button>
-        <button class="spot" type="button" data-spot="f2"><span class="minidie" data-pips="2"></span><span class="s">2 · 1:1 2:1 3:1</span><span class="amt"></span></button>
-        <button class="spot" type="button" data-spot="f3"><span class="minidie" data-pips="3"></span><span class="s">3 · 1:1 2:1 3:1</span><span class="amt"></span></button>
-        <button class="spot" type="button" data-spot="f4"><span class="minidie" data-pips="4"></span><span class="s">4 · 1:1 2:1 3:1</span><span class="amt"></span></button>
-        <button class="spot" type="button" data-spot="f5"><span class="minidie" data-pips="5"></span><span class="s">5 · 1:1 2:1 3:1</span><span class="amt"></span></button>
-        <button class="spot" type="button" data-spot="f6"><span class="minidie" data-pips="6"></span><span class="s">6 · 1:1 2:1 3:1</span><span class="amt"></span></button>
-      </div>
-
-      <div class="spot-row row-combo">
-        <button class="spot" type="button" data-spot="triple"><span class="t" data-i18n="spot.triple">围骰</span><span class="s" data-i18n="pay.triple">三颗同点 · 1:30</span><span class="amt"></span></button>
-        <button class="spot" type="button" data-spot="sum4"><span class="t" data-i18n="spot.sum4">和 4</span><span class="s" data-i18n="pay.sum4">50 : 1</span><span class="amt"></span></button>
-        <button class="spot" type="button" data-spot="sum17"><span class="t" data-i18n="spot.sum17">和 17</span><span class="s" data-i18n="pay.sum17">50 : 1</span><span class="amt"></span></button>
-        <button class="spot" type="button" data-spot="sum5"><span class="t" data-i18n="spot.sum5">和 5</span><span class="s" data-i18n="pay.sum5">30 : 1</span><span class="amt"></span></button>
-        <button class="spot" type="button" data-spot="sum16"><span class="t" data-i18n="spot.sum16">和 16</span><span class="s" data-i18n="pay.sum16">30 : 1</span><span class="amt"></span></button>
-      </div>
+  <div class="spot-group">
+    <div class="group-title"><span data-i18n="grp.main">大小单双</span></div>
+    <div class="spot-row row-main">
+      <button class="spot" type="button" data-spot="small"><span class="t" data-i18n="spot.small">小</span><span class="s" data-i18n="pay.small">4 – 10 · 1:1</span><span class="amt"></span></button>
+      <button class="spot" type="button" data-spot="large"><span class="t" data-i18n="spot.large">大</span><span class="s" data-i18n="pay.large">11 – 17 · 1:1</span><span class="amt"></span></button>
+      <button class="spot" type="button" data-spot="odd"><span class="t" data-i18n="spot.odd">单</span><span class="s" data-i18n="pay.odd">奇数 · 1:1</span><span class="amt"></span></button>
+      <button class="spot" type="button" data-spot="even"><span class="t" data-i18n="spot.even">双</span><span class="s" data-i18n="pay.even">偶数 · 1:1</span><span class="amt"></span></button>
+    </div>
+  </div>
+  <div class="spot-group">
+    <div class="group-title"><span data-i18n="grp.face">单点 1–6</span></div>
+    <div class="spot-row row-face">
+      <button class="spot" type="button" data-spot="f1"><span class="minidie" data-pips="1"></span><span class="s">1 · 1:1 2:1 3:1</span><span class="amt"></span></button>
+      <button class="spot" type="button" data-spot="f2"><span class="minidie" data-pips="2"></span><span class="s">2 · 1:1 2:1 3:1</span><span class="amt"></span></button>
+      <button class="spot" type="button" data-spot="f3"><span class="minidie" data-pips="3"></span><span class="s">3 · 1:1 2:1 3:1</span><span class="amt"></span></button>
+      <button class="spot" type="button" data-spot="f4"><span class="minidie" data-pips="4"></span><span class="s">4 · 1:1 2:1 3:1</span><span class="amt"></span></button>
+      <button class="spot" type="button" data-spot="f5"><span class="minidie" data-pips="5"></span><span class="s">5 · 1:1 2:1 3:1</span><span class="amt"></span></button>
+      <button class="spot" type="button" data-spot="f6"><span class="minidie" data-pips="6"></span><span class="s">6 · 1:1 2:1 3:1</span><span class="amt"></span></button>
+    </div>
+  </div>
+  <div class="spot-group">
+    <div class="group-title"><span data-i18n="grp.sum">总和值 · 围骰</span></div>
+    <div class="spot-row row-sum">
+      <button class="spot" type="button" data-spot="sum4"><span class="t" data-i18n="spot.sum4">和 4</span><span class="s" data-i18n="pay.sum4">50 : 1</span><span class="amt"></span></button>
+      <button class="spot" type="button" data-spot="sum17"><span class="t" data-i18n="spot.sum17">和 17</span><span class="s" data-i18n="pay.sum17">50 : 1</span><span class="amt"></span></button>
+      <button class="spot" type="button" data-spot="sum5"><span class="t" data-i18n="spot.sum5">和 5</span><span class="s" data-i18n="pay.sum5">30 : 1</span><span class="amt"></span></button>
+      <button class="spot" type="button" data-spot="sum16"><span class="t" data-i18n="spot.sum16">和 16</span><span class="s" data-i18n="pay.sum16">30 : 1</span><span class="amt"></span></button>
+      <button class="spot" type="button" data-spot="triple"><span class="t" data-i18n="spot.triple">围骰</span><span class="s" data-i18n="pay.triple">三颗同点 · 1:30</span><span class="amt"></span></button>
+    </div>
+  </div>
     </div>
 
     <div class="actions">
@@ -580,8 +685,8 @@
   </section>
 
   <!-- ==================== 规则 ==================== -->
-  <div class="rules">
-    <h2 data-i18n="rules.title">玩法规则</h2>
+  <details class="rules">
+    <summary><h2 data-i18n="rules.title">玩法规则</h2></summary>
 
     <h3 data-i18n="rules.goal">游戏目标</h3>
     <p data-i18n="rules.goal.p">投掷 <b>三颗骰子</b>，按你事先押注的注位判定是否命中：命中的注位按对应赔率派彩，未命中的注位本金不退还。目标是在一掷之内让所押注位尽可能多地命中。</p>
@@ -624,7 +729,7 @@
 
     <h3 data-i18n="rules.edge">庄家优势提示</h3>
     <p class="note" data-i18n="rules.edge.p">不同押注的庄家优势不同：大 / 小 / 单 / 双最低（约 2.78%），单点次之（约 7.9%），围骰等高赔率注位风险更高。高赔率注位对应更高风险，请以赔付表为准、量力下注。</p>
-  </div>
+  </details>
 
 </div>
 
@@ -647,7 +752,9 @@
   var MAX_SPOT = 5000;          // 单注上限
   var START_CREDITS = 20000;
   var SPOT_KEYS = ["small","large","odd","even","f1","f2","f3","f4","f5","f6","triple","sum4","sum17","sum5","sum16"];
-  var LS = { credits:"slot_credits" };   // 与老虎机 / 百家乐共用同一个钱袋
+  var LS = { credits:"slot_credits", card:"slot_card", profile:"sicbo_profile" };
+  // slot_credits / slot_card 是全局钱袋（与老虎机 / 百家乐共用，这里只读卡内余额）；
+  // sicbo_profile 只记骰宝本桌战绩，不写其它页面的统计键。
 
   /* ---------------- 音效 ----------------
      与老虎机 / 21 点同一套做法：Audio 预缓存 + 版本串强制刷新 + play() 的 Promise 静默兜底
@@ -926,8 +1033,13 @@
       "felt.throw":"投 掷 区",
       "res.wait":"等待投掷","res.tag":"大 11–17 · 小 4–10",
       "hud.credits":"当前余额","hud.bet":"本注合计","hud.last":"上局派彩","hud.hands":"累计手数",
+      "profile.title":"玩家档案","profile.best":"最高派彩","profile.net":"净收益",
+      "profile.won":"累计赢分","profile.lost":"累计输分","profile.foot":"本机档案 · 随游玩更新",
+      "bank.title":"银行卡","bank.balance":"卡内积分",
+      "bank.foot":"全局钱袋 · 跨页共用","bank.manage":"去存取 →",
       "panel.chip":"筹 码","panel.chipHint":"点选面额",
       "panel.bet":"下 注","panel.betHint":"点注位加注 · 右键撤注",
+      "grp.main":"大小单双","grp.face":"单点 1–6","grp.sum":"总和值 · 围骰",
       "spot.small":"小","spot.large":"大","spot.odd":"单","spot.even":"双",
       "spot.triple":"围骰","spot.sum4":"和 4","spot.sum17":"和 17","spot.sum5":"和 5","spot.sum16":"和 16",
       "pay.small":"4 – 10 · 1:1","pay.large":"11 – 17 · 1:1",
@@ -937,8 +1049,8 @@
       "hint.init":"选择筹码 → 点击注位下注 → 投掷",
       "src.switch":"切换源",
       "src.detecting":"随机源检测中…",
-      "src.online":"在线随机源 · H743 串口直供 · 端口 {p} · 缓冲 {b} B",
-      "src.offline":"离线随机源 · 熵快照 + DRBG · 端口 {p} · 缓冲 {b} B",
+      "src.online":"在线随机源 · H743 硬件直供 · 端口 {p} · 缓冲 {b} B",
+      "src.offline":"离线随机源 · 端口 {p} · 缓冲 {b} B",
       "src.err":"随机源未连接 · 请先启动 start_casino.py（在线 8765 / 离线 8770）",
       "vt.rolling":"投掷中…","vt.srcerr":"随机源不可用",
       "res.sum":"合共 {s} 点 · {size} · {parity}",
@@ -975,8 +1087,13 @@
       "felt.throw":"T H R O W",
       "res.wait":"Waiting to roll","res.tag":"Big 11–17 · Small 4–10",
       "hud.credits":"BALANCE","hud.bet":"TOTAL BET","hud.last":"LAST PAYOUT","hud.hands":"HANDS",
+      "profile.title":"PLAYER PROFILE","profile.best":"BEST","profile.net":"NET",
+      "profile.won":"WON","profile.lost":"STAKED","profile.foot":"LOCAL · LIVE",
+      "bank.title":"BANK CARD","bank.balance":"CARD BALANCE",
+      "bank.foot":"SHARED WALLET","bank.manage":"Manage →",
       "panel.chip":"CHIPS","panel.chipHint":"pick a value",
       "panel.bet":"BETS","panel.betHint":"click to add · right-click to remove",
+      "grp.main":"BIG / SMALL / ODD / EVEN","grp.face":"SINGLE NUMBER 1–6","grp.sum":"TOTALS · TRIPLE",
       "spot.small":"Small","spot.large":"Big","spot.odd":"Odd","spot.even":"Even",
       "spot.triple":"Triple","spot.sum4":"Sum 4","spot.sum17":"Sum 17","spot.sum5":"Sum 5","spot.sum16":"Sum 16",
       "pay.small":"4 – 10 · 1:1","pay.large":"11 – 17 · 1:1",
@@ -986,8 +1103,8 @@
       "hint.init":"Pick a chip → tap a bet → roll",
       "src.switch":"Switch",
       "src.detecting":"Detecting RNG…",
-      "src.online":"Online RNG · H743 serial · port {p} · {b} B buffered",
-      "src.offline":"Offline RNG · entropy snapshot + DRBG · port {p} · {b} B buffered",
+      "src.online":"Online RNG · H743 hardware · port {p} · {b} B buffered",
+      "src.offline":"Offline RNG · port {p} · {b} B buffered",
       "src.err":"RNG not connected · start start_casino.py (online 8765 / offline 8770)",
       "vt.rolling":"Rolling…","vt.srcerr":"RNG unavailable",
       "res.sum":"Total {s} · {size} · {parity}",
@@ -1138,6 +1255,7 @@
     if (_lastHint) setHintKey(_lastHint.key, _lastHint.vars, _lastHint.warn);
     if (_lastResult) drawResult(); else if (_vtState) renderVt();
     renderSound();
+    renderProfile(); renderBank();
     if (langBtn) langBtn.textContent = (lang === "zh") ? "EN" : "中";
     try{ localStorage.setItem("slot_lang", lang); }catch(e){}
   }
@@ -1164,23 +1282,56 @@
     }
     return out;
   }
-  /* 增量渲染筹码堆：只在「张数变多」时给新加在最上面的那一枚播掉落动画，
-     已有筹码不重播，避免整堆闪烁（与 21 点一致）。amount<=0 时清空并复位计数。 */
-  function renderSpotStack(stackEl, amount){
-    if (!stackEl) return;
-    if (amount <= 0){ stackEl.innerHTML = ""; stackEl._prev = 0; return; }
-    var list = chipStackOf(amount, 9);
-    var prev = stackEl._prev || 0;
-    var grow = list.length > prev;
-    stackEl.innerHTML = "";
-    list.forEach(function(d, i){
-      var c = document.createElement("span");
-      c.className = "minichip d" + d;
-      c.title = fmt(d);
-      if (!(grow && i < prev)) c.classList.add("drop");
-      stackEl.appendChild(c);
+  /* ---- 注位筹码堆：每卡片独立、增量更新、动画显式触发 ----
+     旧实现的掉落判断写反了：张数不变或减少时反而给整堆加 drop；
+     而 updateHUD 每次都会重建全部 15 个注位，于是点 A 会把 B 的筹码也重播（串扰），
+     投掷时的多次 updateHUD 又会用 innerHTML="" 打断正在播放的动画（提前结束 / 重复触发）。
+     现在：以面额序列签名判断是否需要动 DOM；状态没变的卡片直接返回，连重建都不做。
+     只改本卡片自己的节点，复用已有节点、保留在播动画；动画由调用方用 animate 显式指定，
+     只给「本次加注的那张卡片」新增的筹码播一次，animationend 后立即摘掉 drop 不留残留。 */
+  function bindChipDropEnd(node){
+    if (node._dropBound) return;
+    node._dropBound = true;
+    node.addEventListener("animationend", function(e){
+      if (e.animationName === "chipDrop") node.classList.remove("drop");
     });
-    stackEl._prev = list.length;
+  }
+  function playChipDrop(node){
+    bindChipDropEnd(node);
+    node.classList.remove("drop");
+    void node.offsetWidth;          // 同一节点重播动画：先让浏览器观察到 drop 被移除
+    node.classList.add("drop");
+  }
+  function renderSpotStack(stackEl, amount, animate){
+    if (!stackEl) return;
+    var list = amount > 0 ? chipStackOf(amount, 9) : [];
+    var sig = list.join(",");
+    if (sig === stackEl._sig) return;      // 下注状态没变：不动 DOM，动画自然播完
+    var had = stackEl.children.length;
+    var keep = Math.min(had, list.length);
+    for (var i = 0; i < keep; i++){
+      var c = stackEl.children[i];
+      var m = /d(\d+)/.exec(c.className), old = m ? m[1] : "";
+      if (old !== String(list[i])){
+        if (old) c.classList.remove("d" + old);
+        c.classList.add("d" + list[i]);
+        c.title = fmt(list[i]);
+      }
+    }
+    while (stackEl.children.length > list.length) stackEl.removeChild(stackEl.lastChild);
+    for (var j = keep; j < list.length; j++){
+      var n = document.createElement("span");
+      n.className = "minichip d" + list[j];
+      n.title = fmt(list[j]);
+      if (animate){ bindChipDropEnd(n); n.classList.add("drop"); }
+      stackEl.appendChild(n);
+    }
+    /* 张数未变但面额升级（如 500 → 1000）：本次确实放了一枚筹码，
+       只给最上面那一枚重播一次，不影响其他卡片。 */
+    if (animate && list.length && list.length === had && keep > 0){
+      playChipDrop(stackEl.children[list.length - 1]);
+    }
+    stackEl._sig = sig;
   }
 
   var credits = Math.max(0, Math.floor(lsLoad(LS.credits, START_CREDITS)));
@@ -1189,6 +1340,38 @@
   var chipIdx = 1;                 // 默认 25
   var rolling = false;
   var hands = 0, lastWin = null;
+
+  /* 骰宝本机档案（展示用）：只记本桌战绩，与全局钱袋分离。
+     不可解析的旧档一律回退到 0，不抛异常、不影响原有下注流程。 */
+  function loadProfile(){
+    try{
+      var p = JSON.parse(localStorage.getItem(LS.profile) || "{}") || {};
+      return { won:Math.max(0, Math.floor(+p.won || 0)),
+               lost:Math.max(0, Math.floor(+p.lost || 0)),
+               best:Math.max(0, Math.floor(+p.best || 0)) };
+    }catch(e){ return { won:0, lost:0, best:0 }; }
+  }
+  var profileStat = loadProfile();
+  function renderProfile(){
+    var best = document.getElementById("pfBest"), won = document.getElementById("pfWon"),
+        lost = document.getElementById("pfLost"), net = document.getElementById("pfNet");
+    if (best) best.textContent = fmt(profileStat.best);
+    if (won)  won.textContent  = fmt(profileStat.won);
+    if (lost) lost.textContent = fmt(profileStat.lost);
+    if (net){
+      var v = profileStat.won - profileStat.lost;
+      net.textContent = (v > 0 ? "+" : v < 0 ? "\u2212" : "") + fmt(Math.abs(v));
+      net.classList.toggle("gain", v > 0);
+      net.classList.toggle("loss", v < 0);
+    }
+  }
+  function renderBank(){
+    var el = document.getElementById("bkBalance");
+    if (!el) return;
+    var v = 0;
+    try{ v = Math.max(0, Math.floor(parseFloat(localStorage.getItem(LS.card)) || 0)); }catch(e){}
+    el.textContent = fmt(v);
+  }
 
   var creditsEl = document.getElementById("credits");
   var betTotalEl = document.getElementById("betTotal");
@@ -1211,7 +1394,7 @@
     hintEl.classList.toggle("warn", !!warn);
   }
 
-  function updateHUD(){
+  function updateHUD(animSpot){
     creditsEl.textContent = fmt(credits);
     betTotalEl.textContent = fmt(betSum());
     handsEl.textContent = String(hands);
@@ -1225,8 +1408,13 @@
       var v = bet[k] || 0;
       el.classList.toggle("on", v > 0);
       el.querySelector(".amt").textContent = v > 0 ? fmt(v) : "";
-      renderSpotStack(el.querySelector(".bs-stack"), v);
+      /* animSpot 支持单个 key 或 key 数组：只有本次下注操作命中的注位才播动画，
+         其余注位即便状态未变也不重建、更不重播。 */
+      var anim = animSpot && (Array.isArray(animSpot)
+        ? animSpot.indexOf(k) >= 0 : k === animSpot);
+      renderSpotStack(el.querySelector(".bs-stack"), v, !!anim);
     });
+    renderProfile(); renderBank();   // 纯展示：不改动任何下注 / 结算状态
   }
 
   /* =====================================================================
@@ -1260,7 +1448,7 @@
     var delta = v - (bet[key] || 0);
     if (delta > 0 && betSum() + delta > credits){ setHintKey("msg.cantAdd", null, true); return; }
     bet[key] = v;
-    updateHUD();
+    updateHUD(delta > 0 ? key : null);   // 撤注不放新筹码，不触发掉落动画
     setHintKey(null);
     if (delta !== 0) playSfx("chip");   // 放 / 撤筹码的咔哒声（同 21 点）；金额没变就不响
   }
@@ -1488,6 +1676,10 @@
       lsSave(LS.credits, credits);
       hands += 1;
       lastWin = r.payout - total;         // 净额
+      profileStat.won  += Math.max(0, Math.floor(r.payout));
+      profileStat.lost += total;
+      profileStat.best  = Math.max(profileStat.best, Math.floor(r.payout));
+      try{ localStorage.setItem(LS.profile, JSON.stringify(profileStat)); }catch(e){}
       renderResult(d, r, lastWin);
       updateHUD();
 

@@ -3,17 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Baccarat · 百家乐</title>
+<title>Blackjack · 21 点</title>
+<link rel="stylesheet" href="assets/ui.css">
 <style>
   /* =========================================================================
    *  配色 / 版式与 slot_machine.html 完全同源：同一套 CSS 变量、同一套卡片语言
    *  （深紫柜机 + 金边 + 跑马灯泡），新增部分只有「牌桌」和「路纸」两块。
    * ========================================================================= */
-  :root{
-    --gold:#f5c542; --gold-d:#b8860b; --gold-l:#ffe680;
-    --red:#e23b3b; --green:#6ef08a;
-    --ink:#eae2f5; --muted:#9a8fb0;
-  }
+  /* 设计令牌与响应式断点契约统一见 assets/ui.css；本页只写专有组件样式。 */
   *{box-sizing:border-box;}
   html,body{height:100%;margin:0;}
   body{
@@ -32,7 +29,7 @@
   .stage{display:flex;flex-direction:column;align-items:center;gap:20px;width:100%;transform-origin:center center;}
   /* 顶部不再留 44px：银行卡是 absolute，自己用 top 让开右上角工具栏，
      整页就可以顶到 body 内边距（26px），桌面整体上移 53px，一屏能看见发牌键 */
-  .page{display:flex;flex-direction:column;align-items:center;gap:24px;width:fit-content;max-width:96vw;zoom:1.2;}
+  .page{display:flex;flex-direction:column;align-items:center;gap:24px;width:fit-content;max-width:96vw;zoom:var(--zoom-wide);}
 
   /* ---------- 左上角：游戏跳转按钮组（与右上角工具条同款按钮语言） ----------
      容器统一 fixed 定位，多入口横向排列；子项不再各自 fixed，否则第二个按钮会叠在第一个上。 */
@@ -44,7 +41,7 @@
     position:static;
     display:inline-flex;align-items:center;gap:8px;
     padding:7px 14px;border-radius:11px;text-decoration:none;
-    font-size:12.5px;font-weight:800;letter-spacing:1px;
+    font-size:var(--fs-sm);font-weight:800;letter-spacing:1px;
     color:var(--gold);background:linear-gradient(#2b1a10,#190f08);
     border:1px solid rgba(245,197,66,.32);
     box-shadow:0 6px 16px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08);
@@ -61,7 +58,7 @@
     display:inline-flex;align-items:center;justify-content:center;
     border-radius:4px;background:rgba(245,197,66,.14);
     border:1px solid rgba(245,197,66,.38);
-    font-size:10px;font-weight:900;letter-spacing:0;line-height:1;
+    font-size:var(--fs-xs);font-weight:900;letter-spacing:0;line-height:1;
     color:var(--gold);
   }
   .homelink .hl-ico.hl-cards{width:24px;height:16px;}
@@ -69,10 +66,10 @@
   /* file:// + Firefox 内核时提示"两页不同源"，见 warnFileOrigin() */
   .filewarn{position:fixed;left:0;right:0;bottom:0;z-index:9999;display:flex;align-items:center;gap:12px;
     padding:8px 14px;background:#3a1420;border-top:1px solid rgba(200,162,74,.55);color:#ffe9b8;
-    font-size:12.5px;line-height:1.45;box-shadow:0 -6px 18px rgba(0,0,0,.45);}
+    font-size:var(--fs-sm);line-height:1.45;box-shadow:0 -6px 18px rgba(0,0,0,.45);}
   .filewarn span{flex:1;}
   .filewarn b{color:#f5c542;}
-  .filewarn i{color:#e8c07a;font-style:normal;font-size:11.5px;opacity:.85;}
+  .filewarn i{color:#e8c07a;font-style:normal;font-size:var(--fs-xs);opacity:.85;}
   .filewarn button{flex:none;background:none;border:1px solid rgba(200,162,74,.45);color:#ffe9b8;
     border-radius:6px;width:26px;height:26px;font-size:16px;line-height:1;cursor:pointer;}
 
@@ -83,28 +80,28 @@
     border:1px solid rgba(245,197,66,.22);
     border-radius:18px;padding:18px 22px 24px;
     box-shadow:0 18px 50px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.06);
-    font-size:13px;line-height:1.7;color:#d9cdeb;
+    font-size:var(--fs-fluid);line-height:1.7;color:#d9cdeb;
   }
   .rules h2{margin:0 0 10px;font-size:17px;letter-spacing:3px;color:var(--gold);
     text-shadow:0 0 9px rgba(245,197,66,.35);}
-  .rules h3{margin:16px 0 6px;font-size:13.5px;color:#ffd76a;letter-spacing:1px;}
+  .rules h3{margin:16px 0 6px;font-size:var(--fs-sm);color:#ffd76a;letter-spacing:1px;}
   .rules p{margin:6px 0;}
   .rules ul{margin:6px 0;padding-left:20px;}
   .rules li{margin:3px 0;}
   .rules b{color:#fff0c8;font-weight:700;}
-  .rules table{border-collapse:collapse;width:100%;table-layout:fixed;margin:8px 0;font-size:12.5px;}
+  .rules table{border-collapse:collapse;width:100%;table-layout:fixed;margin:8px 0;font-size:var(--fs-xs);}
   .rules th,.rules td{border:1px solid rgba(255,255,255,.13);padding:5px 8px;text-align:center;}
   .rules th{background:rgba(245,197,66,.12);color:#ffe680;font-weight:700;}
-  .rules .tag{display:inline-block;padding:1px 8px;border-radius:8px;font-size:11px;font-weight:700;}
+  .rules .tag{display:inline-block;padding:1px 8px;border-radius:8px;font-size:var(--fs-xs);font-weight:700;}
   .rules .tag.p{background:linear-gradient(#7fb2ff,#2b5fc4);color:#04122c;}
   .rules .tag.b{background:linear-gradient(#ff9a9a,#c02020);color:#fff;}
   .rules .tag.t{background:linear-gradient(#8ff0b8,#1f9a5a);color:#04220f;}
   .rules .tag.pair{background:linear-gradient(#c9b6ff,#6b46c1);color:#0c0420;}
   .rules .tag.six{background:linear-gradient(#ffe08a,#c98a00);color:#241000;}
-  .rules .note{color:#968bad;font-size:11.5px;}
+  .rules .note{color:#968bad;font-size:var(--fs-xs);}
 
   /* ---------- 三卡布局：玩家档案 / 柜机 / 路纸（银行卡绝对定位在右侧） ---------- */
-  .machine{display:flex;flex-direction:column;align-items:center;gap:10px;zoom:1;
+  .machine{display:flex;flex-direction:column;align-items:center;gap:10px;zoom:var(--zoom-normal);
     position:relative;width:100%;--bank-w:170px;}
   /* 银行卡缩小后贴到桌面右上角的空档里（absolute 不占高度），三卡仍按整行居中。
      空档宽度 = (页面宽 − 三卡宽)/2，170px 的卡在 ≥1630px 视口下都放得下；
@@ -162,10 +159,10 @@
 
   .jp-title{margin-top:2px;font-weight:900;font-size:14px;letter-spacing:3px;color:var(--gold-l);
     text-shadow:0 0 8px rgba(245,197,66,.85),0 0 18px rgba(255,140,20,.5);}
-  .jp-sub{font-size:10.5px;letter-spacing:1px;color:#a896c4;margin-top:3px;}
+  .jp-sub{font-size:var(--fs-xs);letter-spacing:1px;color:#a896c4;margin-top:3px;}
   .jp-body{flex:1;width:100%;display:flex;flex-direction:column;align-items:center;
     justify-content:space-evenly;gap:6px;padding:8px 0;}
-  .jp-foot{font-size:10px;color:#8f80ab;letter-spacing:.4px;text-align:center;line-height:1.55;}
+  .jp-foot{font-size:var(--fs-xs);color:#8f80ab;letter-spacing:.4px;text-align:center;line-height:1.55;}
   .jp-foot b{color:#ffd76a;}
 
   /* ---------- 玩家档案 ---------- */
@@ -175,7 +172,7 @@
      宽度撑满 + 数字禁止换行，才是两列各占 (148-8)/2 = 70px 的正常形态。 */
   .pl-duo{display:flex;justify-content:space-between;gap:8px;width:100%;align-self:stretch;}
   .pl-duo-item{flex:1 1 0;min-width:0;text-align:center;}
-  .pl-lbl{font-size:10px;letter-spacing:1px;color:#9a8fb0;}
+  .pl-lbl{font-size:var(--fs-xs);letter-spacing:1px;color:#9a8fb0;}
   /* nowrap：数字与「萬 / K / M」永远同一行（中文标点/汉字允许在任意字间断行，否则单位会掉行） */
   .pl-num{font-size:22px;font-weight:900;color:#e9dcc0;font-variant-numeric:tabular-nums;
     line-height:1.25;white-space:nowrap;text-shadow:0 0 5px rgba(245,197,66,.22);}
@@ -185,7 +182,7 @@
   .pl-num.warn{color:#e79a9a;text-shadow:0 0 5px rgba(255,80,80,.25);}
   .pl-reset{
     position:relative;overflow:hidden;width:100%;padding:8px 10px;border-radius:12px;cursor:pointer;
-    font-weight:800;font-size:12px;letter-spacing:1px;font-family:inherit;
+    font-weight:800;font-size:var(--fs-sm);letter-spacing:1px;font-family:inherit;
     color:#1a0a2e;background:linear-gradient(#ffd76a,#e2a90f);
     border:1px solid rgba(255,255,255,.35);
     box-shadow:0 6px 16px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.5);
@@ -244,9 +241,9 @@
   .rd.t{background:radial-gradient(circle at 35% 30%,#9bf4c0,#1f9a5a);color:#04220f;}
   .rd.new{animation:rdIn .3s cubic-bezier(.2,1.5,.4,1);}
   @keyframes rdIn{0%{transform:scale(.2);opacity:0}100%{transform:scale(1);opacity:1}}
-  .road-empty{width:100%;text-align:center;font-size:10.5px;color:#7d7196;letter-spacing:.5px;
+  .road-empty{width:100%;text-align:center;font-size:var(--fs-xs);color:#7d7196;letter-spacing:.5px;
     padding:34px 0;}
-  .road-legend{display:flex;gap:10px;justify-content:center;margin-top:8px;font-size:11px;color:#8f84a8;}
+  .road-legend{display:flex;gap:10px;justify-content:center;margin-top:8px;font-size:var(--fs-xs);color:#8f84a8;}
   .road-legend i{font-style:normal;display:inline-flex;align-items:center;gap:4px;}
   .road-legend .rd{width:18px;height:18px;font-size:0;}
 
@@ -267,7 +264,7 @@
   .rb-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;}
   .rb-head h2{margin:0;font-size:15px;letter-spacing:3px;color:var(--gold);
     text-shadow:0 0 9px rgba(245,197,66,.30);}
-  .rb-head span{font-size:10.5px;color:#8f80ab;letter-spacing:.3px;flex:1 1 auto;min-width:0;}
+  .rb-head span{font-size:var(--fs-xs);color:#8f80ab;letter-spacing:.3px;flex:1 1 auto;min-width:0;}
   .rb-toggle{margin-left:auto;flex:0 0 auto;width:26px;height:26px;border-radius:8px;cursor:pointer;
     font-size:14px;line-height:1;font-family:inherit;color:#1a0a2e;
     background:linear-gradient(#ffd76a,#e2a90f);border:1px solid rgba(255,255,255,.35);
@@ -281,8 +278,8 @@
     padding:9px 14px;border-radius:12px;background:rgba(255,255,255,.026);
     border:1px solid rgba(255,255,255,.055);}
   .rb-lbl{flex:0 0 56px;text-align:right;line-height:1.2;}
-  .rb-lbl b{display:block;font-size:12px;color:#ffd76a;letter-spacing:1px;}
-  .rb-lbl span{display:block;font-size:8px;color:#7d7196;letter-spacing:.4px;}
+  .rb-lbl b{display:block;font-size:var(--fs-sm);color:#ffd76a;letter-spacing:1px;}
+  .rb-lbl span{display:block;font-size:var(--fs-xs);color:#7d7196;letter-spacing:.4px;}
   .rb-wrap{flex:1 1 auto;min-width:0;overflow-x:auto;overflow-y:hidden;}
   .rb-grid{display:grid;gap:3px;grid-auto-rows:var(--cell);justify-content:start;}
   .rb-grid.big{--cell:15px;}
@@ -298,7 +295,7 @@
   .rb-grid .rcell.r{border:1.6px solid #ff6b6b;}
   .rb-grid .rcell.b{background:radial-gradient(circle at 34% 30%,#9dbcff,#3f6fd8);
     box-shadow:0 0 4px rgba(90,140,255,.45);}
-  .rb-empty{font-size:10.5px;color:#7d7196;letter-spacing:.4px;padding:10px 2px;}
+  .rb-empty{font-size:var(--fs-xs);color:#7d7196;letter-spacing:.4px;padding:10px 2px;}
   .rb-grid .new{animation:rdIn .32s cubic-bezier(.2,1.5,.4,1);}
 
   /* ---------- cabinet ---------- */
@@ -368,8 +365,8 @@
   .side.won{border-color:rgba(255,215,106,.6);
     box-shadow:0 0 26px rgba(255,200,60,.22), inset 0 0 26px rgba(255,190,50,.10);}
   .side .who{width:64px;flex:0 0 64px;text-align:center;}
-  .side .wname{font-size:13px;font-weight:900;letter-spacing:2px;line-height:1.3;}
-  .side .wen{font-size:8.5px;letter-spacing:1.5px;color:#8f84a8;margin-top:3px;}
+  .side .wname{font-size:var(--fs-sm);font-weight:900;letter-spacing:2px;line-height:1.3;}
+  .side .wen{font-size:var(--fs-xs);letter-spacing:1.5px;color:#8f84a8;margin-top:3px;}
   .side.p .wname{color:#a8c8ff;text-shadow:0 0 10px rgba(90,140,255,.45);}
   .side.b .wname{color:#ffa8a8;text-shadow:0 0 10px rgba(255,80,80,.45);}
   .cards{flex:1;display:flex;align-items:center;min-width:0;padding-left:8px;min-height:106px;}
@@ -446,10 +443,10 @@
   .verdict .vwin.show{opacity:1;transform:none;}
   .verdict .vwin.lose{color:#ff9d9d;text-shadow:0 0 12px rgba(255,80,80,.55);}
   .verdict .vwin.push{color:#ffe9a8;text-shadow:0 0 12px rgba(245,197,66,.5);}
-  .tlog{min-height:15px;line-height:1.35;text-align:center;font-size:10.5px;color:#8f84a8;letter-spacing:.4px;
+  .tlog{min-height:15px;line-height:1.35;text-align:center;font-size:var(--fs-xs);color:#8f84a8;letter-spacing:.4px;
     font-variant-numeric:tabular-nums;}
   /* 结算拆解（闲 +300 · 和 −100 · 净 +200）：比补牌记录大一号并加粗，金色，便于一眼对账 */
-  .tlog .tlog-brk{font-size:11.5px;font-weight:800;color:#ffd76a;letter-spacing:.2px;
+  .tlog .tlog-brk{font-size:var(--fs-xs);font-weight:800;color:#ffd76a;letter-spacing:.2px;
     text-shadow:0 0 8px rgba(245,197,66,.35);}
 
   /* ---------- HUD ---------- */
@@ -483,11 +480,11 @@
   }
   @keyframes meterGoldSpin{ to{ --meter-gold-angle:360deg; } }
   @media (prefers-reduced-motion: reduce){ .meter::before{animation:none;} }
-  .meter .label{font-size:10px;letter-spacing:2px;color:var(--muted);}
+  .meter .label{font-size:var(--fs-xs);letter-spacing:2px;color:var(--muted);}
   /* 这套 10px + 2px 字距是为英文大写（CREDITS/BET/CHIP/WIN）定的：大写字母笔画简单，
      宽字距是装饰节奏。换成两个汉字后 10px 让笔画落到 1px 以下（发灰变细），
      2px 字距比汉字本身还宽，两个字被推散、显得又小又孤立 —— 中文单独给度量并提亮。 */
-  html[lang="zh-CN"] .meter .label{font-size:11.5px;letter-spacing:.5px;font-weight:600;color:#b7a8d2;}
+  html[lang="zh-CN"] .meter .label{font-size:var(--fs-xs);letter-spacing:.5px;font-weight:600;color:#b7a8d2;}
   .meter .val{font-size:22px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums;
     color:var(--gold);text-shadow:0 0 10px rgba(245,197,66,.4);
     transition:transform .26s cubic-bezier(.2,1.35,.4,1), color .2s ease, text-shadow .2s ease;}
@@ -517,7 +514,7 @@
   .max-tag{
     position:absolute;left:50%;top:-12px;z-index:3;
     padding:1px 7px;border-radius:999px;white-space:nowrap;
-    font-size:9.5px;font-weight:800;letter-spacing:.6px;line-height:1.5;
+    font-size:var(--fs-xs);font-weight:800;letter-spacing:.6px;line-height:1.5;
     color:#ffd76a;text-shadow:0 0 6px rgba(255,190,60,.55);
     background:linear-gradient(180deg,rgba(58,40,8,.96),rgba(28,18,2,.96));
     border:1px solid rgba(245,197,66,.55);
@@ -535,16 +532,16 @@
     stroke:currentColor;stroke-width:1.4;stroke-linejoin:round;pointer-events:none;}
   .stepgrp .btn.small:hover{filter:brightness(1.18);
     box-shadow:0 6px 18px rgba(245,197,66,.22), inset 0 1px 0 rgba(255,255,255,.10);}
-  .steplbl{font-size:11px;color:#cbb8e6;white-space:nowrap;text-align:center;line-height:1.35;}
-  .steplbl b{color:var(--gold);font-size:13.5px;font-variant-numeric:tabular-nums;}
-  .steplbl .sl-name{display:block;font-size:10px;letter-spacing:.5px;color:#9a8fb0;}
+  .steplbl{font-size:var(--fs-xs);color:#cbb8e6;white-space:nowrap;text-align:center;line-height:1.35;}
+  .steplbl b{color:var(--gold);font-size:var(--fs-sm);font-variant-numeric:tabular-nums;}
+  .steplbl .sl-name{display:block;font-size:var(--fs-xs);letter-spacing:.5px;color:#9a8fb0;}
   /* 闲 / 庄 / 和 三个注位用颜色区分，与牌桌、路纸同一套语义色 */
   .stepgrp[data-spot="p"] .steplbl b{color:#a8c8ff;}
   .stepgrp[data-spot="b"] .steplbl b{color:#ffa8a8;}
   .stepgrp[data-spot="t"] .steplbl b{color:#8ff0b8;}
 
   .featrow{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:12px;flex-wrap:wrap;}
-  .btn.feat{padding:6px 14px;border-radius:9px;font-size:12px;font-weight:800;letter-spacing:1px;
+  .btn.feat{padding:6px 14px;border-radius:9px;font-size:var(--fs-sm);font-weight:800;letter-spacing:1px;
     color:#1a0a2e;background:linear-gradient(#ffd76a,#e2a90f);border:1px solid rgba(255,255,255,.35);
     cursor:pointer;font-family:inherit;transition:filter .12s ease, transform .12s ease;
     flex:0 0 auto;height:34px;}
@@ -568,7 +565,7 @@
   .sbet.hot{border-color:rgba(255,215,106,.62);
     box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 0 14px rgba(255,200,60,.14);}
   .sbet .sb-mid{flex:1 1 auto;min-width:0;text-align:center;line-height:1.15;}
-  .sbet .sb-lbl{display:block;font-size:10px;font-weight:800;letter-spacing:.5px;color:#a896c4;
+  .sbet .sb-lbl{display:block;font-size:var(--fs-xs);font-weight:800;letter-spacing:.5px;color:#a896c4;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .sbet .sb-val{display:block;font-size:14px;font-weight:900;color:#e9dcc0;
     font-variant-numeric:tabular-nums;line-height:1.2;}
@@ -614,7 +611,7 @@
   @media (prefers-reduced-motion: reduce){ .btn.spin:hover{animation:none;} }
   .btn.spin.short{filter:saturate(.28) brightness(.6);}
   .kb-space{
-    font:inherit;font-size:11px;font-weight:800;letter-spacing:0;line-height:1.5;
+    font:inherit;font-size:var(--fs-xs);font-weight:800;letter-spacing:0;line-height:1.5;
     padding:2px 7px;border-radius:6px;
     background:rgba(58,34,0,.16);color:#4a2c00;
     border:1px solid rgba(58,34,0,.32);
@@ -628,16 +625,16 @@
     flex:0 0 auto;padding:7px 12px;border-radius:10px;cursor:pointer;
     border:1px solid rgba(245,197,66,.28);
     background:linear-gradient(#1c1327,#120c1a);color:#c9b8e0;
-    font-size:12px;letter-spacing:.5px;font-weight:600;
+    font-size:var(--fs-sm);letter-spacing:.5px;font-weight:600;
     transition:filter .15s;
   }
   .srcbtn:hover{filter:brightness(1.15);}
   .srcbtn.on{color:#3a2200;background:linear-gradient(#ffd857,#e8a300);border-color:#ffd857;}
-  .srcmsg{font-size:11px;color:#8f84a8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .srcmsg{font-size:var(--fs-xs);color:#8f84a8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   /* 发牌键下方的一行临时提示（请先下注 / 已清空 / 正在洗牌…）。
      与 #srcMsg 分开：srcMsg 只放【随机源状态】（端口 + 串口），常驻不被游戏提示顶掉；
      这条为空时 display:none，不占位。 */
-  .hintmsg{margin-top:8px;text-align:center;font-size:11px;color:#a99cc0;letter-spacing:.3px;
+  .hintmsg{margin-top:8px;text-align:center;font-size:var(--fs-xs);color:#a99cc0;letter-spacing:.3px;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .hintmsg:empty{display:none;}
   .src-pop{
@@ -651,7 +648,7 @@
   .src-opt{
     display:flex;align-items:center;gap:9px;width:100%;padding:9px 10px;border-radius:9px;
     background:none;border:0;cursor:pointer;text-align:left;font-family:inherit;
-    color:#d9cdeb;font-size:12.5px;transition:background .12s;
+    color:#d9cdeb;font-size:var(--fs-sm);transition:background .12s;
   }
   .src-opt:hover{background:rgba(245,197,66,.10);}
   .src-opt.cur{background:rgba(245,197,66,.16);color:#fff0c8;}
@@ -659,14 +656,14 @@
   .so-dot.on{background:#6ef08a;box-shadow:0 0 8px rgba(110,240,138,.85);}
   .so-dot.off{background:#8a4040;}
   .so-name{flex:1;}
-  .so-state{font-size:10.5px;color:#8f84a8;white-space:nowrap;}
+  .so-state{font-size:var(--fs-xs);color:#8f84a8;white-space:nowrap;}
   .src-opt.cur .so-state{color:#ffd76a;}
   .src-ent{
     display:flex;align-items:center;gap:9px;margin:4px 2px 2px;padding:8px 10px;
     border-top:1px solid rgba(255,255,255,.07);border-radius:0 0 9px 9px;
-    color:#a396bb;font-size:11.5px;
+    color:#a396bb;font-size:var(--fs-xs);
   }
-  .src-ent .so-state{font-size:10.5px;color:#8f84a8;max-width:150px;
+  .src-ent .so-state{font-size:var(--fs-xs);color:#8f84a8;max-width:150px;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .src-ent.on .so-state{color:#9ef0b4;}
 
@@ -674,7 +671,7 @@
   .langrow{display:flex;justify-content:flex-end;align-items:center;margin-top:6px;}
   .langrow > *{flex:0 0 auto;}
   .langrow > * + *{margin-left:14px;}
-  .langrow .btn.small{min-width:46px;font-size:13px;padding:2px 9px;letter-spacing:1px;}
+  .langrow .btn.small{min-width:46px;font-size:var(--fs-sm);padding:2px 9px;letter-spacing:1px;}
   .topbar{position:fixed;top:14px;right:20px;z-index:70;margin-top:0;}
   .volwrap{position:relative;display:flex;align-items:center;}
   .volwrap .btn.small{flex:0 0 38px;width:38px;min-width:38px;padding:2px 0;}
@@ -720,12 +717,12 @@
     box-shadow:0 24px 64px rgba(0,0,0,.72), inset 0 1px 0 rgba(255,255,255,.07);}
   .modal h3{margin:0 0 10px;font-size:16px;letter-spacing:2px;color:var(--gold);
     text-shadow:0 0 9px rgba(245,197,66,.35);}
-  .modal p{margin:0 0 10px;font-size:13px;line-height:1.7;color:#d9cdeb;}
+  .modal p{margin:0 0 10px;font-size:var(--fs-sm);line-height:1.7;color:#d9cdeb;}
   .modal p b{color:#fff0c8;}
-  .modal .m-amt{font-size:13px;color:#9a8fb0;margin-bottom:16px;}
+  .modal .m-amt{font-size:var(--fs-sm);color:#9a8fb0;margin-bottom:16px;}
   .modal .m-amt b{color:#ffd76a;font-size:16px;}
   .modal-btns{display:flex;gap:10px;justify-content:flex-end;}
-  .modal-btns button{padding:8px 18px;border-radius:10px;font-weight:700;font-size:13px;
+  .modal-btns button{padding:8px 18px;border-radius:10px;font-weight:700;font-size:var(--fs-sm);
     cursor:pointer;font-family:inherit;border:1px solid rgba(255,255,255,.18);}
   .m-cancel{background:#241638;color:#d9cdeb;}
   .m-cancel:hover{background:#2f1e47;}
@@ -754,7 +751,7 @@
   .bk-r{clip-path:polygon(52% 0,100% 0,100% 100%,48% 100%,52% 84%,46% 70%,54% 56%,47% 41%,55% 27%,48% 14%);}
   .bk-title{font-size:27px;font-weight:900;letter-spacing:5px;color:#ff8f8f;
     text-shadow:0 0 14px rgba(255,80,80,.65),0 0 34px rgba(255,40,40,.35);}
-  .bk-sub{font-size:12px;color:#9a8fb0;letter-spacing:1px;}
+  .bk-sub{font-size:var(--fs-sm);color:#9a8fb0;letter-spacing:1px;}
   .bk-crack{
     position:absolute;left:50%;top:-6px;bottom:-6px;width:3px;transform:translateX(-50%) rotate(1.5deg);
     opacity:0;border-radius:3px;
@@ -785,9 +782,9 @@
   .nc-mask.show .nc-card{animation:bkIn .28s ease-out;}
   .nc-title{font-size:25px;font-weight:900;letter-spacing:5px;color:#ffd76a;
     text-shadow:0 0 14px rgba(245,180,40,.6),0 0 34px rgba(255,140,20,.32);}
-  .nc-sub{font-size:13px;color:#cfc2e2;letter-spacing:.6px;}
+  .nc-sub{font-size:var(--fs-sm);color:#cfc2e2;letter-spacing:.6px;}
   .nc-sub b{color:#ffd76a;}
-  .nc-hint{font-size:11px;color:#8f84a8;letter-spacing:.4px;line-height:1.5;}
+  .nc-hint{font-size:var(--fs-xs);color:#8f84a8;letter-spacing:.4px;line-height:1.5;}
 
   /* ---------- 银行卡（与老虎机同款；可收起，收起后只剩一个圆形卡标按钮） ---------- */
   .bankcard{display:flex;flex-direction:column;gap:8px;width:var(--bank-w,248px);
@@ -832,7 +829,7 @@
       rgba(55,60,245,1) 0%, rgba(234,161,15,.9) 100.2%);
     border:1px solid rgba(255,255,255,.12);
     box-shadow:0 12px 30px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.22);}
-  .bc-bank-name{position:absolute;top:9px;left:12px;font-size:10px;font-weight:800;
+  .bc-bank-name{position:absolute;top:9px;left:12px;font-size:var(--fs-xs);font-weight:800;
     letter-spacing:1.4px;color:#fff;opacity:.92;text-shadow:0 1px 3px rgba(0,0,0,.45);}
   .bc-logo{position:absolute;top:0;right:0;display:flex;align-items:center;justify-content:flex-end;
     padding:8px 12px;pointer-events:none;}
@@ -843,21 +840,21 @@
   .bc-meta{width:100%;display:flex;gap:10px;align-items:flex-end;}
   .bc-mi{display:flex;flex-direction:column;min-width:0;}
   .bc-mi-name{width:60%;} .bc-mi-mid{width:30%;} .bc-mi-end{width:10%;}
-  .bc-ml{font-size:7.5px;letter-spacing:.9px;color:#e2e2e2;white-space:nowrap;overflow:hidden;
+  .bc-ml{font-size:var(--fs-xs);letter-spacing:.9px;color:#e2e2e2;white-space:nowrap;overflow:hidden;
     text-overflow:ellipsis;}
   .bc-ctrl{display:flex;flex-direction:column;gap:6px;}
   .bc-amt{display:flex;flex-wrap:wrap;gap:5px;}
-  .bc-q{flex:1 1 28%;padding:5px 0;border-radius:7px;cursor:pointer;font-weight:700;font-size:11px;
+  .bc-q{flex:1 1 28%;padding:5px 0;border-radius:7px;cursor:pointer;font-weight:700;font-size:var(--fs-xs);
     color:#1a0a2e;background:linear-gradient(#ffd76a,#e2a90f);border:1px solid rgba(255,255,255,.35);
     font-family:inherit;transition:filter .12s ease, transform .12s ease;}
   .bc-q:hover{filter:brightness(1.08);}
   .bc-q:active{transform:translateY(1px);}
   .bc-q:disabled{opacity:.4;cursor:not-allowed;filter:none;}
-  .bc-in{flex:1 1 100%;min-width:0;padding:5px 7px;border-radius:7px;font-family:inherit;font-size:11px;
+  .bc-in{flex:1 1 100%;min-width:0;padding:5px 7px;border-radius:7px;font-family:inherit;font-size:var(--fs-xs);
     color:#ffe9a8;background:rgba(10,6,18,.6);border:1px solid rgba(245,197,66,.4);text-align:center;}
   .bc-in::placeholder{color:#9a8fb0;}
   .bc-actions{display:flex;gap:6px;}
-  .bc-dep,.bc-wd{flex:1;padding:6px 0;border-radius:8px;cursor:pointer;font-weight:800;font-size:11px;
+  .bc-dep,.bc-wd{flex:1;padding:6px 0;border-radius:8px;cursor:pointer;font-weight:800;font-size:var(--fs-xs);
     letter-spacing:.5px;font-family:inherit;border:1px solid transparent;
     transition:filter .12s ease, transform .12s ease;}
   .bc-dep{color:#1a0a2e;background:linear-gradient(#9dffb9,#36c46a);border-color:rgba(255,255,255,.35);}
@@ -886,17 +883,17 @@
   }
   /* 1.2 倍下三卡 1409px、卡 170×1.2=204px，右侧空档要 ≥212 ⇒ 视口 ≥1910 才放得下；
      更窄就把整页缩回 1 倍（三卡 1174、卡 170 ⇒ 1594 起仍放得下） */
-  @media (max-width:1909px){ .page{zoom:1;} }
-  @media (max-width:900px){ .page{zoom:.92;} }
-  @media (max-width:760px){ .cabinet{width:100%;max-width:690px;} .roadbook{width:100%;} .page{zoom:.86;} }
-  @media (max-width:680px){ .page{zoom:.74;} }
+  @media (max-width:1909px){ .page{zoom:var(--zoom-normal);} }
+  @media (max-width:900px){ .page{zoom:var(--zoom-s1);} }
+  @media (max-width:760px){ .cabinet{width:100%;max-width:690px;} .roadbook{width:100%;} .page{zoom:var(--zoom-s2);} }
+  @media (max-width:680px){ .page{zoom:var(--zoom-s4);} }
   @media (max-width:560px){
-    .page{zoom:.6;}
+    .page{zoom:var(--zoom-s5);}
     .topbar{top:8px;right:10px;}
     .homelinks{top:8px;left:10px;gap:6px;}
-    .homelink{padding:5px 10px;font-size:11px;}
+    .homelink{padding:5px 10px;font-size:var(--fs-xs);}
     .homelink .hl-ico.hl-cards{width:20px;height:14px;}
-    .topbar .btn.small{min-width:38px;font-size:12px;padding:1px 6px;}
+    .topbar .btn.small{min-width:38px;font-size:var(--fs-sm);padding:1px 6px;}
     .topbar .volwrap .btn.small{flex:0 0 32px;width:32px;min-width:32px;}
     .vol-pop{padding:7px;}
     .vol-pop::after{right:11px;}
@@ -922,7 +919,7 @@
     /* 完全融入台面：背景透明，直接露出下面绿呢，无边框、无外投影、无色块 */
     background:transparent;border:0;box-shadow:none;}
   .shoecard .sc-top{display:flex;align-items:baseline;justify-content:center;gap:8px;}
-  .shoecard .sc-lbl{font-size:11px;letter-spacing:1.4px;color:#a9c7bb;font-weight:600;}
+  .shoecard .sc-lbl{font-size:var(--fs-xs);letter-spacing:1.4px;color:#a9c7bb;font-weight:600;}
   .shoecard .sc-val{font-size:24px;font-weight:900;line-height:1;color:#ffd76a;
     font-variant-numeric:tabular-nums;text-shadow:0 0 10px rgba(245,197,66,.32);}
   /* 牌靴堆叠：多张 CC0 牌背错落叠放，露出每层边缘像一摞未发的牌 */
@@ -945,7 +942,7 @@
   .shoecard .sc-bar > i{display:block;height:100%;border-radius:6px;width:100%;
     background:linear-gradient(90deg,#caa23a,#ffd76a);
     box-shadow:0 0 8px rgba(245,197,66,.4);transition:width .35s ease;}
-  .shoecard .sc-foot{font-size:10.5px;letter-spacing:.2px;color:#bcd3c8;
+  .shoecard .sc-foot{font-size:var(--fs-xs);letter-spacing:.2px;color:#bcd3c8;
     font-variant-numeric:tabular-nums;display:flex;align-items:baseline;justify-content:center;gap:3px;}
   .shoecard .sc-pct{font-style:normal;}
   .shoecard .sc-of{color:#8fb3a4;}
@@ -964,7 +961,7 @@
   body.arc .cabinet::before{display:none;}
   body.arc .marquee{display:none;}          /* 招牌横条不要了：标题改为台呢印字 */
   /* 柜机外壳拿掉后桌面加宽，1.12 的放大倍率会把发牌键挤出首屏、银行卡推出视口 → 回到 1 */
-  body.arc .machine{zoom:1;}
+  body.arc .machine{zoom:var(--zoom-normal);}
 
   /* HUD 四格放到桌面下方等距分布；余牌单独做小牌挂桌面右侧中部 */
   body.arc .hud{order:6;margin:16px 0 0;gap:10px;width:100%;}
@@ -974,8 +971,8 @@
   /* 并入台面后去掉流动金边，改用与六个下注圈（球）一致的虚线金边 */
   body.arc .meter::before{display:none;}
   body.arc .meter .val{font-size:19px;}
-  body.arc .meter .label{font-size:9.5px;letter-spacing:1.6px;}
-  html[lang="zh-CN"] body.arc .meter .label{font-size:11px;letter-spacing:.4px;}
+  body.arc .meter .label{font-size:var(--fs-xs);letter-spacing:1.6px;}
+  html[lang="zh-CN"] body.arc .meter .label{font-size:var(--fs-xs);letter-spacing:.4px;}
 
   /* 去掉屏幕边框：桌面直接坐在页面背景上 */
   body.arc .screen{padding:0;border:0;background:none;box-shadow:none;}
@@ -1032,7 +1029,7 @@
   /* 进度条右端内缩 6px：避开台呢内圈金线（.felt::before inset:15px）。
      原 3px 时实测右端距金线仅 2px，视觉上像贴着边框，故再左移 3px。 */
   body.arc .felt > .shoecard .sc-bar{height:8px;margin-right:6px;}
-  body.arc .felt > .shoecard .sc-foot{font-size:9.5px;}
+  body.arc .felt > .shoecard .sc-foot{font-size:var(--fs-xs);}
 
   /* ---------- 闲 / 庄 两张手牌区：名字牌居中在上，牌在台面正中、点数球平衡在右 ---------- */
   body.arc .side{
@@ -1157,17 +1154,17 @@
   }
   body.arc .bspot.max-flash{border-color:rgba(255,120,120,.85);}
   body.arc .bspot .bs-pay{
-    font-size:9.5px;letter-spacing:.3px;color:#cbb8e6;opacity:.85;position:relative;z-index:3;
+    font-size:var(--fs-xs);letter-spacing:.3px;color:#cbb8e6;opacity:.85;position:relative;z-index:3;
     white-space:nowrap;
   }
-  body.arc .bspot.main .bs-pay{font-size:11px;}
+  body.arc .bspot.main .bs-pay{font-size:var(--fs-xs);}
   body.arc .bspot .bs-name{
-    font-size:10px;font-weight:800;letter-spacing:1px;color:#e8ddf2;position:relative;z-index:3;
+    font-size:var(--fs-xs);font-weight:800;letter-spacing:1px;color:#e8ddf2;position:relative;z-index:3;
     white-space:nowrap;
   }
-  body.arc .bspot.main .bs-name{font-size:13px;letter-spacing:2px;}
+  body.arc .bspot.main .bs-name{font-size:var(--fs-sm);letter-spacing:2px;}
   body.arc .bspot .bs-amt{
-    font-size:12px;font-weight:900;font-variant-numeric:tabular-nums;
+    font-size:var(--fs-sm);font-weight:900;font-variant-numeric:tabular-nums;
     color:rgba(255,233,168,.5);position:relative;z-index:3;
   }
   body.arc .bspot.main .bs-amt{font-size:15px;}
@@ -1235,7 +1232,7 @@
     body.arc .sidecard.roadcard.mini{transform:translateX(60px) scale(1.25);transform-origin:100% 0;
       z-index:5;margin-bottom:203px;}
   }
-  body.arc .sidecard.roadcard.mini .rd{width:18px;height:18px;font-size:11px;}
+  body.arc .sidecard.roadcard.mini .rd{width:18px;height:18px;font-size:var(--fs-xs);}
   body.arc .sidecard.roadcard.mini .road-grid{gap:3px;min-height:158px;}
   body.arc .bankcard.mini{opacity:.92;}
 
@@ -1247,20 +1244,20 @@
      注意 .sbet .sb-lbl 不改颜色 —— 「有注即亮」的 #ffe9a8 高亮优先级必须保住。 */
   html[lang="zh-CN"] .pl-lbl,
   html[lang="zh-CN"] .steplbl .sl-name,
-  html[lang="zh-CN"] .shoecard .sc-lbl{font-size:11px;letter-spacing:.3px;font-weight:600;color:#c4d8cc;}
-  html[lang="zh-CN"] .jp-sub{font-size:11.5px;letter-spacing:.5px;font-weight:600;color:#b7a8d2;}
+  html[lang="zh-CN"] .shoecard .sc-lbl{font-size:var(--fs-xs);letter-spacing:.3px;font-weight:600;color:#c4d8cc;}
+  html[lang="zh-CN"] .jp-sub{font-size:var(--fs-xs);letter-spacing:.5px;font-weight:600;color:#b7a8d2;}
   /* 珠盘路底部的结果统计（庄 20 · 闲 25 · 和 3）：同样按中文标签度量处理。
      只挂 .roadcard —— 老虎机页的 .jp-foot 是 JACKPOT 说明整句，不属于字段标签。 */
-  html[lang="zh-CN"] .roadcard .jp-foot{font-size:11px;letter-spacing:.4px;font-weight:600;color:#b7a8d2;}
+  html[lang="zh-CN"] .roadcard .jp-foot{font-size:var(--fs-xs);letter-spacing:.4px;font-weight:600;color:#b7a8d2;}
   /* 珠盘路图例旁的汉字（庄 / 闲 / 和）：原只继承通用 11px，与上方字段标签统一放大、提亮 */
   html[lang="zh-CN"] .road-legend{font-size:14px;letter-spacing:.5px;font-weight:600;color:#d4c8ec;}
   /* 缩放模式下卡片被 brightness(.94) 压暗，图例再提亮一档补偿 */
   html[lang="zh-CN"] body.arc .sidecard.roadcard.mini .road-legend{color:#e0d4f2;}
   /* 补牌记录（闲 1 (补 6♠ → 7) · 庄 3 (补 5♥ → 8)）：同样按中文标签度量处理，
      金色结算拆解再站高一级，保住「记录为辅、结算为主」的层次。 */
-  html[lang="zh-CN"] .tlog{font-size:11.5px;letter-spacing:.2px;font-weight:600;color:#b7a8d2;min-height:20px;}
-  html[lang="zh-CN"] .tlog .tlog-brk{font-size:12.5px;}
-  html[lang="zh-CN"] body.arc .shoecard .sc-lbl{font-size:11px;letter-spacing:.4px;color:#a9c7bb;}
+  html[lang="zh-CN"] .tlog{font-size:var(--fs-xs);letter-spacing:.2px;font-weight:600;color:#b7a8d2;min-height:20px;}
+  html[lang="zh-CN"] .tlog .tlog-brk{font-size:var(--fs-sm);}
+  html[lang="zh-CN"] body.arc .shoecard .sc-lbl{font-size:var(--fs-xs);letter-spacing:.4px;color:#a9c7bb;}
 
   /* ==================== 21 点专属叠层（blackjack） ==================== */
   /* 下注圈两枚：主注（3:2）+ 保险（2:1）；两列居中，比百家乐六圈更大更醒目 */
@@ -1302,6 +1299,7 @@
 </style>
 </head>
 <body class="arc">
+<h1 class="sr-only">Blackjack · 21 点</h1>
 
 <!-- 左上角：游戏入口组。21点 → 老虎机 / 百家乐，三页互通 -->
 <div class="homelinks">
@@ -1515,7 +1513,7 @@
 
       <div class="srcrow">
         <div class="srcwrap">
-          <button class="srcbtn" id="srcBtn" type="button" aria-haspopup="true" aria-expanded="false">随机源：H743 离线 ▾</button>
+          <button class="srcbtn" id="srcBtn" type="button" aria-haspopup="true" aria-expanded="false">随机源：离线随机源 ▾</button>
           <div class="src-pop" id="srcPop">
             <button class="src-opt" type="button" data-mode="trng">
               <i class="so-dot" id="dotTrng"></i>
@@ -1524,7 +1522,7 @@
             </button>
             <button class="src-opt" type="button" data-mode="offline">
               <i class="so-dot" id="dotOffline"></i>
-              <span class="so-name" data-i18n="src.opt.offline">H743 离线 · 熵快照</span>
+              <span class="so-name" data-i18n="src.opt.offline">H743 离线随机源</span>
               <span class="so-state" id="stateOffline" data-i18n="src.state.check">检测中…</span>
             </button>
             <div class="src-ent" id="srcEnt" title="">
@@ -1601,8 +1599,8 @@
   </div>
 
   <!-- ==================== 规则 ==================== -->
-  <div class="rules">
-    <h2 data-i18n="rules.title">玩法规则</h2>
+  <details class="rules">
+    <summary><h2 data-i18n="rules.title">玩法规则</h2></summary>
 
     <h3 data-i18n="rules.goal">游戏目标</h3>
     <p data-i18n="rules.goal.p">让你的手牌点数尽量接近 <b>21 点</b> 且不超过（超过即「爆牌」判负）；比庄家更接近 21 点，或庄家自己爆牌，你即获胜。头两张凑成 <b>A + 10 值牌</b> 即为<b>黑杰克</b>，按 <b>3 : 2</b> 优先赔付。</p>
@@ -1664,7 +1662,7 @@
 
     <h3 data-i18n="rules.assets">牌面素材</h3>
     <p class="note" data-i18n="rules.assets.p">54 张牌面取自 <b>AustinGabriel/Public-Domain-and-CC0-Playing-Cards</b>（Public Domain / CC0，可自由商用，无需署名），已转成 WebP 并缩放到 330 px 宽放在 <b>assets/cards/</b> 下。</p>
-  </div>
+  </details>
 
 </div><!-- /.stage -->
 
@@ -2292,14 +2290,14 @@
       "src.btn":{ trng:"随机源：H743 在线", offline:"随机源：H743 离线" },
       "src.msg.connecting":"连接中…",
       "src.msg.trngReady":"H743 在线 · 串口直供 · 端口 {p}{c}",
-      "src.msg.offlineReady":"H743 离线 · 熵快照 + DRBG · 端口 {p}",
+      "src.msg.offlineReady":"离线随机源已就绪 · 端口 {p}",
       "src.msg.trngMissing":"H743 在线源未就绪（检查 CH340/USB，或运行 start_casino.py）；也可先切到 H743 离线源",
       "src.msg.offlineMissing":"H743 离线源未就绪（跑 start_casino.py，或 trng_server.py --offline --entropy file）；也可先切到在线源",
-      "src.opt.trng":"H743 在线 · 串口直供","src.opt.offline":"H743 离线 · 熵快照",
+      "src.opt.trng":"H743 在线 · 串口直供","src.opt.offline":"H743 离线随机源",
       "src.ent.title":"熵源链路",
       "src.state.check":"检测中…","src.state.none":"未启动","src.state.noboard":"熵源未连",
       "src.state.direct":"直供","src.state.mixed":"混流","src.state.os":"OS CSPRNG",
-      "src.state.snapshot":"熵快照","src.state.pool":"种子池","src.state.reseeds":" 次重播种",
+      "src.state.snapshot":"离线样本","src.state.pool":"种子池","src.state.reseeds":" 次重播种",
       "src.ent.os":"OS CSPRNG · 不可复现","src.ent.h743":"H743 熵快照","src.ent.pool":"种子池",
       "src.msg.autoSwitch":"已自动切换到 {mode}","src.msg.onlineShort":"H743 在线","src.msg.offlineShort":"H743 离线",
       "msg.shuffle":"牌靴余量不足 · 正在用 H743 熵重新洗牌…","msg.norand":"随机源不可用，本手未扣分，请稍后再试",
@@ -2383,14 +2381,14 @@
       "src.btn":{ trng:"Source: H743 live", offline:"Source: H743 offline" },
       "src.msg.connecting":"connecting…",
       "src.msg.trngReady":"H743 online · serial direct · port {p}{c}",
-      "src.msg.offlineReady":"H743 offline · snapshot + DRBG · port {p}",
+      "src.msg.offlineReady":"Offline RNG ready · port {p}",
       "src.msg.trngMissing":"H743 online source not ready (check CH340/USB, or run start_casino.py) - you can switch to the offline source meanwhile",
       "src.msg.offlineMissing":"H743 offline source not ready (run start_casino.py, or trng_server.py --offline --entropy file) - you can switch to the online source meanwhile",
-      "src.opt.trng":"H743 live · serial","src.opt.offline":"H743 offline · entropy snapshot",
+      "src.opt.trng":"H743 live · serial","src.opt.offline":"H743 offline RNG",
       "src.ent.title":"Entropy chain",
       "src.state.check":"checking…","src.state.none":"not running","src.state.noboard":"no entropy",
       "src.state.direct":"direct","src.state.mixed":"mixed","src.state.os":"OS CSPRNG",
-      "src.state.snapshot":"snapshot","src.state.pool":"seed pool","src.state.reseeds":" reseeds",
+      "src.state.snapshot":"offline sample","src.state.pool":"seed pool","src.state.reseeds":" reseeds",
       "src.ent.os":"OS CSPRNG · non-reproducible","src.ent.h743":"H743 entropy snapshot","src.ent.pool":"seed pool",
       "src.msg.autoSwitch":"switched to {mode}","src.msg.onlineShort":"H743 live","src.msg.offlineShort":"H743 offline",
       "msg.shuffle":"Shoe low · reshuffling with H743 entropy…","msg.norand":"Random source unavailable - no bet taken",
