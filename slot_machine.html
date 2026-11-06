@@ -743,7 +743,7 @@
     position:static;
     align-self:flex-start;                  /* body 为 column flex：靠内容区左上对齐 */
     margin:0 0 18px -6px;                  /* -6px 抵消 26px 内边距，视觉左缘仍是 20px */
-    max-width:calc(100vw - 52px);
+    max-width:calc(100vw - 150px);
     display:flex;align-items:center;gap:10px;flex-wrap:wrap;
   }
   .homelink{
@@ -928,6 +928,11 @@
     <span class="hl-arrow" aria-hidden="true">&#8594;</span>
     <span class="hl-ico hl-badge" aria-hidden="true">骰</span>
     <span>骰宝</span>
+  </a>
+  <a class="homelink" href="texas_holdem.html" title="去玩德州扑克 / Play Texas Hold'em">
+    <span class="hl-arrow" aria-hidden="true">&#8594;</span>
+    <span class="hl-ico hl-badge" aria-hidden="true">德</span>
+    <span data-i18n="nav.th">德州扑克</span>
   </a>
 </div>
 
@@ -1973,7 +1978,7 @@
   /* ---------------- 中英文切换（i18n） ---------------- */
   var I18N = {
     zh: {
-      "nav.bacc":"百家乐", "nav.bj":"21点",
+      "nav.bacc":"百家乐", "nav.bj":"21点", "nav.th":"德州扑克",
       "hud.credits":"积分", "hud.lines":"线数", "hud.bet":"每线注", "hud.total":"总注",
       "hud.win":"中奖", "hud.free":"免费转",
       "jp.sub":"累积奖金池", "jp.foot":"每笔投注累积 <b>1.5%</b><br><b class='hot'>必须最大注</b> + 五连 7 才派发",
@@ -2068,7 +2073,7 @@
       "rules.rtp.note":"说明：以上数字由 rtp_sim.py 蒙特卡洛模拟得出（300 万次基础转，已计入免费转链、扩展 WILD 与 5000× 单局封顶）：命中率约 <b>32.4%</b>（约 1/3.1），波动率约 <b>4.4 × 总注</b>。与页面赔率表、条带、payline 完全一致。"
     },
     en: {
-      "nav.bacc":"Baccarat", "nav.bj":"Blackjack",
+      "nav.bacc":"Baccarat", "nav.bj":"Blackjack", "nav.th":"Texas Hold'em",
       "hud.credits":"CREDITS", "hud.lines":"LINES", "hud.bet":"BET/LINE", "hud.total":"TOTAL BET",
       "hud.win":"WIN", "hud.free":"FREE",
       "jp.sub":"PROGRESSIVE POOL", "jp.foot":"<b>1.5%</b> of each bet<br><b class='hot'>max bet required</b> + five 7s",

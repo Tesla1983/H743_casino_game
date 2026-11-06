@@ -35,7 +35,7 @@
      容器统一 fixed 定位，多入口横向排列；子项不再各自 fixed，否则第二个按钮会叠在第一个上。 */
   .homelinks{
     position:fixed;top:14px;left:20px;z-index:70;
-    display:flex;align-items:center;gap:10px;
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;max-width:calc(100vw - 130px);
   }
   .homelink{
     position:static;
@@ -1327,6 +1327,11 @@
     <span class="hl-ico hl-badge" aria-hidden="true">骰</span>
     <span>骰宝</span>
   </a>
+  <a class="homelink" href="texas_holdem.html" title="去玩德州扑克 / Play Texas Hold'em">
+    <span class="hl-arrow" aria-hidden="true">&#8594;</span>
+    <span class="hl-ico hl-badge" aria-hidden="true">德</span>
+    <span data-i18n="nav.th">德州扑克</span>
+  </a>
 </div>
 
 <!-- 右上角：音量 + 语言（与老虎机完全一致） -->
@@ -2259,7 +2264,7 @@
    * ===================================================================== */
   var I18N = {
     zh:{
-      "nav.slot":"老虎机","nav.bac":"百家乐",
+      "nav.slot":"老虎机","nav.bac":"百家乐","nav.th":"德州扑克",
       "pl.sub":"玩家档案","pl.peak":"最高盈利","pl.maxwin":"单手最高派彩",
       "pl.won":"累计赢分","pl.lost":"累计输分","pl.hands":"累计手数","pl.broke":"破产次数",
       "pl.reset":"重新开始","pl.resetAlt":"新游戏",
@@ -2350,7 +2355,7 @@
       "bc.dep":"存入 ▲","bc.wd":"取出 ▼"
     },
     en:{
-      "nav.slot":"Slots","nav.bac":"Baccarat",
+      "nav.slot":"Slots","nav.bac":"Baccarat","nav.th":"Texas Hold'em",
       "pl.sub":"Player profile","pl.peak":"Peak profit","pl.maxwin":"Best single payout",
       "pl.won":"Total won","pl.lost":"Total wagered","pl.hands":"Hands played","pl.broke":"Busts",
       "pl.reset":"Restart","pl.resetAlt":"New game",
