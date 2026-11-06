@@ -35,7 +35,7 @@
      容器统一 fixed 定位，多入口横向排列；子项不再各自 fixed，否则第二个按钮会叠在第一个上。 */
   .homelinks{
     position:fixed;top:14px;left:20px;z-index:70;
-    display:flex;align-items:center;gap:10px;
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;max-width:calc(100vw - 130px);
   }
   .homelink{
     position:static;
@@ -1224,6 +1224,11 @@
     <span class="hl-ico hl-badge" aria-hidden="true">骰</span>
     <span>骰宝</span>
   </a>
+  <a class="homelink" href="texas_holdem.html" title="去玩德州扑克 / Play Texas Hold'em">
+    <span class="hl-arrow" aria-hidden="true">&#8594;</span>
+    <span class="hl-ico hl-badge" aria-hidden="true">德</span>
+    <span data-i18n="nav.th">德州扑克</span>
+  </a>
 </div>
 
 <!-- 右上角：音量 + 语言（与老虎机完全一致） -->
@@ -2085,7 +2090,7 @@
    * ===================================================================== */
   var I18N = {
     zh:{
-      "nav.slot":"老虎机", "nav.bj":"21点",
+      "nav.slot":"老虎机", "nav.bj":"21点", "nav.th":"德州扑克",
       "brand.title":"百家乐",
       "vol.title":"音量","vol.hint":"上下拖动滑杆调音量；调到 0 即静音",
       "pl.sub":"玩家档案","pl.peak":"最高盈利","pl.maxwin":"单手最高派彩",
@@ -2208,7 +2213,7 @@
       "rules.assets.p":"54 张牌面取自 <b>AustinGabriel/Public-Domain-and-CC0-Playing-Cards</b>（Public Domain / CC0，可自由商用，无需署名），已转成 WebP 并缩放到 330 px 宽放在 <b>assets/cards/</b> 下。"
     },
     en:{
-      "nav.slot":"Slots", "nav.bj":"Blackjack",
+      "nav.slot":"Slots", "nav.bj":"Blackjack", "nav.th":"Texas Hold'em",
       "brand.title":"BACCARAT",
       "vol.title":"Volume","vol.hint":"Drag the slider up/down; 0 = mute",
       "pl.sub":"Player profile","pl.peak":"Peak profit","pl.maxwin":"Best single payout",
