@@ -16,6 +16,9 @@
    *   与其余四页同一套；本页为静态示例牌局，不接入随机源与全局钱包。
    * ========================================================================== */
   *{box-sizing:border-box;}
+  :root{--win-green:#9dffb9;}                 /* 赢钱/增额绿：货币符号与结算金额共用同一令牌，保证颜色完全一致 */
+  /* 货币符号：统一绿色（与赢钱金额同源） */
+  .cur{color:var(--win-green);font-weight:inherit;font-style:normal;}
   html,body{height:100%;margin:0;}
   body{
     min-height:100%;padding:18px 16px 28px;
@@ -23,7 +26,7 @@
     background:radial-gradient(120% 90% at 50% -10%, #241736 0%, #160e22 45%, #0b070f 100%);
     display:flex;justify-content:center;align-items:flex-start;
   }
-  .page{width:100%;max-width:1120px;margin:auto;display:flex;flex-direction:column;gap:12px;}
+  .page{width:100%;max-width:1560px;margin:auto;display:flex;flex-direction:column;gap:12px;}
 
   /* ---------------- 顶部导航（与骰宝 / 21 点同款） ---------------- */
   .topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
@@ -71,6 +74,12 @@
   .vol-pop::after{content:"";position:absolute;right:14px;top:-6px;width:10px;height:10px;
     background:#2b1a42;border-left:1px solid rgba(245,197,66,.30);
     border-top:1px solid rgba(245,197,66,.30);transform:rotate(45deg);}
+  .vol-mute{display:flex;align-items:center;justify-content:center;width:100%;height:28px;margin-top:7px;
+    padding:0;border:1px solid rgba(245,197,66,.30);border-radius:8px;background:rgba(255,255,255,.05);
+    color:#ffd76a;cursor:pointer;transition:filter .12s,background .12s,border-color .12s;}
+  .vol-mute:hover{filter:brightness(1.18);}
+  .vol-mute:active{transform:translateY(1px);}
+  .vol-mute[aria-pressed="true"]{color:#ff9a9a;background:rgba(255,80,80,.10);border-color:rgba(255,120,120,.38);}
   .vol-slider{position:relative;width:52px;height:148px;margin:0 auto;padding:12px 0;
     display:flex;align-items:center;justify-content:center;
     cursor:pointer;touch-action:none;-webkit-user-select:none;user-select:none;outline:none;}
@@ -165,6 +174,14 @@
     box-shadow:0 2px 6px rgba(0,0,0,.45);}
   .seat.dealer .dbtn{display:inline-flex;}
   .seat.dealer .badge{box-shadow:0 0 10px rgba(245,197,66,.55);}
+  /* 英雄座位的大小盲标记：与 D 圆片同款小巧药丸，SB 蓝 / BB 橙，随按钮位轮转实时切换 */
+  .hblind{flex:0 0 auto;height:17px;padding:0 6px;border-radius:9px;
+    display:none;align-items:center;justify-content:center;font-style:normal;
+    font-size:9.5px;font-weight:900;letter-spacing:.4px;line-height:1;
+    color:#1a0a2e;border:1px solid rgba(255,255,255,.55);box-shadow:0 2px 6px rgba(0,0,0,.45);}
+  .hblind.show{display:inline-flex;}
+  .hblind.sb{background:linear-gradient(#e8f4ff,#8fc7ff);}
+  .hblind.bb{background:linear-gradient(#ffe9c8,#f5a542);}
   .seat.win{border-color:rgba(157,255,185,.7);
     box-shadow:0 0 0 2px rgba(157,255,185,.5),0 0 22px rgba(157,255,185,.35),0 10px 26px rgba(0,0,0,.55),
       inset 0 1px 0 rgba(255,255,255,.07);}
@@ -182,9 +199,10 @@
      首帧渲染完成后由脚本移除 .booting，后续发牌/结算动画照常播放。 */
   html.booting .bcard-in{transition:none !important;}
   html.booting .verdict,html.booting .verdict .vt,html.booting .verdict .vwin{animation:none !important;transition:none !important;}
-  /* 首帧先不画牌：占位保留（visibility 不影响布局），等存档接回后再一次性亮牌，
-     避免"牌背 → 牌面"在首帧多画一遍造成的闪动。 */
-  html.booting .seat-cards,html.booting .hero-cards,html.booting .board{visibility:hidden;}
+  /* 首帧不隐藏牌：刷新时浏览器会保留旧页面直到新文档首帧就绪；此刻若把牌藏起来，
+     就变成"旧页面有牌 → 新页面无牌 → 再亮牌"的空桌闪烁。
+     故牌从首帧即按最终状态绘制、全程不消失；只靠上面 .booting 的 transition:none
+     抑制接回时整桌重播翻牌动画。 */
   .bf{position:absolute;inset:0;border-radius:6px;overflow:hidden;
     backface-visibility:hidden;-webkit-backface-visibility:hidden;
     background:#fff;box-shadow:0 6px 14px rgba(0,0,0,.6);border:1px solid rgba(0,0,0,.35);}
@@ -234,10 +252,20 @@
   .pot-val{font-size:26px;font-weight:900;color:var(--gold-l);font-variant-numeric:tabular-nums;
     line-height:1.05;text-shadow:0 0 14px rgba(245,197,66,.55);}
   .pot-sub{font-size:var(--fs-xs);letter-spacing:.4px;color:#a294ab;text-align:center;line-height:1.4;}
-  /* 结算裁决条：与百家乐 / 21 点同一套 .verdict 视觉（赢=绿、输=红、平=金），
-     位于公共牌上方、摊牌阶段出现，下一局开始时隐藏 */
-  .verdict{margin:2px 0 0;height:30px;display:flex;align-items:center;justify-content:center;gap:10px;
-    animation:vdIn .72s cubic-bezier(.22,.9,.28,1) both;}
+  /* 结算裁决：改为脱离牌桌的独立淡入弹窗（不再撑大牌桌布局）；弹窗内 .vt/.vwin/.vcmp
+     的颜色与字号完全沿用下方原规则，不做改动。点击遮罩空白处或按空格才淡出关闭。 */
+  .verdict-overlay{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;
+    padding:16px;background:rgba(6,4,12,.66);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
+    opacity:0;pointer-events:none;transition:opacity .34s ease;}
+  .verdict-overlay.show{opacity:1;pointer-events:auto;}
+  .verdict{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;
+    width:min(520px,88vw);min-width:0;padding:clamp(18px,5vw,28px) clamp(20px,6vw,36px);border-radius:20px;
+    background:linear-gradient(160deg,rgba(43,26,66,.98),rgba(13,8,20,.99));
+    border:1px solid rgba(245,197,66,.34);
+    box-shadow:0 34px 90px rgba(0,0,0,.72), inset 0 1px 0 rgba(255,255,255,.08);
+    transform:scale(.94);transition:transform .34s cubic-bezier(.22,.9,.28,1);}
+  .verdict-overlay.show .verdict{transform:none;}
+  .verdict .verdict-hint{margin-top:4px;font-size:11px;letter-spacing:.6px;color:#8a7fa0;}
   /* 结算文字转场：整体淡入 + 轻微下落，标题先出（延迟 .12s），金额后出（延迟 .42s），
      全段约 1.1s 完成，给玩家留足阅读时间 */
   @keyframes vdIn{
@@ -255,7 +283,7 @@
   .verdict.push .vt{color:#ffe9a8;text-shadow:0 0 14px rgba(245,197,66,.6);}
   /* 未参与本局（弃牌且未投入）：中性灰，避免被误读成"平局"金色 */
   .verdict.idle .vt{color:#b6aec4;text-shadow:none;}
-  .verdict .vwin{font-size:14px;font-weight:900;letter-spacing:1px;color:#9dffb9;
+  .verdict .vwin{font-size:14px;font-weight:900;letter-spacing:1px;color:var(--win-green);
     text-shadow:0 0 12px rgba(110,240,138,.6);opacity:0;transform:translateY(5px) scale(.94);
     transition:opacity .62s ease .42s,transform .62s cubic-bezier(.22,.9,.28,1) .42s,color .4s ease;
     font-variant-numeric:tabular-nums;}
@@ -263,6 +291,11 @@
   .verdict .vwin.lose{color:#ff9d9d;text-shadow:0 0 12px rgba(255,80,80,.55);}
   .verdict .vwin.push{color:#ffe9a8;text-shadow:0 0 12px rgba(245,197,66,.5);}
   .verdict .vwin.idle{color:#b6aec4;text-shadow:none;}
+  /* 牌型对比（仅摊牌时追加，不改动原裁决文字/排版）：中性灰、沿用错落淡入节奏（晚于金额） */
+  .verdict .vcmp{font-size:13px;font-weight:800;letter-spacing:.5px;color:#bcb2d6;
+    opacity:0;transform:translateY(5px);
+    transition:opacity .6s ease .72s,transform .6s cubic-bezier(.22,.9,.28,1) .72s;}
+  .verdict.show .vcmp{opacity:1;transform:none;}
 
   /* ---------------- 底部英雄座位 ---------------- */
   .seat.hero{grid-column:1 / -1;flex-direction:row;justify-content:space-between;
@@ -324,6 +357,10 @@
   .actions .btn{height:52px;}
   .btn.ghost{flex:0 0 112px;color:#d9cdeb;border-color:rgba(255,255,255,.16);}
   .btn.call{flex:1;}
+  /* 过牌：与「跟注」互斥占同一个主操作位，绿色区分“安全让牌”语义 */
+  .btn.check{flex:1;color:#d6ffe4;border-color:rgba(120,240,160,.44);
+    background:linear-gradient(180deg,rgba(30,76,52,.96),rgba(14,40,26,.98));
+    box-shadow:0 8px 20px rgba(40,160,90,.22), inset 0 1px 0 rgba(255,255,255,.14);}
   .btn.deal{
     flex:1.35;color:#241500;font-size:17px;letter-spacing:2px;
     background:linear-gradient(180deg,#ffd76a,#f5c542 45%,#d99f14);
@@ -367,9 +404,23 @@
   /* ---------------- 左右侧栏：复用银行卡组件，补全两侧空白 ---------------- */
   .panel-h{font-size:var(--fs-xs);letter-spacing:2px;font-weight:800;color:rgba(255,231,160,.7);
     text-align:center;margin-bottom:2px;text-shadow:0 0 10px rgba(245,197,66,.25);}
-  .stage{display:grid;grid-template-columns:236px minmax(0,1fr);gap:16px;align-items:start;}
+  /* 三栏对称：左侧钱包 374px + 中央牌桌 1fr + 右侧牌型图 374px。
+     左右两栏等宽，使中央列（牌桌 / 下注区 / 规则）正好落在页面水平中线，
+     同时钱包贴住页面最左边；右栏宽度 = 牌型图放大 1.25 倍后的宽度。
+     窄屏（≤1400）沿用下方媒体查询塌为单列。 */
+  .stage{display:grid;grid-template-columns:374px minmax(0,1fr) 374px;gap:16px;align-items:start;}
   .side{display:flex;flex-direction:column;gap:10px;min-width:0;}
   .side-left{order:1;} .center-col{order:2;display:flex;flex-direction:column;gap:12px;min-width:0;}
+  .side-right{order:3;}
+  /* 左栏与右栏等宽（用于牌桌居中），钱包卡片本身保持 300px，不被拉宽变形 */
+  .side-left .bankcard{max-width:300px;}
+  /* 右侧「牌型等级」图示：直接嵌入牌型速查图，按栏宽等比缩放（不裁切、不变形、不撑破侧栏） */
+  .rankcard{margin:0;padding:0;line-height:0;border-radius:16px;overflow:hidden;
+    background:#f4f5f8;
+    border:1px solid rgba(245,197,66,.22);
+    box-shadow:0 10px 26px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.05);}
+  .rankcard img{display:block;width:100%;height:auto;border-radius:0;
+    -webkit-user-drag:none;user-select:none;}
 
   /* 银行卡（复用 slot_machine 的 Visa 风卡面与控件；定位改为侧栏内静态流） */
   .bankcard{display:flex;flex-direction:column;gap:8px;width:100%;}
@@ -447,11 +498,19 @@
   .src-opt:focus-visible{outline:2px solid var(--gold-l);outline-offset:2px;}
 
   /* 窄屏：侧栏塌为单列，牌桌优先 */
-  @media (max-width:1240px){
+  @media (max-width:1400px){
     .page{max-width:100%;}
     .stage{grid-template-columns:1fr;gap:12px;}
     .side-left{order:2;} .center-col{order:1;}
     .bankcard{width:100%;}
+    /* 单列时牌型图不再跟随整行宽度（会被拉得过高），限制到与桌面侧栏一致的宽度并居中 */
+    .side-right .rankcard{max-width:374px;margin:0 auto;}
+  }
+
+  /* 三栏桌面态：侧栏加宽后中央牌桌相应变窄，公共牌 5 张随视口等比缩一档，
+     保证始终装在中列内、不与两侧座位面板相交（视口越窄缩得越多，≥1560 恢复原尺寸）。 */
+  @media (min-width:1401px) and (max-width:1560px){
+    .board .bcard{--cw:clamp(50px, 11vw - 106px, 66px);--ch:calc(var(--cw) * 1.3939);}
   }
 
   /* ---------------- 响应式 ---------------- */
@@ -497,7 +556,7 @@
     .raisebox{margin-left:0;}
     .actions{flex-wrap:wrap;}
     .btn.ghost,.btn.allin{flex:1 1 42%;}
-    .btn.call,.btn.deal{flex:1 1 100%;}
+    .btn.call,.btn.deal,.btn.check{flex:1 1 100%;}
     .actions .btn{height:46px;}
   }
 </style>
@@ -509,7 +568,12 @@
   var SUIT = ["C","D","H","S"], RANK = ["2","3","4","5","6","7","8","9","10","J","Q","K","A"];
   var list = ["back_red"];
   for (var s=0;s<SUIT.length;s++) for (var r=0;r<RANK.length;r++) list.push(RANK[r]+SUIT[s]);
-  for (var i=0;i<list.length;i++){ var im = new Image(); im.src = "assets/cards/" + list[i] + ".webp"; }
+  // 预热：不仅把图片放进 HTTP 缓存，还主动 decode，让刷新接回时解码已就绪——
+  // 否则新建的 <img> 在揭示瞬间仍要现场解码，会出现"白面→成像"的一闪。
+  list.forEach(function(code){
+    var im = new Image(); im.src = "assets/cards/" + code + ".webp";
+    if (im.decode) im.decode().catch(function(){});
+  });
 })();
 </script>
 </head>
@@ -533,6 +597,7 @@
                aria-valuenow="100" aria-label="音量 / Volume">
             <div class="vol-track"><i class="vol-fill" id="volFill"></i><b class="vol-knob" id="volKnob"></b></div>
           </div>
+          <button class="vol-mute" id="volMute" type="button" aria-pressed="false" title="静音 / Mute"></button>
         </div>
       </div>
       <button class="btn small" id="langBtn" type="button" title="切换语言 / Switch language">EN</button>
@@ -540,9 +605,9 @@
   </div>
 
   <div class="hud">
-    <div class="meter"><span class="label" data-i18n="hud.credits">当前余额</span><span class="val" id="mCredits">¥21,450</span></div>
-    <div class="meter hl"><span class="label" data-i18n="hud.pot">底池</span><span class="val" id="mPot">¥12,400</span></div>
-    <div class="meter"><span class="label" data-i18n="hud.bet">本局已投</span><span class="val sm" id="mBet">¥600</span></div>
+    <div class="meter"><span class="label" data-i18n="hud.credits">当前余额</span><span class="val" id="mCredits"><span class="cur">$</span>21,450</span></div>
+    <div class="meter hl"><span class="label" data-i18n="hud.pot">底池</span><span class="val" id="mPot"><span class="cur">$</span>12,400</span></div>
+    <div class="meter"><span class="label" data-i18n="hud.bet">本局已投</span><span class="val sm" id="mBet"><span class="cur">$</span>600</span></div>
     <div class="meter"><span class="label" data-i18n="hud.blinds">盲注级别</span><span class="val sm" id="mBlinds">100 / 200</span></div>
   </div>
 
@@ -599,56 +664,52 @@
     <div class="seat" data-seat="0">
       <div class="seat-head"><span class="badge">D</span><span class="nm">Lin</span></div>
       <div class="seat-cards">
-        <div class="bcard"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div></div></div>
-        <div class="bcard"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div></div></div>
+        <div class="bcard"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div></div></div>
+        <div class="bcard"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div></div></div>
       </div>
-      <div class="seat-meta"><span class="stack">¥0</span><span class="act"></span><span class="bet-in"></span></div>
+      <div class="seat-meta"><span class="stack"><span class="cur">$</span>0</span><span class="act"></span><span class="bet-in"></span></div>
     </div>
 
     <div class="seat" data-seat="1">
       <div class="seat-head"><span class="badge none">—</span><span class="nm">Mika</span></div>
       <div class="seat-cards">
-        <div class="bcard"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div></div></div>
-        <div class="bcard"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div></div></div>
+        <div class="bcard"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div></div></div>
+        <div class="bcard"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div></div></div>
       </div>
-      <div class="seat-meta"><span class="stack">¥0</span><span class="act"></span><span class="bet-in"></span></div>
+      <div class="seat-meta"><span class="stack"><span class="cur">$</span>0</span><span class="act"></span><span class="bet-in"></span></div>
     </div>
 
     <div class="seat" data-seat="2">
       <div class="seat-head"><span class="badge">SB</span><span class="nm">Ken</span></div>
       <div class="seat-cards">
-        <div class="bcard"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div></div></div>
-        <div class="bcard"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div></div></div>
+        <div class="bcard"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div></div></div>
+        <div class="bcard"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div></div></div>
       </div>
-      <div class="seat-meta"><span class="stack">¥0</span><span class="act"></span><span class="bet-in"></span></div>
+      <div class="seat-meta"><span class="stack"><span class="cur">$</span>0</span><span class="act"></span><span class="bet-in"></span></div>
     </div>
 
     <!-- 中排：左座位 / 中央牌桌 / 右座位 -->
     <div class="seat" data-seat="3">
       <div class="seat-head"><span class="badge">BB</span><span class="nm">Ava</span></div>
       <div class="seat-cards">
-        <div class="bcard"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div></div></div>
-        <div class="bcard"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div></div></div>
+        <div class="bcard"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div></div></div>
+        <div class="bcard"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div></div></div>
       </div>
-      <div class="seat-meta"><span class="stack">¥0</span><span class="act"></span><span class="bet-in"></span></div>
+      <div class="seat-meta"><span class="stack"><span class="cur">$</span>0</span><span class="act"></span><span class="bet-in"></span></div>
     </div>
 
     <div class="center">
       <div class="stage-tag" data-i18n="phase.preflop">盲注行动 · PREFLOP</div>
-      <div class="verdict" id="verdict" hidden>
-        <span class="vt" id="vt"></span>
-        <span class="vwin" id="vwin"></span>
-      </div>
       <div class="board" aria-label="公共牌 / Community cards">
-        <div class="bcard" data-pos="0"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div></div></div>
-        <div class="bcard" data-pos="1"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div></div></div>
-        <div class="bcard" data-pos="2"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div></div></div>
-        <div class="bcard" data-pos="3"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div></div></div>
-        <div class="bcard" data-pos="4"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div></div></div>
+        <div class="bcard" data-pos="0"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div></div></div>
+        <div class="bcard" data-pos="1"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div></div></div>
+        <div class="bcard" data-pos="2"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div></div></div>
+        <div class="bcard" data-pos="3"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div></div></div>
+        <div class="bcard" data-pos="4"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div></div></div>
       </div>
       <div class="pot">
         <div class="pot-stack"><i class="minichip d100"></i><i class="minichip d25"></i><i class="minichip d500"></i></div>
-        <div class="pot-num"><span class="pot-label" data-i18n="pot.label">底 池 · POT</span><span class="pot-val" id="potVal">¥0</span></div>
+        <div class="pot-num"><span class="pot-label" data-i18n="pot.label">底 池 · POT</span><span class="pot-val" id="potVal"><span class="cur">$</span>0</span></div>
         <div class="pot-stack"><i class="minichip d5"></i><i class="minichip d1000"></i><i class="minichip d100"></i></div>
       </div>
       <div class="pot-sub" id="potSub"></div>
@@ -657,22 +718,22 @@
     <div class="seat" data-seat="4">
       <div class="seat-head"><span class="badge none">—</span><span class="nm">Ryu</span></div>
       <div class="seat-cards">
-        <div class="bcard"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div></div></div>
-        <div class="bcard"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div></div></div>
+        <div class="bcard"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div></div></div>
+        <div class="bcard"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div></div></div>
       </div>
-      <div class="seat-meta"><span class="stack">¥0</span><span class="act"></span><span class="bet-in"></span></div>
+      <div class="seat-meta"><span class="stack"><span class="cur">$</span>0</span><span class="act"></span><span class="bet-in"></span></div>
     </div>
 
     <!-- 底部：当前玩家 -->
     <div class="seat hero" data-seat="5">
       <div class="hero-id">
-        <div class="who"><span class="badge" data-i18n="badge.hero">YOU</span><span class="nm" data-i18n="seat.hero">你 · HERO</span><i class="dbtn" title="庄家 / Dealer">D</i></div>
+        <div class="who"><span class="badge" data-i18n="badge.hero">YOU</span><span class="nm" data-i18n="seat.hero">你 · HERO</span><i class="dbtn" title="庄家 / Dealer">D</i><i class="hblind" id="heroBlind"></i></div>
         <span class="hero-state" data-i18n="st.turn">轮到你行动</span>
-        <span class="stack" id="heroStack">¥0</span><span class="bet-in" id="heroBetIn"></span>
+        <span class="stack" id="heroStack"><span class="cur">$</span>0</span><span class="bet-in" id="heroBetIn"></span>
       </div>
       <div class="hero-cards" aria-label="你的手牌 / Your hole cards">
-        <div class="bcard" data-pos="0" role="img"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div></div></div>
-        <div class="bcard" data-pos="1" role="img"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" draggable="false"></div></div></div>
+        <div class="bcard" data-pos="0" role="img"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div></div></div>
+        <div class="bcard" data-pos="1" role="img"><div class="bcard-in"><div class="bf back"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div><div class="bf front"><img src="assets/cards/back_red.webp" alt="" decoding="sync" draggable="false"></div></div></div>
       </div>
       <div class="hero-note">
         <span class="hand" id="handRank">当前牌型：—</span>
@@ -698,16 +759,17 @@
         <button class="btn feat" type="button" data-raise="12400" data-i18n="quick.pot">底池</button>
         <button class="btn feat" type="button" data-raise="21450" data-quick="allin" data-i18n="quick.allin">全下</button>
       </div>
-      <div class="raisebox"><span class="lb" data-i18n="raise.label">加注至</span><span class="v" id="raiseVal">¥800</span></div>
+      <div class="raisebox"><span class="lb" data-i18n="raise.label">加注至</span><span class="v" id="raiseVal"><span class="cur">$</span>800</span></div>
     </div>
 
     <div class="actions">
       <button class="btn ghost" type="button" id="actFold" data-i18n="act.fold">弃 牌</button>
-      <button class="btn call" type="button" id="actCall">跟注 <b>¥400</b></button>
-      <button class="btn deal" type="button" id="actRaise">加注至 <b id="btnRaiseVal">¥800</b></button>
+      <button class="btn check" type="button" id="actCheck" data-i18n="act.check" hidden>过 牌</button>
+      <button class="btn call" type="button" id="actCall">跟注 <b><span class="cur">$</span>400</b></button>
+      <button class="btn deal" type="button" id="actRaise">加注至 <b id="btnRaiseVal">800</b></button>
       <button class="btn allin" type="button" id="actAllin" data-i18n="btn.allin">全 下</button>
     </div>
-    <div class="hint" id="hint">轮到你行动 · 跟注 <b>¥400</b> 或加注</div>
+    <div class="hint" id="hint">轮到你行动 · 跟注 <b><span class="cur">$</span>400</b> 或加注</div>
   </section>
 
   <div class="srcline busy" id="srcline">
@@ -730,50 +792,69 @@
     <h3>二、座位、庄家与盲注</h3>
     <p>本桌为 <b>6 人环桌</b>：Lin / Mika / Ken / Ava / Ryu 五位电脑玩家，以及你（HERO）。每局有一个<b>庄家按钮（D）</b>顺时针轮转，决定盲注位置：</p>
     <ul>
-      <li><b>小盲（SB）</b>：庄家左手第一位，强制下注 ¥100。</li>
-      <li><b>大盲（BB）</b>：庄家左手第二位，强制下注 ¥200；大盲即本局最低下注额与最小加注单位。</li>
+      <li><b>小盲（SB）</b>：庄家左手第一位，强制下注 <span class="cur">$</span>100。</li>
+      <li><b>大盲（BB）</b>：庄家左手第二位，强制下注 <span class="cur">$</span>200；大盲额即本局的最低下注额，也是最小加注增幅的起点（每次加注增幅至少一个 BB，若此前已有人加注则不得小于其增幅）。</li>
     </ul>
-    <p>座位卡片顶部的徽章会实时显示当前标识：<b>D</b> = 庄家按钮、<b>SB</b> = 小盲、<b>BB</b> = 大盲，其余为「—」；轮到你当庄家时，D 标记显示在你的昵称旁。</p>
+    <p>座位徽章实时显示当前标识：<b>D</b> = 庄家按钮、<b>SB</b> = 小盲、<b>BB</b> = 大盲，其余为「—」；你的位置在昵称旁以小圆片显示当前是 D / SB / BB。</p>
 
     <h3>三、发牌与四轮下注</h3>
-    <p>发牌经 H743 熵源桥做无放回随机（不可用时本地 PRNG 兜底），先后进行：</p>
+    <p>发牌与老虎机 / 百家乐 / 21 点<b>共用同一条 H743 随机链</b>，做<b>无放回抽取</b>：每张牌按 <b>16 bit 拒绝采样</b>取一个均匀整数（消除取模偏差）后从剩余牌堆取走一张，全程<b>不使用浏览器随机数</b>；若两源皆不可用，则<b>取消本手</b>并把已投入筹码<b>原额退回</b>，<b>绝不使用本地随机兜底</b>。先后进行：</p>
     <ul>
-      <li><b>翻牌前（Preflop）</b>：每人发 2 张底牌 → 从大盲左侧开始下注。</li>
+      <li><b>翻牌前（Preflop）</b>：每人发 2 张底牌（SB / BB 已先投盲注）→ 开始第一轮下注；<b>大盲在翻牌前最后行动</b>，若此前无人加注，可选择过牌或加注。</li>
       <li><b>翻牌（Flop）</b>：一次性翻开 3 张公共牌 → 第二轮下注。</li>
       <li><b>转牌（Turn）</b>：再翻 1 张公共牌 → 第三轮下注。</li>
       <li><b>河牌（River）</b>：再翻 1 张公共牌 → 第四轮下注。</li>
     </ul>
-    <p>每轮下注在所有未弃牌玩家<b>下注额持平且均已行动</b>后结束，进入下一街；若只剩一名未弃牌玩家，则直接收池结束本局。</p>
+    <p>行动顺序：<b>翻牌前</b>从大盲左侧（UTG）起顺时针；<b>翻牌、转牌、河牌</b>每轮从庄家左手第一位仍在局且可行动的玩家起顺时针。每轮在所有未弃牌玩家<b>下注额持平且均已行动</b>后结束——若有人加注，其余玩家需重新行动。若只剩一名未弃牌玩家，则直接收池结束本局。</p>
 
     <h3>四、玩家动作</h3>
     <ul>
       <li><b>弃牌（Fold）</b>：放弃本局，已投入筹码不退还。</li>
       <li><b>过牌（Check）</b>：当前无人下注（无需跟注）时，选择不投入并把行动权交下家。</li>
       <li><b>跟注（Call）</b>：投入与当前最高注齐平的金额。</li>
-      <li><b>加注（Raise）</b>：在跟平基础上再加注，最低加注单位为一倍大盲。</li>
+      <li><b>加注（Raise）</b>：先跟平当前最高注，再加注；最小加注增幅为一个 BB，且不得小于上一次加注的增幅（本页引擎据此校验）。</li>
       <li><b>全下（All-in）</b>：投入全部剩余筹码；不足时按现有筹码封顶，触发<b>边池</b>结算。</li>
     </ul>
 
     <h3>五、结算与边池</h3>
-    <p>四轮结束进入<b>摊牌</b>：未弃牌者亮出底牌，用 2 张底牌 + 5 张公共牌任取 5 张组成最大牌型比大小；牌型相同则比高牌（踢脚）。</p>
+    <p>四轮结束进入<b>摊牌</b>：未弃牌者亮出底牌，从 2 张底牌与 5 张公共牌共 7 张中任取 5 张（可用 0、1 或 2 张底牌）组成最大牌型比大小；牌型相同则依次比较关键牌与踢脚，仍完全相同则<b>平分底池</b>（花色不分大小）。</p>
     <p>当玩家筹码投入不一致时，按投入层级划分<b>边池</b>：仅参与该层级的玩家竞争对应底池，做到「跟多少、赢多少」。仅剩一人未弃牌时，直接收走整个底池（其余弃牌）。</p>
 
     <h3>六、牌型大小（由大到小）</h3>
     <ul>
-      <li>皇家同花顺 ＞ 同花顺 ＞ 四条 ＞ 葫芦 ＞ 同花 ＞ 顺子 ＞ 三条 ＞ 两对 ＞ 一对 ＞ 高牌</li>
-      <li>同花顺比点数、同点数比花色；其余牌型先比类别，再比关键牌与踢脚。</li>
+      <li>皇家同花顺 ＞ 同花顺 ＞ 四条 ＞ 葫芦 ＞ 同花 ＞ 顺子 ＞ 三条 ＞ 两对 ＞ 一对 ＞ 高牌（皇家同花顺即 A-K-Q-J-10 的同花顺，为最大牌型）。</li>
+      <li>同花顺比最高牌点数；其余牌型先比类别，再依次比关键牌与踢脚。<b>花色不分大小</b>：牌型与全部比较牌都相同的两手牌平分底池。</li>
+      <li>A 可作最大（如 A-K-Q-J-10）也可作最小（A-2-3-4-5 为最小顺子）。</li>
     </ul>
 
     <h3>七、本页玩法与数据边界</h3>
-    <p>本页接入 <b>H743 熵源桥</b>（在线 8765–8784 / 离线 8770，16-bit 拒绝采样无放回发牌）与<b>全局钱包</b>（<b>slot_credits / slot_card / slot_broke / slot_profit</b>）；牌面沿用 <b>assets/cards/</b> 下 CC0 图片。底池、本局已投与六座位筹码属<b>牌局内演示数据</b>，不写入全局钱包；只有你真实下注与结算派彩才改动 <b>slot_credits</b>，并经 <b>storage</b> 事件与老虎机 / 百家乐 / 骰宝 / 21 点四页同步。战绩单独存 <b>holdem_*</b>。</p>
+    <p>本页接入 <b>H743 随机链</b>（<b>在线 8765–8784 · 串口直供</b>片上 TRNG；<b>离线 8770 · 熵快照 + DRBG</b>：以芯片采到的 <b>4096 B</b> 物理熵为种子喂 <b>ChaCha20 DRBG</b>，默认、不占串口；发牌按 16 bit 拒绝采样无放回抽取）与<b>全局钱包</b>（<b>slot_credits / slot_card / slot_broke / slot_profit</b>）；牌面沿用 <b>assets/cards/</b> 下 CC0 图片。底池、本局已投与五位电脑座位的筹码属<b>牌局内演示数据</b>，不写入全局钱包；<b>你的筹码即全局钱包余额</b>，只有你真实下注与结算派彩才改动 <b>slot_credits</b>，并经 <b>storage</b> 事件与老虎机 / 百家乐 / 骰宝 / 21 点四页同步。战绩单独存 <b>holdem_*</b>。</p>
 
     <h3>八、对手 AI 与状态反馈</h3>
-    <p>轮到 AI 对手时，会按其真实策略自动执行（依据牌力与底池赔率决定跟注 / 加注 / 弃牌 / 过牌 / 全下）；<b>你（HERO）始终手动决策</b>——轮到你时牌局暂停并高亮可用按钮（弃牌 / 跟注 / 加注 / 全下），由你点选后牌局才继续。一局结束后<b>自动重新发牌</b>，整桌持续运行。摊牌时公共牌上方会出现<b>结算裁决条</b>（赢=绿 / 输=红 / 平=金，与百家乐、21 点同一套视觉），显示谁赢得底池及你的净盈亏。状态行显示接入源（在线 / 离线 / 端口）、检测中、不可用，以及钱包与卡内余额；异常（取数失败、数据异常、状态冲突、积分不足、破产补给）一律在扣款前拦截，失败不改动全局钱包，两源皆不可用则取消本次操作。</p>
+    <p>轮到 AI 对手时，会按其真实策略自动执行（依据牌力与底池赔率决定跟注 / 加注 / 弃牌 / 过牌 / 全下）；<b>你（HERO）始终手动决策</b>——轮到你时牌局暂停并高亮可用按钮（弃牌 / 过牌 / 跟注 / 加注 / 全下；<b>无需跟注时显示「过牌」、需要跟注时显示「跟注」</b>，二者互斥），由你点选后牌局才继续。一局结束后弹出<b>结算弹窗</b>，点击空白处或按空格关闭后<b>自动发下一手</b>，整桌持续运行。摊牌时弹出<b>结算弹窗</b>（赢=绿 / 输=红 / 平=金，与百家乐、21 点同一套视觉），显示谁赢得底池及你的净盈亏，持续显示直到点击空白处或按空格关闭。状态行显示接入源（在线 / 离线 / 端口）、检测中、不可用，以及钱包与卡内余额；异常（取数失败、数据异常、状态冲突、积分不足、破产补给）一律在扣款前拦截，失败不改动全局钱包，两源皆不可用则取消本次操作。</p>
 
-    <p class="note">刷新页面会<b>接回进行中的这一手</b>：牌面、底池、各座筹码与行动位原样恢复，<b>不会重复发牌</b>；若刷新时恰在摊牌阶段，则只保留本局结算裁决，等你点「新的一局」再发牌。提示：你的筹码即全局钱包余额，下注与派彩实时同步；HERO 破产时若卡内仍有余额可先充值，否则自动补给并入破产计数。</p>
+    <p class="note">刷新页面会<b>接回进行中的这一手</b>：牌面、底池、各座筹码与行动位原样恢复，<b>不会重复发牌</b>；若刷新时恰在摊牌阶段，则重新弹出本局结算弹窗，关闭后再发牌。提示：你的筹码即全局钱包余额，下注与派彩实时同步；HERO 破产时若卡内仍有余额可先充值，否则自动补给并入破产计数。</p>
   </details>
     </div><!-- /center-col -->
+
+    <!-- 右侧：牌型等级图示（牌型大小速查图，由强到弱） -->
+    <aside class="side side-right" aria-label="牌型等级 / Hand ranking">
+      <figure class="rankcard">
+        <img src="assets/hand-ranks.jpg" width="1200" height="1800" decoding="async" draggable="false"
+             alt="德州扑克牌型大小速查：由大到小为 皇家同花顺、同花顺、四条、葫芦、同花、顺子、三条、两对、一对、高牌">
+      </figure>
+    </aside>
   </div><!-- /stage -->
+</div>
+
+<!-- 结算裁决弹窗：脱离牌桌布局，避免撑大牌桌；点击遮罩空白处或按空格键淡出关闭 -->
+<div class="verdict-overlay" id="verdictOverlay" role="dialog" aria-modal="true" aria-labelledby="vt" aria-live="polite">
+  <div class="verdict" id="verdict">
+    <span class="vt" id="vt"></span>
+    <span class="vwin" id="vwin"></span>
+    <span class="vcmp" id="vcmp"></span>
+    <span class="verdict-hint" data-i18n="vd.hint">点击空白处或按空格关闭</span>
+  </div>
 </div>
 
 <script>
@@ -795,7 +876,7 @@
       "quick.min":"最小加注","quick.half":"半池","quick.pot":"底池","quick.allin":"全下",
       "raise.label":"加注至",
       "act.fold":"弃 牌","act.call":"跟注","act.raise":"加注至","btn.allin":"全 下",
-      "hint.turn":"轮到你行动 · 跟注 <b>¥400</b> 或加注","hint.wait":"等待对手行动…",
+      "hint.turn":"轮到你行动 · 跟注 <b><span class='cur'>$</span>400</b> 或加注","hint.wait":"等待对手行动…",
       "msg.fold":"已弃牌 · 本局投入 <b>{v}</b> 不退还，点「新的一局」继续",
       "msg.call":"已跟注 · 牌局推进中",
       "msg.raise":"已加注至 <b>{v}</b> · 牌局推进中",
@@ -815,10 +896,10 @@
       "msg.cardOnly":"积分见底 · 银行卡仍有 <b>{v}</b>，可在其它页取出后继续",
       "msg.topup":"积分见底 · 已补给 <b>{v}</b> 并计入全局破产次数",
       "act.new":"新 的 一 局",
-      "hand.rank":"当前牌型：—","hand.label":"当前牌型","to.call":"待跟注 ¥400",
+      "hand.rank":"当前牌型：—","hand.label":"当前牌型","to.call":"待跟注 <span class='cur'>$</span>400",
       "hand.folded":"已弃牌","hand.prePair":"起手：一对 {r}","hand.preSuited":"起手：{c} 同花","hand.preHigh":"起手：{c}","hand.subCount":"底牌 2 张 + 公共牌 {n} 张",
       "hud.toCall":"待跟注 {v}","hud.noCall":"无需跟注","hud.potSub":"底池 {p} · 本街最高注 {h}",
-      "pot.sub":"本轮下注 {r} · 边池 ¥0",
+      "pot.sub":"本轮下注 {r} · 边池 <span class='cur'>$</span>0",
       "src.detecting":"随机源检测中…",
       "src.online":"在线随机源 · H743 硬件直供 · 端口 {p} · 缓冲 {b} B",
       "src.offline":"离线随机源 · 熵快照 + DRBG · 端口 {p} · 缓冲 {b} B",
@@ -842,9 +923,10 @@
       "seat.dealer":"D",
       "phase.preflop":"盲注行动 · PREFLOP","phase.flop":"翻牌圈 · FLOP","phase.turn":"转牌圈 · TURN","phase.river":"河牌圈 · RIVER","phase.showdown":"摊牌 · SHOWDOWN",
       "act.check":"过牌","act.called":"跟注 {v}","act.raised":"加注至 {v}","act.allin":"全下 {v}","act.folded":"弃牌","act.bet":"下注 {v}",
-      "vd.youWin":"你赢得底池","vd.youWinUncontested":"其余弃牌 · 你收下底池","vd.otherWin":"{w} 赢得底池","vd.splitHero":"你平分底池","vd.splitOther":"{w} 平分底池","vd.win":"+{n}","vd.lose":"−{n}","vd.push":"退还 {n}","vd.idle":"本局未参与","vd.idleWin":"{w} 赢得 {n}","vd.continue":"本局结束 · 点「新的一局」继续",
+      "vd.youWin":"你赢得底池","vd.youWinUncontested":"其余弃牌 · 你收下底池","vd.otherWin":"{w} 赢得底池","vd.splitHero":"你平分底池","vd.splitOther":"{w} 平分底池","vd.win":"+{n}","vd.lose":"−{n}","vd.push":"退还 {n}","vd.idle":"本局未参与","vd.idleWin":"{w} 赢得 {n}","vd.continue":"本局结束 · 点「新的一局」继续","vd.hint":"点击空白处或按空格关闭",
       "btn.pause":"暂停",
       "msg.youTurn":"轮到你行动 · 跟注 <b>{v}</b> 或加注",
+      "msg.youTurnCheck":"轮到你行动 · 过牌或加注",
       "msg.acted":"{n}：{a}","msg.newHand":"新的一局 · 按钮 <b>{d}</b>",
       "msg.winHand":"本局胜出：<b>{w}</b> 赢得 <b>{v}</b>","msg.uncontested":"<b>{w}</b> 赢得底池 <b>{v}</b>（其余弃牌）"
     },
@@ -860,7 +942,7 @@
       "quick.min":"MIN RAISE","quick.half":"HALF POT","quick.pot":"POT","quick.allin":"ALL-IN",
       "raise.label":"RAISE TO",
       "act.fold":"FOLD","act.call":"CALL","act.raise":"RAISE TO","btn.allin":"ALL-IN",
-      "hint.turn":"Your turn · call <b>¥400</b> or raise","hint.wait":"Waiting for opponents…",
+      "hint.turn":"Your turn · call <b><span class='cur'>$</span>400</b> or raise","hint.wait":"Waiting for opponents…",
       "msg.fold":"Folded · <b>{v}</b> invested is forfeited; press NEW HAND to continue",
       "msg.call":"Called · advancing the hand",
       "msg.raise":"Raised to <b>{v}</b> · advancing the hand",
@@ -880,10 +962,10 @@
       "msg.cardOnly":"Out of credits · bank card still holds <b>{v}</b>, withdraw on another page",
       "msg.topup":"Out of credits · topped up <b>{v}</b> and counted as a global bankruptcy",
       "act.new":"NEW HAND",
-      "hand.rank":"Hand: —","hand.label":"Hand","to.call":"To call ¥400",
+      "hand.rank":"Hand: —","hand.label":"Hand","to.call":"To call <span class='cur'>$</span>400",
       "hand.folded":"Folded","hand.prePair":"Preflop: pair of {r}","hand.preSuited":"Preflop: {c} suited","hand.preHigh":"Preflop: {c}","hand.subCount":"2 hole + {n} community",
       "hud.toCall":"To call {v}","hud.noCall":"No call needed","hud.potSub":"Pot {p} · Street high {h}",
-      "pot.sub":"This round {r} · side pot ¥0",
+      "pot.sub":"This round {r} · side pot <span class='cur'>$</span>0",
       "src.detecting":"Detecting entropy source…",
       "src.online":"Online RNG · H743 hardware · port {p} · {b} B buffered",
       "src.offline":"Offline RNG · entropy snapshot + DRBG · port {p} · {b} B buffered",
@@ -907,9 +989,10 @@
       "seat.dealer":"D",
       "phase.preflop":"PREFLOP","phase.flop":"FLOP","phase.turn":"TURN","phase.river":"RIVER","phase.showdown":"SHOWDOWN",
       "act.check":"CHECK","act.called":"CALL {v}","act.raised":"RAISE {v}","act.allin":"ALL-IN {v}","act.folded":"FOLD","act.bet":"BET {v}",
-      "vd.youWin":"You win the pot","vd.youWinUncontested":"Others folded · you take the pot","vd.otherWin":"{w} wins the pot","vd.splitHero":"You split the pot","vd.splitOther":"{w} split the pot","vd.win":"+{n}","vd.lose":"-{n}","vd.push":"PUSH {n}","vd.idle":"Hand not played","vd.idleWin":"{w} wins {n}","vd.continue":"Hand over · press NEW HAND to continue",
+      "vd.youWin":"You win the pot","vd.youWinUncontested":"Others folded · you take the pot","vd.otherWin":"{w} wins the pot","vd.splitHero":"You split the pot","vd.splitOther":"{w} split the pot","vd.win":"+{n}","vd.lose":"-{n}","vd.push":"PUSH {n}","vd.idle":"Hand not played","vd.idleWin":"{w} wins {n}","vd.continue":"Hand over · press NEW HAND to continue","vd.hint":"Click outside or press Space to close",
       "btn.pause":"PAUSE",
       "msg.youTurn":"Your turn · call <b>{v}</b> or raise",
+      "msg.youTurnCheck":"Your turn · check or raise",
       "msg.acted":"{n}: {a}","msg.newHand":"New hand · button <b>{d}</b>",
       "msg.winHand":"<b>{w}</b> wins <b>{v}</b>","msg.uncontested":"<b>{w}</b> wins pot <b>{v}</b> (others folded)"
     }
@@ -922,7 +1005,10 @@
     if (vars){ for (var k in vars){ s = s.split("{" + k + "}").join(vars[k]); } }
     return s;
   }
-  function fmt(n){ return "¥" + String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+  // 纯数字格式化（千分位，不带货币符号）——用于「加注至」金色按钮：避免绿色 $ 与金底打架
+  function fmtNum(n){ return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+  // 金额格式化：符号统一为「$」并包一层 .cur 以着赢钱绿；数字部分保持原样、由各容器着色。
+  function fmt(n){ return '<span class="cur">$</span>' + fmtNum(n); }
 
   /* =====================================================================
    * 2. 音量（与其余四页共用 slot_vol 存档键、竖滑杆与拖动 / 滚轮 / 键盘）
@@ -931,6 +1017,7 @@
   var SPK_OFF = '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M16 9l5 6M21 9l-5 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
   var SPK_LOW = '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M16 8a4 4 0 0 1 0 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
   var soundBtn = document.getElementById("soundBtn"), volPop = document.getElementById("volPop");
+  var muteBtn = document.getElementById("volMute");           // 弹层内的独立静音开关
   var volSliderEl = document.getElementById("volSlider"), volFillEl = document.getElementById("volFill");
   var volKnobEl = document.getElementById("volKnob");
   var volTrackEl = volSliderEl.querySelector(".vol-track");
@@ -939,25 +1026,37 @@
     try{ if (localStorage.getItem("slot_sound") === "off") return 0; }catch(e){}
     return 100;
   })();
+  var lastVol = soundVol > 0 ? soundVol : 100;               // 记住静音前的音量，取消静音时恢复
   function renderSound(){
     var on = soundVol > 0;
     soundBtn.innerHTML = !on ? SPK_OFF : (soundVol <= 40 ? SPK_LOW : SPK_ON);
     soundBtn.setAttribute("aria-pressed", on ? "true" : "false");
     soundBtn.title = on ? ("音量 " + soundVol + "% / Volume " + soundVol + "%") : "已静音 / Muted";
+    if (muteBtn){
+      muteBtn.innerHTML = on ? SPK_ON : SPK_OFF;
+      muteBtn.setAttribute("aria-pressed", on ? "false" : "true");
+      muteBtn.title = on ? "静音 / Mute" : "取消静音 / Unmute";
+    }
     volFillEl.style.height = soundVol + "%";
     volKnobEl.style.bottom = soundVol + "%";
     volSliderEl.setAttribute("aria-valuenow", String(soundVol));
   }
   function setSoundVol(v, save){
     soundVol = Math.max(0, Math.min(100, Math.round(v)));
+    if (soundVol > 0) lastVol = soundVol;
     renderSound();
     if (save){ try{ localStorage.setItem("slot_vol", String(soundVol)); }catch(e){} }
+  }
+  function setMuted(muted){
+    if (muted){ if (soundVol > 0) lastVol = soundVol; setSoundVol(0, true); }
+    else setSoundVol(lastVol > 0 ? lastVol : 100, true);
   }
   function toggleVolPop(open){
     volPop.classList.toggle("show", !!open);
     soundBtn.setAttribute("aria-expanded", open ? "true" : "false");
   }
   soundBtn.addEventListener("click", function(){ toggleVolPop(!volPop.classList.contains("show")); });
+  if (muteBtn) muteBtn.addEventListener("click", function(){ setMuted(soundVol > 0); });
   document.addEventListener("click", function(e){
     if (!volPop.contains(e.target) && !soundBtn.contains(e.target)) toggleVolPop(false);
   });
@@ -1002,6 +1101,93 @@
   })();
 
   /* =====================================================================
+   * 2b. 音效（复用 21 点同一套 mp3 资产，保持全站统一听感）
+   * ---------------------------------------------------------------------
+   *   · 下注确认 → sfx/…placing-poker-chips（放筹码的「咔哒」）
+   *   · 发牌     → sfx/…taking-playing-card（真实的取牌「唰」）
+   *   · 多路复用：同类型预建若干 <audio> 轮流播音，快速连发时上一张的尾音
+   *     不会被下一张硬切，也不会因并发被浏览器丢弃；
+   *   · 音量 = 该音效基准音量 × 页面音量滑杆（soundVol），soundVol=0 即静音；
+   *     发牌逐张错开时与「视觉翻转延迟」共用同一时间轴，音画对齐。
+   * ===================================================================== */
+  var SFX_MAP = {
+    chip: "sfx/oxidvideos-placing-poker-chips-522515.mp3",
+    deal: "sfx/oxidvideos-taking-playing-card-3-522513.mp3"
+  };
+  var SFX_VOL = { chip:0.42, deal:0.45 };
+  var _sfxPool = {}, _sfxIdx = {}, SFX_VER = Date.now();
+  function playSfx(type, voices){
+    if (soundVol <= 0) return;
+    var src = SFX_MAP[type]; if (!src) return;
+    try{
+      var n = voices || 1;
+      var arr = _sfxPool[type] || (_sfxPool[type] = []);
+      while (arr.length < n){
+        var a0 = new Audio(src + "?v=" + SFX_VER);
+        a0.preload = "auto";
+        arr.push(a0);
+      }
+      var i = (_sfxIdx[type] = ((_sfxIdx[type] || 0) + 1) % arr.length);
+      var a = arr[i];
+      a.volume = Math.max(0, Math.min(1, (SFX_VOL[type] || 0.5) * (soundVol / 100)));
+      try{ a.currentTime = 0; }catch(e){}
+      var p = a.play(); if (p && p.catch) p.catch(function(){});
+    }catch(e){}
+  }
+  // 预取热门音效，避免首次下注 / 发牌时因取流而延迟发声
+  (function preloadSfx(){
+    try{
+      ["chip","deal"].forEach(function(t){
+        var src = SFX_MAP[t]; if (!src) return;
+        var a = new Audio(src + "?v=" + SFX_VER); a.preload = "auto";
+        try{ a.load(); }catch(e){}
+      });
+    }catch(e){}
+  })();
+
+  /* ---------------- 发牌动作 ⇄ 音效：逐张错开，音画共用同一时间轴 ---------------- */
+  var DEAL_STEP_HOLE  = 60;    // 底牌：面朝下、无逐张动画 → 短促 riffle，紧跟发牌瞬间，避免拖尾到行动轮
+  var DEAL_STEP_BOARD = 150;   // 公共牌：与翻转延迟同步，一张一张翻开
+  var _dealClearTimer = null;
+  var _dealTimers = [];        // 尚未触发的逐张音效定时器：每次发牌前统一清掉，杜绝抢跑/叠播
+  function clearDealTimers(){
+    for (var i=0;i<_dealTimers.length;i++) clearTimeout(_dealTimers[i]);
+    _dealTimers.length = 0;
+  }
+  function clearDealDelay(){
+    _dealClearTimer = null;
+    var inners = document.querySelectorAll(".bcard-in");
+    for (var i=0;i<inners.length;i++){ if (inners[i].style.transitionDelay) inners[i].style.transitionDelay = ""; }
+  }
+  function scheduleClearDealDelay(ms){
+    if (_dealClearTimer) clearTimeout(_dealClearTimer);
+    _dealClearTimer = setTimeout(clearDealDelay, Math.max(0, ms));
+  }
+  /* els：本次发出的牌元素（按发牌顺序），仅 withVisual 时用于加翻转延迟；
+     withVisual=true 时第 k 张牌的翻开时刻与第 k 声「唰」共用同一时间轴。
+     voices：该组同时可并发的音频路数，避免长尾音被下一张截断。
+     每次调用先清掉上一轮未触发的定时器，确保音效只在「本次发牌」这个节点发生。 */
+  function announceDeal(els, count, step, withVisual, voices){
+    clearDealTimers();
+    var last = 0;
+    for (var k=0;k<count;k++){
+      if (withVisual){
+        var el = els && els[k];
+        if (el){
+          var inner = el.querySelector(".bcard-in");
+          if (inner) inner.style.transitionDelay = (k * step) + "ms";
+        }
+      }
+      (function(d){
+        if (d <= 0){ playSfx("deal", voices); }
+        else { _dealTimers.push(setTimeout(function(){ playSfx("deal", voices); }, d)); }
+      })(k * step);
+      if (k * step > last) last = k * step;
+    }
+    if (withVisual) scheduleClearDealDelay(last + 520);
+  }
+
+  /* =====================================================================
    * 3. H743 熵源接入 + 全局钱包（本页唯一接入点）
    * ---------------------------------------------------------------------
    * 接入范围：仅 texas_holdem.html。写入 slot_credits / slot_broke / slot_profit；
@@ -1009,7 +1195,7 @@
    * 数据边界：
    *   - 底池 pot、本局已投 heroBet、六座位筹码是【牌局内演示数据】，不进全局钱包；
    *     只有玩家真实下注与结算派彩才改动 slot_credits。
-   *   - 已审核的翻牌圈快照是「进行中的一手」，其中 ¥600 已投额是历史快照，不回溯扣款。
+   *   - 已审核的翻牌圈快照是「进行中的一手」，其中 $600 已投额是历史快照，不回溯扣款。
    *   - 本页战绩写 holdem_*；绝不写其它页的 bacc_* / sicbo_* / slot_* 战绩键。
    * 影响范围：slot_credits / slot_broke / slot_profit 是四页共享钱袋，本页写入会通过
    *   storage 事件被 slot_machine / baccarat / dice / blackjack 吸收；反之本页也吸收
@@ -1230,7 +1416,7 @@
                   { p:srcState.port, b:srcState.buffered });
     txt += " ｜ " + tt("src.wallet", { c:fmt(credits), b:fmt(cardBalance) });
     if (walletIssue) txt += " · " + tt("src.walletBad");
-    t.textContent = txt;
+    t.innerHTML = txt;                                    // 金额含 .cur 标记，需按 HTML 渲染
     t.title = tt("src.title");
     el.className = "srcline " + (m === "err" ? "err" : m === "detecting" ? "busy" : (m === "online" ? "on" : "off"));
   }
@@ -1312,6 +1498,45 @@
     var zh = (curLang === "zh");
     return tt("hand.label") + (zh ? "：" : ": ") + HAND_NAMES[zh ? "zh" : "en"][score[0]];
   }
+  /* 玩家与最强对手的牌型大小对比文案：仅用于摊牌结算裁决条追加展示。
+     cmp = { hero:[类别,...踢脚], opp:[类别,...踢脚], oppName }；分数来自同一套 eval5/cmpScore，
+     与 heroHandText / renderVerdict 完全解耦，且随当前语言实时生成（刷新续局、切语言均重算）。 */
+  function handComparePhrase(cmp){
+    if (!cmp || !cmp.hero || !cmp.opp) return "";
+    var zh = (curLang === "zh");
+    var HN = HAND_NAMES[zh ? "zh" : "en"];
+    var hc = cmp.hero[0], oc = cmp.opp[0];
+    var hName = HN[hc], oName = HN[oc], opp = cmp.oppName;
+    if (hc > oc){
+      return zh
+        ? "你的" + hName + " 大于 " + opp + " 的" + oName + "（胜在牌型级别）"
+        : "Your " + hName + " beats " + opp + "'s " + oName + " (higher rank)";
+    }
+    if (hc < oc){
+      return zh
+        ? opp + " 的" + oName + " 大于你的" + hName + "（差距在牌型级别）"
+        : opp + "'s " + oName + " beats your " + hName + " (higher rank)";
+    }
+    // 同类别：比关键牌（踢脚），定位首个分胜负的元素
+    var c = cmpScore(cmp.hero, cmp.opp);
+    var idx = 0, hl = cmp.hero.length, ol = cmp.opp.length;
+    while (idx < hl && idx < ol && (cmp.hero[idx] || 0) === (cmp.opp[idx] || 0)) idx++;
+    var hk = idx < hl ? RANKS[cmp.hero[idx]] : "";
+    var ok = idx < ol ? RANKS[cmp.opp[idx]] : "";
+    if (c > 0){
+      return zh
+        ? "同为" + hName + "，你的大牌 " + hk + " 大于 " + opp + " 的 " + ok
+        : "Both " + hName + "; your " + hk + " beats " + opp + "'s " + ok;
+    }
+    if (c < 0){
+      return zh
+        ? "同为" + hName + "，" + opp + " 的大牌 " + ok + " 大于你的 " + hk
+        : "Both " + hName + "; " + opp + "'s " + ok + " beats your " + hk;
+    }
+    return zh
+      ? "同为" + hName + "，与 " + opp + " 完全相等（平分底池）"
+      : "Both " + hName + ", tied with " + opp + " (split)";
+  }
   function freshDeck(){
     if (_mock && _mock.corruptDeck) return ["ZZ"];      // 数据异常注入点
     var used = H.hole.concat(H.board);
@@ -1367,11 +1592,15 @@
   var VERDICT_HOLD_MS = 6000;                         // 结算裁决停留时长（含 ~1.1s 入场动画，净阅读约 4.9s）
   var hintEl = document.getElementById("hint");
   var actCall = document.getElementById("actCall");
+  var actCheck = document.getElementById("actCheck");
   var raiseValEl = document.getElementById("raiseVal");
   var btnRaiseValEl = document.getElementById("btnRaiseVal");
   var verdictEl = document.getElementById("verdict");
   var vtEl = document.getElementById("vt");
   var vwinEl = document.getElementById("vwin");
+  var vcmpEl = document.getElementById("vcmp");
+  var verdictOverlay = document.getElementById("verdictOverlay");
+  var _verdictOpen = false;                                // 结算弹窗是否正在显示（用于切语言重绘 / 关闭判定）
   var _lastResult = null;                                  // 最近一手的结算结果（供裁决条 + 切语言重绘）
   var _hintKey = "hint.turn", _hintVars = null, _hintTimer = null;
 
@@ -1382,8 +1611,10 @@
     for (var k=1;k<=6;k++){ var i=(from+k)%6; if (canAct(G.seats[i])) return i; }
     return -1;
   }
-  function firstInHandAfter(pos){
-    for (var k=1;k<=6;k++){ var i=(pos+k)%6; if (!G.seats[i].folded) return i; }
+  /* 某位置之后第一位「能行动」的玩家：跳过已弃牌、已全下（含筹码耗尽）的座位。
+     街头起始行动位必须用它，否则会把行动权交给已 all-in 的座位导致整局卡死。 */
+  function firstToActAfter(pos){
+    for (var k=1;k<=6;k++){ var i=(pos+k)%6; if (canAct(G.seats[i])) return i; }
     return -1;
   }
   function roundClosed(){
@@ -1392,30 +1623,10 @@
     return acts.every(function(s){ return s.acted && s.bet === G.highBet; });
   }
 
-  /* ---------------- 发牌（H743 熵源；不可用时本地 PRNG 兜底） ---------------- */
-  function localDraw(deck, n){
-    var idxs = deck.map(function(_, i){ return i; });
-    for (var i=idxs.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=idxs[i]; idxs[i]=idxs[j]; idxs[j]=t; }
-    var out=[]; for (var k=0;k<n;k++) out.push(deck[idxs[k]]);
-    var set={}; out.forEach(function(c){ set[c]=true; });
-    for (var m=deck.length-1;m>=0;m--){ if (set[deck[m]]) deck.splice(m,1); }
-    return out;
-  }
-  function setLocalSrc(){
-    if (srcState.mode !== "local"){
-      srcState = { mode:"local", port:0, buffered:0 };
-      logEvent("src", "src.local");
-    }
-    renderSrc();
-  }
+  /* ---------------- 发牌（H743 随机链；两源皆不可用则取消本手，绝不使用本地随机） ---------------- */
   async function dealCards(n){
-    try {
-      var q = new ByteQueue();
-      return await drawCards(q, G.deck, n);
-    } catch(e){
-      setLocalSrc();
-      return localDraw(G.deck, n);
-    }
+    var q = new ByteQueue();
+    return await drawCards(q, G.deck, n);   // 失败直接抛出 → 由 cancelHand() 取消本手并原额退款
   }
 
   /* ---------------- 策略：手牌强度评估 ---------------- */
@@ -1536,12 +1747,16 @@
     var s = G.seats[heroIdx()];
     var a;
     if (kind === "fold") a = { kind:"fold" };
+    else if (kind === "check") a = { kind:"check" };
     else if (kind === "call") a = { kind:"call" };
     else if (kind === "allin") a = { kind:"allin" };
     else {
       var target = Math.min(raiseVal, s.bet + s.stack);
       a = { kind:"raise", amt: Math.max(G.highBet + G.minRaise, target) };
     }
+    // 下注确认音效：仅在真正投入筹码时触发（过牌 / 弃牌不响）
+    var commits = (a.kind === "raise" || a.kind === "allin") || (a.kind === "call" && G.highBet > s.bet);
+    if (commits){ try{ playSfx("chip", 2); }catch(e){} }
     doAction(heroIdx(), a);
   }
   async function afterAction(){
@@ -1559,23 +1774,52 @@
   async function advanceStreet(){
     if (G.phase === "river"){ await settle(); return; }
     var n = (G.phase === "preflop") ? 3 : 1;
-    var dealt = await dealCards(n);
+    var dealt;
+    try { dealt = await dealCards(n); }
+    catch(e){                                        // 中途取随机失败：取消本手并退款，绝不本地随机补牌
+      G.dealErr = String(e && e.message || e);
+      logEvent("error", G.dealErr);
+      cancelHand(classifyError(e));
+      return;
+    }
     G.board = G.board.concat(dealt);
     G.phase = (G.phase === "preflop") ? "flop" : (G.phase === "flop" ? "turn" : "river");
     G.seats.forEach(function(s){ s.bet = 0; s.acted = false; });
     G.highBet = 0; G.minRaise = BLINDS.bb;
+    // 发牌音效：公共牌逐张翻开，翻转延迟与「唰」声共用同一时间轴（第 k 张 / 第 k 声）
+    var startIdx = G.board.length - dealt.length;
+    var boardEls = document.querySelectorAll(".board .bcard");
+    announceDeal(Array.prototype.slice.call(boardEls, startIdx, startIdx + dealt.length),
+                 dealt.length, DEAL_STEP_BOARD, true, 3);
     renderAll();
     if (G.seats.filter(canAct).length === 0){ await advanceStreet(); return; }  // 全员all-in：直接推进到下一街
-    G.actor = firstInHandAfter(G.button);
+    var first = firstToActAfter(G.button);            // 跳过 all-in / 已弃牌，避免把行动权交给无法行动的座位
+    if (first < 0){ await advanceStreet(); return; }  // 双保险：无可行动者则继续跑牌
+    G.actor = first;
   }
   function scheduleActor(){
     if (G.phase === "showdown") return;               // 摊牌后由 scheduleReDeal 接管，不再排程
     var s = G.seats[G.actor];
-    if (!s || !canAct(s)) return;
+    if (!s || !canAct(s)){
+      // 兜底：当前行动位已无法行动（全下 / 破产 / 弃牌 / 续局快照残留）→ 自动跳到下一位；
+      // 若全场无人可行动，则推进到下一街直至摊牌，绝不原地卡死。
+      var nxt = nextCanAct(G.actor);
+      if (nxt >= 0){ G.actor = nxt; s = G.seats[nxt]; renderAll(); }
+      else {
+        Promise.resolve().then(function(){ return advanceActor(); })
+          .then(function(){ if (G.phase !== "showdown") scheduleActor(); })
+          .catch(function(){});
+        return;
+      }
+    }
     renderAll();
     if (s.hero){
       if (G.autoHero){ G.timer = setTimeout(function(){ aiAct(G.actor); }, 850); }
-      else { setHint("msg.youTurn", { v: fmt(Math.max(0, G.highBet - s.bet)) }, { keep:true, kind:"reset" }); }
+      else {
+        var needBet = Math.max(0, G.highBet - s.bet);
+        if (needBet > 0) setHint("msg.youTurn", { v: fmt(needBet) }, { keep:true, kind:"reset" });
+        else setHint("msg.youTurnCheck", null, { keep:true, kind:"reset" });
+      }
     } else {
       G.timer = setTimeout(function(){ aiAct(G.actor); }, 780 + Math.random()*620);
     }
@@ -1628,6 +1872,7 @@
   async function settle(){
     G.phase = "showdown"; G.busy = true; G.showdown = true;
     var cont = G.seats.filter(function(s){ return !s.folded; });
+    var cmp = null;                                   // 玩家与最强对手的牌型对比（仅摊牌时记录）
     G.seats.forEach(function(s){ s.won = false; });
     var awards = {}; G.seats.forEach(function(s){ awards[s.idx] = 0; });
     if (cont.length <= 1){
@@ -1640,6 +1885,17 @@
       awards = distributePots(cont, results);
       G.seats.forEach(function(s){ if (awards[s.idx] > 0){ s.stack += awards[s.idx]; if (s.hero){ credits += awards[s.idx]; saveCredits(); } s.won = true; } });
       G.pot = 0;
+      // 记录「玩家最佳牌型 vs 未弃牌对手中最强牌型」，供结算裁决条追加对比文案
+      if (cont.some(function(s){ return s.hero; })){
+        var hScore = results[heroIdx()];
+        var bestOpp = null;
+        cont.forEach(function(s){
+          if (s.hero) return;
+          var sc = results[s.idx];
+          if (sc && (!bestOpp || cmpScore(sc, bestOpp.sc) > 0)) bestOpp = { sc:sc, name:s.name };
+        });
+        if (hScore && bestOpp) cmp = { hero:hScore, opp:bestOpp.sc, oppName:bestOpp.name };
+      }
     }
     updatePeak();
     lsSet(LS.hand, lsNum(LS.hand,0) + 1);
@@ -1656,13 +1912,14 @@
     var heroIn = heroSeat ? (heroSeat.total || 0) : 0;
     _lastResult = {
       wnames:wnames, total:total, heroNet:heroAward - heroIn, heroIn:heroIn,
-      uncontested:(cont.length <= 1), heroWon:!!(heroSeat && heroSeat.won), winnersCount:winnersCount
+      uncontested:(cont.length <= 1), heroWon:!!(heroSeat && heroSeat.won), winnersCount:winnersCount,
+      cmp:cmp
     };
     renderAll();
-    renderVerdict(_lastResult);
+    renderVerdict(_lastResult);                   // 弹出结算弹窗；持续显示，直到点击空白处 / 空格关闭
     if (credits < 1) handleBankrupt();
     G.busy = false;
-    scheduleReDeal();
+    // 不再自动续局：等玩家关闭结算弹窗后再发下一手（见 dismissVerdict）
     saveGame();                                  // 结算结果一并存档，刷新后仍能看到本局裁决
   }
   function scheduleReDeal(){
@@ -1672,6 +1929,27 @@
       if (G.paused){ return; }            // 暂停时挂起，待恢复后由 startHand 继续
       startHand();
     }, VERDICT_HOLD_MS);
+  }
+  /* 致命错误（两源皆不可用 / 数据异常）：取消本手，已投入筹码原额退回，绝不使用本地随机兜底
+     （与 21 点同一策略）。随后交给 scheduleReDeal 间隔重试；期间点「新的一局」可立即重试。 */
+  function cancelHand(hintKey){
+    G.seats.forEach(function(s){
+      var back = Math.max(0, s.total || 0);
+      if (back > 0){
+        s.stack += back;
+        if (s.hero){ credits += back; saveCredits(); s.stack = credits; }   // 退还全局钱包
+      }
+      s.bet = 0; s.total = 0; s.folded = false; s.allIn = false; s.acted = false; s.lastAct = ""; s.won = false; s.hole = [];
+    });
+    G.board = []; G.pot = 0; G.highBet = 0; G.minRaise = BLINDS.bb;
+    G.phase = "showdown"; G.showdown = false; G.busy = false; G.started = false;
+    G.dealErr = G.dealErr || (hintKey || "msg.srcFail");
+    _lastResult = null; renderVerdict(null);
+    try{ localStorage.removeItem(LS.state); }catch(e){}     // 本手作废，不落存档
+    setHint(hintKey || "msg.srcFail", null, { warn:true, keep:true, kind:"cancel" });
+    logEvent("cancel", hintKey || "msg.srcFail");
+    renderAll();
+    scheduleReDeal();
   }
 
   /* =====================================================================
@@ -1761,7 +2039,7 @@
     try {
       if (!isFinite(credits)) { credits = START_CREDITS; saveCredits(); }  // 兜底：钱包数值异常时复位
       _lastResult = null; renderVerdict(null);                              // 新一局：收起上局结算裁决
-      G.showdown = false; G.handNo += 1;
+      G.showdown = false;
       G.deck = FULL_DECK.slice();
       G.seats.forEach(function(s){
         s.hole = []; s.bet = 0; s.total = 0; s.folded = false; s.allIn = false; s.acted = false; s.lastAct = ""; s.won = false;
@@ -1769,25 +2047,28 @@
         else if (!isFinite(s.stack) || s.stack <= 0) s.stack = START_NPC;  // NPC 破产/异常则补充桌币，保持满员
       });
       G.board = []; G.pot = 0; G.highBet = 0; G.minRaise = BLINDS.bb; G.dealErr = null;
+      var hole = await dealCards(12);                  // 先取牌：失败则本手不推进（handNo / 按钮位不变）
+      G.handNo += 1;
       G.button = (G.handNo === 1) ? 0 : (G.button + 1) % 6;
-      var hole = await dealCards(12);
       for (var i=0;i<6;i++) G.seats[i].hole = [hole[i*2], hole[i*2+1]];
       var sb = (G.button+1)%6, bb = (G.button+2)%6;
       postBlind(G.seats[sb], BLINDS.sb);
       postBlind(G.seats[bb], BLINDS.bb);
       G.highBet = BLINDS.bb; G.minRaise = BLINDS.bb;
       G.phase = "preflop";
-      G.actor = nextCanAct(bb);
-      if (G.actor < 0) G.actor = firstInHandAfter(G.button);
+      G.actor = nextCanAct(bb);            // 无人可行动（-1）时交给 scheduleActor 兜底推进
+      // 先把底牌渲染到位（牌已发到手），再在同一节点发出短促 riffle——
+      // 不再把 12 张底牌的声响拖成 ~1.4s 的长尾而溢出到行动轮（此前的时机 bug）。
       renderAll();
+      announceDeal(null, 4, DEAL_STEP_HOLE, false, 4);
       setHint("msg.newHand", { d: G.seats[G.button].name }, { keep:true, kind:"reset" });
       G.busy = false; G.started = true;
       scheduleActor();
       saveGame();                                   // 发牌完成即存档，刷新可接回这一手
     } catch(e){
-      G.busy = false; G.dealErr = String(e && e.message || e);
-      setHint(classifyError(e), null, { warn:true, kind:"error" });
+      G.dealErr = String(e && e.message || e);
       logEvent("error", G.dealErr);
+      cancelHand(classifyError(e));             // 取消本手、退还筹码、稍后重试；绝不用本地随机
     }
   }
 
@@ -1828,18 +2109,29 @@
       el.classList.toggle("allin", s.allIn);
       el.classList.toggle("win", !!s.won);
       // 顶部徽章按真实按钮位显示 D / SB / BB，其余显示 —（英雄座位保留 YOU 不覆盖）
-      var bg = s.hero ? null : el.querySelector(".seat-head .badge");
-      if (bg){
-        var lbl = (G.button === s.idx) ? tt("seat.dealer") : (s.idx === sbIdx ? "SB" : (s.idx === bbIdx ? "BB" : "—"));
-        if (bg.textContent !== lbl) bg.textContent = lbl;
-        bg.classList.toggle("none", lbl === "—");
+      if (s.hero){
+        // 英雄座位徽章固定为 YOU：大小盲改用昵称后的独立小圆片标注（D 仍走 .dbtn）
+        var hb = el.querySelector("#heroBlind");
+        if (hb){
+          var hl = (s.idx === sbIdx) ? "SB" : (s.idx === bbIdx ? "BB" : "");
+          if (hb.textContent !== hl) hb.textContent = hl;
+          hb.className = "hblind" + (hl ? (" show " + hl.toLowerCase()) : "");
+          hb.title = hl === "SB" ? "小盲 / Small Blind" : (hl === "BB" ? "大盲 / Big Blind" : "");
+        }
+      } else {
+        var bg = el.querySelector(".seat-head .badge");
+        if (bg){
+          var lbl = (G.button === s.idx) ? tt("seat.dealer") : (s.idx === sbIdx ? "SB" : (s.idx === bbIdx ? "BB" : "—"));
+          if (bg.textContent !== lbl) bg.textContent = lbl;
+          bg.classList.toggle("none", lbl === "—");
+        }
       }
       var stackEl = s.hero ? document.getElementById("heroStack") : el.querySelector(".stack");
-      if (stackEl) stackEl.textContent = fmt(s.stack);
+      if (stackEl) stackEl.innerHTML = fmt(s.stack);
       var betEl = s.hero ? document.getElementById("heroBetIn") : el.querySelector(".bet-in");
-      if (betEl) betEl.textContent = s.bet > 0 ? fmt(s.bet) : "";
+      if (betEl) betEl.innerHTML = s.bet > 0 ? fmt(s.bet) : "";
       var actEl = s.hero ? null : el.querySelector(".act");
-      if (actEl) actEl.textContent = actLabel(s);
+      if (actEl) actEl.innerHTML = actLabel(s);
       var cards = s.hero ? document.querySelectorAll(".hero-cards .bcard") : el.querySelectorAll(".seat-cards .bcard");
       for (var i=0;i<cards.length;i++){
         var front = cards[i].querySelector(".bf.front img");
@@ -1868,16 +2160,15 @@
   function renderVerdict(res){
     if (!verdictEl) return;
     if (!res){
-      verdictEl.hidden = true; verdictEl.className = "verdict";
-      if (vtEl) vtEl.textContent = "";
-      if (vwinEl){ vwinEl.className = "vwin"; vwinEl.textContent = ""; }
+      // 关闭弹窗：只撤掉 .show 让遮罩与文字一起淡出（不立刻清空文字，避免淡出时变空白）
+      _verdictOpen = false;
+      if (verdictOverlay) verdictOverlay.classList.remove("show");
       return;
     }
     // 弃牌且未投入任何筹码 → 净盈亏 0 且本局未参与：走中性灰，不套用"平局"金色
     var idle = !res.heroWon && res.heroNet === 0 && !(res.heroIn > 0);
     var tone = idle ? " idle" : (res.heroNet > 0 ? " win" : (res.heroNet < 0 ? " lose" : " push"));
     // 复位 → 强制重排 → 套用完整类名：确保每次结算的入场动画都从头播一遍
-    verdictEl.hidden = false;
     verdictEl.className = "verdict";
     void verdictEl.offsetWidth;
     verdictEl.className = "verdict show" + tone;
@@ -1893,8 +2184,31 @@
     else if (res.heroNet > 0){ vcls += " show"; vtxt = tt("vd.win", { n: fmt(res.heroNet) }); }
     else if (res.heroNet < 0){ vcls += " show lose"; vtxt = tt("vd.lose", { n: fmt(-res.heroNet) }); }
     else if (res.heroIn > 0){ vcls += " show push"; vtxt = tt("vd.push", { n: fmt(res.heroIn) }); }
-    if (vwinEl){ vwinEl.className = vcls; vwinEl.textContent = vtxt; }
+    if (vwinEl){ vwinEl.className = vcls; vwinEl.innerHTML = vtxt; }
+    if (vcmpEl){
+      // 仅在真实摊牌（玩家未弃牌、且有对手牌型可比）时追加对比；其余情况保持原裁决条不变
+      var ctxt = (res.cmp && res.cmp.hero && res.cmp.opp) ? handComparePhrase(res.cmp) : "";
+      vcmpEl.className = ctxt ? "vcmp show" : "vcmp";
+      vcmpEl.textContent = ctxt;
+    }
+    _verdictOpen = true;
+    if (verdictOverlay) verdictOverlay.classList.add("show");
   }
+  /* 关闭结算弹窗：淡出后，若仍停留在摊牌阶段，则接着发下一手；暂停时不发 */
+  function dismissVerdict(){
+    if (!_verdictOpen) return;
+    renderVerdict(null);
+    if (G.phase === "showdown" && !G.paused){
+      setTimeout(function(){ if (G.phase === "showdown" && !G.paused && !_verdictOpen) startHand(); }, 340);
+    }
+  }
+  if (verdictOverlay){
+    verdictOverlay.addEventListener("click", function(e){ if (e.target === verdictOverlay) dismissVerdict(); });
+  }
+  document.addEventListener("keydown", function(e){
+    if (!_verdictOpen) return;
+    if (e.code === "Space" || e.key === " " || e.key === "Spacebar"){ e.preventDefault(); dismissVerdict(); }
+  });
   /* 玩家当前牌型：翻牌前给起手牌说明，翻牌后按实际张数（5/6/7）实时评估；
      弃牌后显示"已弃牌"，避免看起来仍在本局争夺。 */
   function heroHandText(){
@@ -1916,17 +2230,20 @@
     } catch(e){ return tt("hand.rank"); }
   }
   function renderHUD(){
-    document.getElementById("mPot").textContent = fmt(G.pot);
-    document.getElementById("mBet").textContent = fmt(G.seats[heroIdx()].total);
+    document.getElementById("mPot").innerHTML = fmt(G.pot);
+    // 牌桌中央「底 池 · POT」下方的大数字：与顶栏底池同源，实时同步 G.pot
+    var potValEl = document.getElementById("potVal");
+    if (potValEl) potValEl.innerHTML = fmt(G.pot);
+    document.getElementById("mBet").innerHTML = fmt(G.seats[heroIdx()].total);
     document.getElementById("mBlinds").textContent = BLINDS.sb + " / " + BLINDS.bb;
-    document.getElementById("mCredits").textContent = fmt(credits);
+    document.getElementById("mCredits").innerHTML = fmt(credits);
     var toCallEl = document.getElementById("toCall");
     var needBet = Math.max(0, G.highBet - G.seats[heroIdx()].bet);
-    if (toCallEl) toCallEl.textContent = needBet > 0
+    if (toCallEl) toCallEl.innerHTML = needBet > 0
       ? tt("hud.toCall", { v: fmt(needBet) })
       : tt("hud.noCall");
     var sub = document.getElementById("potSub");
-    if (sub) sub.textContent = tt("hud.potSub", { p: fmt(G.pot), h: fmt(G.highBet) });
+    if (sub) sub.innerHTML = tt("hud.potSub", { p: fmt(G.pot), h: fmt(G.highBet) });
     var hr = document.getElementById("handRank");
     if (hr) hr.textContent = heroHandText();
     var hsub = document.getElementById("heroSub");
@@ -1938,10 +2255,18 @@
     var need = Math.max(0, G.highBet - hero.bet);
     if (G.phase === "showdown"){
       document.getElementById("actFold").textContent = tt("act.new");
-      actCall.disabled = true; document.getElementById("actRaise").disabled = true;
+      actCheck.hidden = true;
+      actCall.hidden = true; actCall.disabled = true;
+      document.getElementById("actRaise").disabled = true;
       document.getElementById("actAllin").disabled = true; document.getElementById("actFold").disabled = false;
     } else {
       document.getElementById("actFold").textContent = tt("act.fold");
+      // 无需跟注（need=0）→ 显示「过牌」并隐藏「跟注」；面对下注则相反。
+      // 二者互斥，符合无限德州玩法：有人下注只能跟 / 加 / 弃，无人下注才能过牌。
+      var canCheck = (need === 0);
+      actCheck.hidden = !canCheck;
+      actCall.hidden = canCheck;
+      actCheck.disabled = !heroToAct;
       actCall.innerHTML = tt("act.call") + " <b>" + fmt(need) + "</b>";
       actCall.disabled = !heroToAct || need > hero.stack;
       document.getElementById("actRaise").disabled = !heroToAct || hero.stack <= 0;
@@ -1949,15 +2274,15 @@
       document.getElementById("actFold").disabled = !heroToAct;
     }
     raiseVal = Math.min(Math.max(raiseVal, G.highBet + G.minRaise), Math.max(G.highBet + G.minRaise, hero.stack));
-    raiseValEl.textContent = fmt(raiseVal);
-    btnRaiseValEl.textContent = fmt(raiseVal);
+    raiseValEl.innerHTML = fmt(raiseVal);
+    btnRaiseValEl.innerHTML = fmtNum(raiseVal);   // 加注按钮只显示数值，不带绿色 $ 符号
   }
   function renderAll(){
     renderHUD(); renderBoard(); renderSeats(); renderControls();
     renderCard(); renderSrcSel(); renderBusy(); renderSrc();
   }
   function renderBusy(){
-    ["actFold","actCall","actRaise","actAllin"].forEach(function(id){
+    ["actFold","actCheck","actCall","actRaise","actAllin"].forEach(function(id){
       var b = document.getElementById(id); if (b) b.disabled = !!G.busy || (G.phase === "showdown" && id !== "actFold");
     });
   }
@@ -2061,6 +2386,7 @@
   });
   document.getElementById("actFold").addEventListener("click", function(e){ humanAct(G.phase === "showdown" ? "new" : "fold"); });
   actCall.addEventListener("click", function(e){ humanAct("call"); });
+  document.getElementById("actCheck").addEventListener("click", function(e){ humanAct("check"); });
   document.getElementById("actRaise").addEventListener("click", function(e){ humanAct("raise"); });
   document.getElementById("actAllin").addEventListener("click", function(e){ humanAct("allin"); });
 
@@ -2089,7 +2415,7 @@
     });
     document.title = tt("doc.title");
     renderSrc(); renderAll();
-    renderVerdict(_lastResult);                  // 切语言时按新语言重绘结算裁决
+    if (_verdictOpen) renderVerdict(_lastResult); // 仅当弹窗仍开着时，按新语言重绘结算裁决
     setHint(_hintKey, _hintVars, { keep:true, kind:"language" });
     langBtn.textContent = (lang === "zh") ? "EN" : "中";
     try{ localStorage.setItem("slot_lang", lang); }catch(e){}
@@ -2154,12 +2480,13 @@
   detectSrc();
   try { bootGame(); }       // 有存档则接回当前这手（不重新发牌），无存档才发第一手
   finally {
-    // 首帧渲染完成后才开放过渡与亮牌：刷新是"接回"现有牌局，不该再播一遍翻牌动画（那就是肉眼看到的闪烁）
-    (function releaseBoot(){
-      function release(){ try{ document.documentElement.classList.remove("booting"); }catch(e){} }
-      setTimeout(release, 0);      // 与首帧合并：牌面/过渡一起在第一次绘制时定格，不再二次重绘
-      setTimeout(release, 600);    // 兜底：极端情况下也不让牌一直藏着
-    })();
+    // 刷新是"接回"现有牌局：牌已在 bootGame() 里按存档直接绘成最终状态、全程不隐藏，
+    // 浏览器从旧页面切到新文档首帧时看到的就是同一副牌，不会出现空桌。
+    // 这里只需在首帧后解除 .booting —— 恢复翻牌过渡供后续真正发牌使用。
+    // （接回时 up 是在 .booting 期间瞬时应用的，故解除过渡不会重播整桌翻转。）
+    setTimeout(function(){
+      try{ document.documentElement.classList.remove("booting"); }catch(e){}
+    }, 0);
   }
 })();
 </script>
