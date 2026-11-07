@@ -25,8 +25,8 @@ This project now includes **five games**, all driven by the same STM32H743 physi
 
 - **Slot machine (`slot_machine.html`)**: 5 reels × 3 visible rows per spin (top / middle / bottom), 9 paylines total, with `wild` and `scatter`; reels, payout, scoring, and rendering all run on the host.
 - **Baccarat (`baccarat.html`)**: shares the same random chain and the same wallet with this project, also driven by H743 physical entropy.
-- **Sic Bo (`dice.html`)**: three dice per round, settled with **payouts used in real casinos** — Big / Small / Odd / Even 1 : 1; single-number bets 1–6 pay "k occurrences, k times the stake" (1 : 1 / 2 : 1 / 3 : 1, and 3 : 1 when the triple matches the chosen number); triple (any) 1 : 30; total bets sum 4 / sum 17 = 50 : 1, sum 5 / sum 16 = 30 : 1. Shares the same wallet with the other games.
-- **Blackjack (`blackjack.html`)**: 6-deck shoe, dealer stands on all 17s (S17), player natural blackjack pays 3 : 2, insurance available (2 : 1), splitting allowed (pairs judged by card value so 10 / J / Q / K can mix, up to 4 hands, one card only after splitting aces), doubling available; the core rules (hand value, blackjack / pair detection, dealer drawing) live in a single implementation at `tools/verify/bj_engine.js` with engine unit tests. Shares the same wallet with the other games.
+- **Sic Bo (`dice.html`)**: three dice per round, sharing the same random chain and the same wallet as the other games.
+- **Blackjack (`blackjack.html`)**: shares the same random chain and the same wallet as the other games, also driven by H743 physical entropy.
 - **Texas Hold'em (`texas_holdem.html`)**: a fifth game category added to this project, sharing the same H743 random chain and the same wallet as the other games.
 
 The only difference between the five games is "how they consume the random bytes" (reel distribution / payout table / dealing rules); **the true-random source only decides "where the next outcome lands / which card is dealt", while the long-term probability is determined by the game rules and is independent of the random source**.
