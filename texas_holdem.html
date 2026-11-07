@@ -121,10 +121,6 @@
     box-shadow:0 24px 60px rgba(0,0,0,.62), inset 0 1px 0 rgba(255,255,255,.05),
       inset 0 0 70px rgba(0,0,0,.62);
   }
-  .table::before{
-    content:"";position:absolute;inset:12px;border-radius:inherit;pointer-events:none;
-    border:1px dashed rgba(245,197,66,.16);
-  }
   .table::after{
     content:"";position:absolute;left:50%;top:12%;width:64%;height:76%;
     transform:translateX(-50%);border-radius:50%;pointer-events:none;
@@ -258,14 +254,14 @@
     padding:16px;background:rgba(6,4,12,.66);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
     opacity:0;pointer-events:none;transition:opacity .34s ease;}
   .verdict-overlay.show{opacity:1;pointer-events:auto;}
-  .verdict{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;
-    width:min(520px,88vw);min-width:0;padding:clamp(18px,5vw,28px) clamp(20px,6vw,36px);border-radius:20px;
+  .verdict{position:relative;display:flex;flex-direction:column;align-items:center;gap:11px;
+    width:min(660px,94vw);min-width:0;max-height:92vh;overflow:auto;
+    padding:clamp(20px,5vw,30px) clamp(22px,6vw,40px);border-radius:20px;
     background:linear-gradient(160deg,rgba(43,26,66,.98),rgba(13,8,20,.99));
     border:1px solid rgba(245,197,66,.34);
     box-shadow:0 34px 90px rgba(0,0,0,.72), inset 0 1px 0 rgba(255,255,255,.08);
     transform:scale(.94);transition:transform .34s cubic-bezier(.22,.9,.28,1);}
   .verdict-overlay.show .verdict{transform:none;}
-  .verdict .verdict-hint{margin-top:4px;font-size:11px;letter-spacing:.6px;color:#8a7fa0;}
   /* 结算文字转场：整体淡入 + 轻微下落，标题先出（延迟 .12s），金额后出（延迟 .42s），
      全段约 1.1s 完成，给玩家留足阅读时间 */
   @keyframes vdIn{
@@ -296,6 +292,32 @@
     opacity:0;transform:translateY(5px);
     transition:opacity .6s ease .72s,transform .6s cubic-bezier(.22,.9,.28,1) .72s;}
   .verdict.show .vcmp{opacity:1;transform:none;}
+  /* 结算牌型（播报对象）：在赢/输/平裁决下方，以金色高亮展示当前牌型等级 */
+  .verdict .vhand{font-size:14px;font-weight:900;letter-spacing:1px;color:#f5c542;
+    text-shadow:0 0 12px rgba(245,197,66,.5);opacity:0;transform:translateY(5px) scale(.95);
+    transition:opacity .6s ease .62s,transform .6s cubic-bezier(.22,.9,.28,1) .62s;}
+  .verdict.show .vhand{opacity:1;transform:none;}
+  /* 结算弹窗内的「新的一局」主操作按钮：金底 CTA，与桌面「新的一局」语义一致 */
+  .verdict .verdict-start{margin-top:10px;padding:11px 26px;border:none;border-radius:12px;cursor:pointer;
+    font-family:var(--font,system-ui);font-size:15px;font-weight:900;letter-spacing:2px;color:#2a1606;
+    background:linear-gradient(160deg,#ffe39a,#f5c542);box-shadow:0 10px 26px rgba(245,197,66,.34),inset 0 1px 0 rgba(255,255,255,.6);
+    transition:transform .15s ease,box-shadow .2s ease;}
+  .verdict .verdict-start:hover{transform:translateY(-1px);box-shadow:0 14px 32px rgba(245,197,66,.46),inset 0 1px 0 rgba(255,255,255,.6);}
+  .verdict .verdict-start:active{transform:translateY(1px);}
+  .verdict .verdict-start:focus-visible{outline:2px solid #fff;outline-offset:2px;}
+  /* 结算弹窗内的牌型对比实体牌：在原有文字/按钮之间以独立行插入，绝不覆盖或挤压既有元素 */
+  .verdict .vcards{display:flex;flex-direction:column;gap:9px;margin:1px 0;width:100%;max-width:100%;}
+  .verdict .vrow{display:flex;flex-direction:column;align-items:center;gap:4px;width:100%;}
+  .verdict .vrow-label{font-size:12px;font-weight:900;letter-spacing:.6px;color:#cbb8e6;
+    min-width:0;text-align:center;flex:0 0 auto;}
+  .verdict .vrow-cards{display:flex;gap:5px;flex:0 0 auto;}
+  .verdict .vcard{position:relative;width:clamp(38px,9vw,50px);aspect-ratio:5/7;border-radius:7px;
+    background:#fdfcf7;color:#16121f;box-shadow:0 5px 12px rgba(0,0,0,.5);
+    border:1px solid rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;
+    font-family:var(--font,system-ui);}
+  .verdict .vcard.red{color:#d12b2b;}
+  .verdict .vcard .r{position:absolute;top:3px;left:5px;font-size:12px;font-weight:900;line-height:1;}
+  .verdict .vcard .s{font-size:23px;line-height:1;font-weight:900;}
 
   /* ---------------- 底部英雄座位 ---------------- */
   .seat.hero{grid-column:1 / -1;flex-direction:row;justify-content:space-between;
@@ -798,7 +820,7 @@
     <p>座位徽章实时显示当前标识：<b>D</b> = 庄家按钮、<b>SB</b> = 小盲、<b>BB</b> = 大盲，其余为「—」；你的位置在昵称旁以小圆片显示当前是 D / SB / BB。</p>
 
     <h3>三、发牌与四轮下注</h3>
-    <p>发牌与老虎机 / 百家乐 / 21 点<b>共用同一条 H743 随机链</b>，做<b>无放回抽取</b>：每张牌按 <b>16 bit 拒绝采样</b>取一个均匀整数（消除取模偏差）后从剩余牌堆取走一张，全程<b>不使用浏览器随机数</b>；若两源皆不可用，则<b>取消本手</b>并把已投入筹码<b>原额退回</b>，<b>绝不使用本地随机兜底</b>。先后进行：</p>
+    <p>发牌与老虎机 / 百家乐 / 21 点<b>共用同一条 H743 随机链</b>，做<b>无放回抽取</b>：每张牌按 <b>16 bit 拒绝采样</b>取一个均匀整数（消除取模偏差）后从剩余牌堆取走一张，全程<b>不使用浏览器随机数</b>；若两源皆不可用，则<b>取消本手</b>并把已投入筹码<b>原额退回</b>，<b>绝不使用本地随机兜底</b>。此处「不使用浏览器随机数」专指<b>牌序</b>：AI 对手的策略选择与行动节奏延时所用的本地随机数只影响决策与出牌快慢，<b>不参与发牌、不改变牌序</b>。先后进行：</p>
     <ul>
       <li><b>翻牌前（Preflop）</b>：每人发 2 张底牌（SB / BB 已先投盲注）→ 开始第一轮下注；<b>大盲在翻牌前最后行动</b>，若此前无人加注，可选择过牌或加注。</li>
       <li><b>翻牌（Flop）</b>：一次性翻开 3 张公共牌 → 第二轮下注。</li>
@@ -831,9 +853,9 @@
     <p>本页接入 <b>H743 随机链</b>（<b>在线 8765–8784 · 串口直供</b>片上 TRNG；<b>离线 8770 · 熵快照 + DRBG</b>：以芯片采到的 <b>4096 B</b> 物理熵为种子喂 <b>ChaCha20 DRBG</b>，默认、不占串口；发牌按 16 bit 拒绝采样无放回抽取）与<b>全局钱包</b>（<b>slot_credits / slot_card / slot_broke / slot_profit</b>）；牌面沿用 <b>assets/cards/</b> 下 CC0 图片。底池、本局已投与五位电脑座位的筹码属<b>牌局内演示数据</b>，不写入全局钱包；<b>你的筹码即全局钱包余额</b>，只有你真实下注与结算派彩才改动 <b>slot_credits</b>，并经 <b>storage</b> 事件与老虎机 / 百家乐 / 骰宝 / 21 点四页同步。战绩单独存 <b>holdem_*</b>。</p>
 
     <h3>八、对手 AI 与状态反馈</h3>
-    <p>轮到 AI 对手时，会按其真实策略自动执行（依据牌力与底池赔率决定跟注 / 加注 / 弃牌 / 过牌 / 全下）；<b>你（HERO）始终手动决策</b>——轮到你时牌局暂停并高亮可用按钮（弃牌 / 过牌 / 跟注 / 加注 / 全下；<b>无需跟注时显示「过牌」、需要跟注时显示「跟注」</b>，二者互斥），由你点选后牌局才继续。一局结束后弹出<b>结算弹窗</b>，点击空白处或按空格关闭后<b>自动发下一手</b>，整桌持续运行。摊牌时弹出<b>结算弹窗</b>（赢=绿 / 输=红 / 平=金，与百家乐、21 点同一套视觉），显示谁赢得底池及你的净盈亏，持续显示直到点击空白处或按空格关闭。状态行显示接入源（在线 / 离线 / 端口）、检测中、不可用，以及钱包与卡内余额；异常（取数失败、数据异常、状态冲突、积分不足、破产补给）一律在扣款前拦截，失败不改动全局钱包，两源皆不可用则取消本次操作。</p>
+    <p>轮到 AI 对手时，会按其真实策略自动执行（依据牌力与底池赔率决定跟注 / 加注 / 弃牌 / 过牌 / 全下）；<b>你（HERO）始终手动决策</b>——轮到你时牌局暂停并高亮可用按钮（弃牌 / 过牌 / 跟注 / 加注 / 全下；<b>无需跟注时显示「过牌」、需要跟注时显示「跟注」</b>，二者互斥），由你点选后牌局才继续。一局结束后弹出<b>结算弹窗</b>（赢=绿 / 输=红 / 平=金，与百家乐、21 点同一套视觉），显示谁赢得底池、你的净盈亏与牌型对比，持续显示直到点击空白处或按空格关闭；<b>关闭仅收起弹窗</b>，桌面结算牌保持可见供查看，点「新的一局」才开始下一手，<b>不会自动续局</b>。状态行显示接入源（在线 / 离线 / 端口）、检测中、不可用，以及钱包与卡内余额；异常（取数失败、数据异常、状态冲突、积分不足、破产补给）一律在扣款前拦截，失败不改动全局钱包，两源皆不可用则取消本次操作。</p>
 
-    <p class="note">刷新页面会<b>接回进行中的这一手</b>：牌面、底池、各座筹码与行动位原样恢复，<b>不会重复发牌</b>；若刷新时恰在摊牌阶段，则重新弹出本局结算弹窗，关闭后再发牌。提示：你的筹码即全局钱包余额，下注与派彩实时同步；HERO 破产时若卡内仍有余额可先充值，否则自动补给并入破产计数。</p>
+    <p class="note">刷新页面会<b>接回进行中的这一手</b>：牌面、底池、各座筹码与行动位原样恢复，<b>不会重复发牌</b>；若刷新时恰在摊牌阶段，则重新弹出本局结算弹窗，关闭后桌面结算牌仍保持可见，点「新的一局」才开始下一手。提示：你的筹码即全局钱包余额，下注与派彩实时同步；HERO 破产时若卡内仍有余额须先取出（此时不会发牌），否则自动补给并入破产计数。</p>
   </details>
     </div><!-- /center-col -->
 
@@ -851,9 +873,11 @@
 <div class="verdict-overlay" id="verdictOverlay" role="dialog" aria-modal="true" aria-labelledby="vt" aria-live="polite">
   <div class="verdict" id="verdict">
     <span class="vt" id="vt"></span>
+    <span class="vhand" id="vhand"></span>
     <span class="vwin" id="vwin"></span>
     <span class="vcmp" id="vcmp"></span>
-    <span class="verdict-hint" data-i18n="vd.hint">点击空白处或按空格关闭</span>
+    <div class="vcards" id="vcards" aria-label="牌型对比用牌"></div>
+    <button class="verdict-start" type="button" id="verdictStart" data-i18n="vd.start">新的一局</button>
   </div>
 </div>
 
@@ -914,7 +938,7 @@
       "rules.demo.p":"本页接入 <b>H743 熵源桥</b>（在线 8765–8784 / 离线 8770，16bit 拒绝采样无放回发牌）与<b>全局钱包</b>（<b>slot_credits / slot_card / slot_broke / slot_profit</b>）。牌面沿用 <b>assets/cards/</b> 下的 CC0 图片。底池、本局已投与六座位筹码属于<b>牌局内演示数据</b>，不写入全局钱包；只有玩家真实下注与结算派彩才改动 <b>slot_credits</b>，并经 <b>storage</b> 事件与老虎机 / 百家乐 / 骰宝 / 21 点四页同步。本页战绩单独存 <b>holdem_*</b>，不写其它页的战绩键。",
       "rules.state":"状态反馈与异常处理",
       "rules.state.p":"状态行显示<b>接入成功</b>（在线 / 离线源与端口）、<b>检测中</b>、<b>不可用</b>及钱包与卡内余额；下注区提示行反馈<b>取数失败</b>（自动切另一源）、<b>数据异常</b>（短字节 / 偏置 / 非法牌码 / 非法存档）、<b>状态冲突</b>（并发操作或跨页余额变化）、<b>积分不足</b>与破产补给。所有异常都在扣款前拦截，失败一律不改动全局钱包；两源皆不可用时取消本次操作。",
-      "rules.note":"提示：默认仍展示已审核的翻牌圈示例快照；操作结果会真实写入全局钱包，本局结束后点「新的一局」恢复示例状态。",
+      "rules.note":"提示：刷新会接回进行中的这一手；操作结果真实写入全局钱包，结算弹窗关闭后桌面牌面保持可见，点「新的一局」才开始下一手。",
       "bc.title":"银行卡","bc.label":"卡内积分","bc.dep":"存入 ▲","bc.wd":"取出 ▼","bc.all":"全部",
       "bc.amtPh":"自定义",
       "bc.walletTitle":"全局钱包",
@@ -923,7 +947,7 @@
       "seat.dealer":"D",
       "phase.preflop":"盲注行动 · PREFLOP","phase.flop":"翻牌圈 · FLOP","phase.turn":"转牌圈 · TURN","phase.river":"河牌圈 · RIVER","phase.showdown":"摊牌 · SHOWDOWN",
       "act.check":"过牌","act.called":"跟注 {v}","act.raised":"加注至 {v}","act.allin":"全下 {v}","act.folded":"弃牌","act.bet":"下注 {v}",
-      "vd.youWin":"你赢得底池","vd.youWinUncontested":"其余弃牌 · 你收下底池","vd.otherWin":"{w} 赢得底池","vd.splitHero":"你平分底池","vd.splitOther":"{w} 平分底池","vd.win":"+{n}","vd.lose":"−{n}","vd.push":"退还 {n}","vd.idle":"本局未参与","vd.idleWin":"{w} 赢得 {n}","vd.continue":"本局结束 · 点「新的一局」继续","vd.hint":"点击空白处或按空格关闭",
+      "vd.youWin":"你赢得底池","vd.youWinUncontested":"其余弃牌 · 你收下底池","vd.otherWin":"{w} 赢得底池","vd.splitHero":"你平分底池","vd.splitOther":"{w} 平分底池","vd.win":"+{n}","vd.lose":"−{n}","vd.push":"退还 {n}","vd.idle":"本局未参与","vd.idleWin":"{w} 赢得 {n}","vd.handHero":"你的牌型：{h}","vd.handWinner":"赢家牌型：{h}","vd.you":"你","vd.start":"新的一局","vd.continue":"本局结束 · 点「新的一局」继续","vd.noCards":"本手提前结束 · 未摊牌，无最佳五张可展示",
       "btn.pause":"暂停",
       "msg.youTurn":"轮到你行动 · 跟注 <b>{v}</b> 或加注",
       "msg.youTurnCheck":"轮到你行动 · 过牌或加注",
@@ -980,7 +1004,7 @@
       "rules.demo.p":"This page uses the <b>H743 entropy bridges</b> (online 8765–8784 / offline 8770, 16-bit rejection sampling, draws without replacement) and the <b>shared wallet</b> (<b>slot_credits / slot_card / slot_broke / slot_profit</b>). Card faces reuse the CC0 images under <b>assets/cards/</b>. The pot, invested amount and six seat stacks are <b>in-hand demo data</b> and never enter the shared wallet; only real bets and settlement payouts change <b>slot_credits</b>, synced via the <b>storage</b> event with Slots / Baccarat / Sic Bo / Blackjack. This page keeps its own <b>holdem_*</b> records and never writes other pages' stat keys.",
       "rules.state":"Status feedback & error handling",
       "rules.state.p":"The status line reports <b>successful connection</b> (online / offline source and port), <b>detecting</b>, <b>unavailable</b>, plus wallet and card balances. The betting hint reports <b>fetch failures</b> (automatic failover), <b>data errors</b> (short bytes / bias / illegal card codes / corrupt storage), <b>state conflicts</b> (concurrent actions or cross-page balance changes), <b>insufficient credits</b> and bankruptcy top-ups. Every failure is caught before any debit, so a failed action never changes the shared wallet; if both sources are down the action is cancelled.",
-      "rules.note":"Tip: the approved flop snapshot remains the default view; actions really write the shared wallet, and NEW HAND restores the demo state after the hand ends.",
+      "rules.note":"Tip: refreshing resumes the hand in progress; actions really write the shared wallet. Closing the verdict only hides the popup — the table cards stay visible — and NEW HAND starts the next hand.",
       "bc.title":"BANK CARD","bc.label":"ON CARD","bc.dep":"DEPOSIT ▲","bc.wd":"WITHDRAW ▼","bc.all":"ALL",
       "bc.amtPh":"custom",
       "bc.walletTitle":"SHARED WALLET",
@@ -989,7 +1013,7 @@
       "seat.dealer":"D",
       "phase.preflop":"PREFLOP","phase.flop":"FLOP","phase.turn":"TURN","phase.river":"RIVER","phase.showdown":"SHOWDOWN",
       "act.check":"CHECK","act.called":"CALL {v}","act.raised":"RAISE {v}","act.allin":"ALL-IN {v}","act.folded":"FOLD","act.bet":"BET {v}",
-      "vd.youWin":"You win the pot","vd.youWinUncontested":"Others folded · you take the pot","vd.otherWin":"{w} wins the pot","vd.splitHero":"You split the pot","vd.splitOther":"{w} split the pot","vd.win":"+{n}","vd.lose":"-{n}","vd.push":"PUSH {n}","vd.idle":"Hand not played","vd.idleWin":"{w} wins {n}","vd.continue":"Hand over · press NEW HAND to continue","vd.hint":"Click outside or press Space to close",
+      "vd.youWin":"You win the pot","vd.youWinUncontested":"Others folded · you take the pot","vd.otherWin":"{w} wins the pot","vd.splitHero":"You split the pot","vd.splitOther":"{w} split the pot","vd.win":"+{n}","vd.lose":"-{n}","vd.push":"PUSH {n}","vd.idle":"Hand not played","vd.idleWin":"{w} wins {n}","vd.handHero":"Your hand: {h}","vd.handWinner":"Winner's hand: {h}","vd.you":"You","vd.start":"NEW HAND","vd.continue":"Hand over · press NEW HAND to continue","vd.noCards":"Hand ended early · no showdown, no best five to display",
       "btn.pause":"PAUSE",
       "msg.youTurn":"Your turn · call <b>{v}</b> or raise",
       "msg.youTurnCheck":"Your turn · check or raise",
@@ -1134,6 +1158,19 @@
       var p = a.play(); if (p && p.catch) p.catch(function(){});
     }catch(e){}
   }
+  // 语音播报（Web Speech API）：结算时报告当前牌型；跟随静音（soundVol<=0 不播）
+  function speak(text){
+    try{
+      if (!text) return;
+      if (soundVol <= 0) return;                 // 静音时不播报
+      if (!("speechSynthesis" in window)) return;
+      window.speechSynthesis.cancel();           // 取消上一段未播完的，避免叠播
+      var u = new SpeechSynthesisUtterance(text);
+      u.lang = (curLang === "zh") ? "zh-CN" : "en-US";
+      u.rate = 1.02; u.pitch = 1.0; u.volume = 1.0;
+      window.speechSynthesis.speak(u);
+    }catch(e){}
+  }
   // 预取热门音效，避免首次下注 / 发牌时因取流而延迟发声
   (function preloadSfx(){
     try{
@@ -1206,11 +1243,13 @@
    *   状态冲突 CONFLICT:*→msg.conflict（并发点击 / 跨页余额变化 / 余额不足）；
    *   不可用 src.err→msg.noSrc、src.detecting→msg.srcBusy、破产→msg.topup / msg.cardOnly。
    *   任何异常都发生在扣款之前（先取熵并校验，再动钱包），失败一律不扣分。
+   * 随机边界：牌序只取自 H743 熵链（牌堆无放回抽取）；decide() 的策略随机与
+   *   scheduleActor() 的 NPC 行动延时用 Math.random，仅影响决策 / 节奏，不参与发牌。
    * ===================================================================== */
   var START_CREDITS = 20000;
   var LS = {
     credits:"slot_credits", card:"slot_card", broke:"slot_broke", peak:"slot_profit",
-    hand:"holdem_hand", won:"holdem_won", lost:"holdem_lost", hands:"holdem_hands",
+    hand:"holdem_hand", won:"holdem_won", lost:"holdem_lost",
     state:"holdem_state"
   };
   var WALLET_KEYS = [LS.credits, LS.card, LS.broke, LS.peak];
@@ -1263,6 +1302,7 @@
     var kb = lsNum(LS.broke, 0), kp = Math.max(0, lsNum(LS.peak, 0));
     if (kb > statBroke){ statBroke = kb; changed = true; }
     if (kp > statPeak){ statPeak = kp; changed = true; }
+    if (changed) syncHeroStack();                 // 跨页余额变化后，桌面英雄筹码同步跟着变
     return {changed:changed, bad:false};
   }
 
@@ -1275,11 +1315,12 @@
   var useOnline = true;
   var _mock = null;                                        // 仅测试钩子注入，正常流程恒为 null
   var srcState = { mode:"detecting", port:null, buffered:0 };
+  var _srcSeq = 0;                                          // 探测序号：源切换时只认最新一轮结果
 
-  function fetchWithTimeout(url, ms, asJson){
+  function fetchWithTimeout(url, ms, asJson, extCtrl){
     return new Promise(function(resolve, reject){
       var done = false;
-      var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+      var ctrl = extCtrl || ((typeof AbortController !== "undefined") ? new AbortController() : null);
       var timer = setTimeout(function(){
         if (done) return; done = true;
         if (ctrl){ try{ ctrl.abort(); }catch(e){} }
@@ -1301,24 +1342,42 @@
     if (_bridgeCache[wantMode] && !force) return Promise.resolve(_bridgeCache[wantMode]);
     if (!force && Date.now() - _bridgeMissAt[wantMode] < BRIDGE_MISS_COOLDOWN)
       return Promise.reject(new Error("SRC:cooldown"));
-    var jobs = TRNG_PORTS.map(function(port){
+    var ctrls = [];
+    var jobs = TRNG_PORTS.map(function(port, i){
       var base = "http://127.0.0.1:" + port;
-      return fetchWithTimeout(base + "/status", BRIDGE_TIMEOUT, true).then(function(j){
+      ctrls[i] = (typeof AbortController !== "undefined") ? new AbortController() : null;
+      return fetchWithTimeout(base + "/status", BRIDGE_TIMEOUT, true, ctrls[i]).then(function(j){
         if (j && typeof j.buffered === "number" && "reconnects" in j
             && (j.mode || "online") === wantMode) return { base:base, st:j, port:port };
         return null;
       }).catch(function(){ return null; });
     });
+    var abortOthers = function(keep){
+      for (var i=0;i<ctrls.length;i++){ if (i !== keep && ctrls[i]){ try{ ctrls[i].abort(); }catch(e){} } }
+    };
     return new Promise(function(resolve, reject){
       var settled = false, pending = jobs.length;
-      jobs.forEach(function(job){
+      jobs.forEach(function(job, i){
         job.then(function(hit){
           if (settled) return;
-          if (hit){ settled = true; _bridgeCache[wantMode] = hit; _bridgeMissAt[wantMode] = 0; resolve(hit); return; }
+          // 命中后中止其余端口的探测，避免多发请求 / 迟到响应互相覆盖缓存
+          if (hit){ settled = true; abortOthers(i); _bridgeCache[wantMode] = hit; _bridgeMissAt[wantMode] = 0; resolve(hit); return; }
           if (--pending === 0){ settled = true; _bridgeMissAt[wantMode] = Date.now(); reject(new Error("SRC:no bridge")); }
         });
       });
     });
+  }
+  /* 取数后刷新状态栏缓冲量：/rnd 只返回字节，真实 buffered 仍以 /status 为准。
+     非阻塞后台刷新，失败静默忽略，不拖慢发牌流程；测试钩子注入时不发真实请求。 */
+  function refreshBuffered(mode){
+    if (_mock || !_bridgeCache[mode]) return;
+    fetchWithTimeout(_bridgeCache[mode].base + "/status", BRIDGE_TIMEOUT, true).then(function(j){
+      if (j && typeof j.buffered === "number" && srcState.mode === mode
+          && srcState.buffered !== j.buffered){
+        srcState.buffered = j.buffered;
+        renderSrc();
+      }
+    }).catch(function(){});
   }
   function bridgeBytes(mode, n){
     mode = mode || "online";
@@ -1336,6 +1395,7 @@
         .then(function(ab){
           var u8 = new Uint8Array(ab);
           if (u8.length < n) throw new Error("DATA:short");
+          refreshBuffered(mode);
           return u8;
         });
     }
@@ -1388,12 +1448,14 @@
   }
 
   async function detectSrc(){
+    var seq = ++_srcSeq;                          // 记录本轮序号：快速切源时只认最新一轮
     srcState = { mode:"detecting", port:null, buffered:0 };
     renderSrc();
     var order = useOnline ? ["online", "offline"] : ["offline", "online"];
     for (var i = 0; i < order.length; i++){
       try{
         var hit = await probeBridge(order[i], true);
+        if (seq !== _srcSeq) return srcState.mode;   // 已被新一轮探测取代，丢弃本次结果
         _bridgeCache[order[i]] = hit;
         useOnline = (order[i] === "online");
         srcState = { mode:order[i], port:hit.port, buffered:(hit.st && hit.st.buffered) || 0 };
@@ -1402,6 +1464,7 @@
         return srcState.mode;
       }catch(e){ /* 试下一个源 */ }
     }
+    if (seq !== _srcSeq) return srcState.mode;       // 同上：不覆盖新一轮已写入的状态
     srcState = { mode:"err", port:null, buffered:0 };
     renderSrc();
     logEvent("src", "src.err");
@@ -1490,6 +1553,26 @@
     }
     return best;
   }
+  // 与 bestOf 同一套穷举逻辑，但额外返回组成最佳牌型的那 5 张原始牌码（字符串数组），
+  // 用于结算弹窗展示「玩家 / 对手各自的最佳五张牌」。无合法 5 张组合时返回 null。
+  function bestCards(codes){
+    var cs = [];
+    for (var k = 0; k < codes.length; k++){
+      if (!codes[k]) continue;
+      try { cs.push({ code:codes[k], c:parseCard(codes[k]) }); } catch(e){ /* 跳过非法牌码 */ }
+    }
+    var n = cs.length;
+    if (n < 5) return null;
+    var best = null, bestArr = null;
+    for (var mask = 0; mask < (1 << n); mask++){
+      var bits = 0, five = [];
+      for (var i = 0; i < n; i++) if (mask & (1 << i)){ bits++; five.push(cs[i]); }
+      if (bits !== 5) continue;
+      var s = eval5(five.map(function(x){ return x.c; }));
+      if (!best || cmpScore(s, best) > 0){ best = s; bestArr = five.map(function(x){ return x.code; }); }
+    }
+    return bestArr;
+  }
   function cardLabel(code){
     var sym = { S:"♠", H:"♥", C:"♣", D:"♦" };
     return code.slice(0, -1) + (sym[code.slice(-1)] || "?");
@@ -1563,16 +1646,10 @@
   }
 
   /* =====================================================================
-   * 牌局引擎：六人环桌 · 盲注 100/200 · 全自动发牌 / 回合推进 / 结算 / 重发
+   * 牌局引擎：六人环桌 · 盲注 100/200 · 全自动发牌 / 回合推进 / 结算
    *   - 每位座位（含 HERO）都有真实可行的策略：跟注 / 加注 / 弃牌 / 过牌 / 全下
    *   - 轮到对应座位时自动执行动作；HERO 默认自动，可切到手动接管
-   *   - 整局自动持续运行：初始发牌 → 各街下注 → 摊牌结算 → 自动重发
-   * ===================================================================== */
-  /* =====================================================================
-   * 牌局引擎：六人环桌 · 盲注 100/200 · 全自动发牌 / 回合推进 / 结算 / 重发
-   *   - 每位座位（含 HERO）都有真实可行的策略：跟注 / 加注 / 弃牌 / 过牌 / 全下
-   *   - 轮到对应座位时自动执行动作；HERO 默认自动，可切到手动接管
-   *   - 整局自动持续运行：初始发牌 → 各街下注 → 摊牌结算 → 自动重发
+   *   - 一手流程：初始发牌 → 各街下注 → 摊牌结算 → 玩家点「新的一局」才开始下一手
    * ===================================================================== */
   var H = { hole:[], board:[] };                       // 兼容上方 freshDeck 的占位（本引擎不再使用）
   var BLINDS = { sb:100, bb:200 };
@@ -1589,7 +1666,6 @@
     seats:[], deck:[], handNo:0, timer:null, dealErr:null, started:false
   };
   var raiseVal = 800;
-  var VERDICT_HOLD_MS = 6000;                         // 结算裁决停留时长（含 ~1.1s 入场动画，净阅读约 4.9s）
   var hintEl = document.getElementById("hint");
   var actCall = document.getElementById("actCall");
   var actCheck = document.getElementById("actCheck");
@@ -1599,12 +1675,21 @@
   var vtEl = document.getElementById("vt");
   var vwinEl = document.getElementById("vwin");
   var vcmpEl = document.getElementById("vcmp");
+  var vhandEl = document.getElementById("vhand");
+  var vcardsEl = document.getElementById("vcards");
+  var verdictStartBtn = document.getElementById("verdictStart");
   var verdictOverlay = document.getElementById("verdictOverlay");
   var _verdictOpen = false;                                // 结算弹窗是否正在显示（用于切语言重绘 / 关闭判定）
+  var _verdictAnnounce = false;                            // 仅结算产生的那一次允许语音播报 / 入场动画
   var _lastResult = null;                                  // 最近一手的结算结果（供裁决条 + 切语言重绘）
   var _hintKey = "hint.turn", _hintVars = null, _hintTimer = null;
 
   function heroIdx(){ for (var i=0;i<G.seats.length;i++) if (G.seats[i].hero) return i; return 5; }
+  /* 英雄座位筹码以全局钱包为唯一权威：任何改动 credits 的入口都同步一次，避免双份状态错位 */
+  function syncHeroStack(){
+    var hi = heroIdx();
+    if (hi >= 0 && G.seats && G.seats[hi]) G.seats[hi].stack = Math.max(0, isFinite(credits) ? credits : 0);
+  }
   function seatEl(i){ return document.querySelector('[data-seat="' + i + '"]'); }
   function canAct(s){ return !s.folded && !s.allIn && s.stack > 0; }
   function nextCanAct(from){
@@ -1664,7 +1749,7 @@
     var need = G.highBet - s.bet;
     var pot = G.pot;
     var strength = handStrength(s, G.board);
-    var r = Math.random();
+    var r = Math.random();                        // 仅 AI 策略抖动，不参与发牌 / 牌序（牌序只取自 H743 熵链）
     var minRaiseTo = G.highBet + G.minRaise;
     var maxTo = s.bet + s.stack;
     var potOdds = need > 0 ? need / (pot + need) : 0;
@@ -1693,6 +1778,9 @@
   function applyAction(idx, a){
     var s = G.seats[idx];
     if (a.kind === "fold"){ s.folded = true; s.lastAct = "fold"; s.acted = true; return; }
+    // 不足额全下不重开下注权：已响应过上一注额的座位只可补跟差额 / 过牌 / 弃牌
+    if (s.callOnly && (a.kind === "raise" || a.kind === "allin")) a = { kind: G.highBet > s.bet ? "call" : "check" };
+    if (s.hero) syncHeroStack();                  // 出手前对齐钱包，投入额不会超过真实余额（避免负余额/僵尸座位）
     var newBet;
     if (a.kind === "check") newBet = s.bet;
     else if (a.kind === "call") newBet = G.highBet;
@@ -1709,13 +1797,18 @@
       var raiseSize = newBet - G.highBet;
       if (raiseSize >= G.minRaise){
         G.minRaise = raiseSize;
-        G.seats.forEach(function(o){ if (o !== s && !o.folded && !o.allIn) o.acted = false; });
+        // 完整加注重开下注权：此前已行动者重新获得完整的加注权
+        G.seats.forEach(function(o){ if (o !== s && !o.folded && !o.allIn){ o.acted = false; o.callOnly = false; } });
+      } else {
+        // 不足额全下不重开下注权：已行动过的座位只可补跟差额 / 弃牌，不得再加注
+        G.seats.forEach(function(o){ if (o !== s && o.acted && !o.folded && !o.allIn) o.callOnly = true; });
       }
       G.highBet = newBet;
     }
     logEvent("action", a.kind, { seat:s.name, bet:s.bet, pot:G.pot });
   }
   function postBlind(s, amt){
+    if (s.hero) syncHeroStack();                  // 盲注同样以钱包为准，避免扣出负余额
     var put = Math.min(amt, s.stack);
     s.stack -= put; s.bet += put; s.total += put; G.pot += put;
     if (s.hero){ credits -= put; saveCredits(); s.stack = credits; }
@@ -1746,9 +1839,11 @@
     if (G.busy || G.actor !== heroIdx()) return;
     var s = G.seats[heroIdx()];
     var a;
+    var need = Math.max(0, G.highBet - s.bet);
     if (kind === "fold") a = { kind:"fold" };
-    else if (kind === "check") a = { kind:"check" };
-    else if (kind === "call") a = { kind:"call" };
+    // 动作层防御：面对下注不能过牌 / 无需跟注时不能空跟，避免绕过 UI 隐藏造成免费过牌
+    else if (kind === "check") a = { kind: need > 0 ? "call" : "check" };
+    else if (kind === "call") a = { kind: need > 0 ? "call" : "check" };
     else if (kind === "allin") a = { kind:"allin" };
     else {
       var target = Math.min(raiseVal, s.bet + s.stack);
@@ -1784,7 +1879,7 @@
     }
     G.board = G.board.concat(dealt);
     G.phase = (G.phase === "preflop") ? "flop" : (G.phase === "flop" ? "turn" : "river");
-    G.seats.forEach(function(s){ s.bet = 0; s.acted = false; });
+    G.seats.forEach(function(s){ s.bet = 0; s.acted = false; s.callOnly = false; });
     G.highBet = 0; G.minRaise = BLINDS.bb;
     // 发牌音效：公共牌逐张翻开，翻转延迟与「唰」声共用同一时间轴（第 k 张 / 第 k 声）
     var startIdx = G.board.length - dealt.length;
@@ -1798,7 +1893,8 @@
     G.actor = first;
   }
   function scheduleActor(){
-    if (G.phase === "showdown") return;               // 摊牌后由 scheduleReDeal 接管，不再排程
+    if (G.paused) return;                             // 暂停：挂起行动调度，恢复时由 pause(false) 重新排程
+    if (G.phase === "showdown") return;               // 摊牌后等玩家点「新的一局」，不再排程
     var s = G.seats[G.actor];
     if (!s || !canAct(s)){
       // 兜底：当前行动位已无法行动（全下 / 破产 / 弃牌 / 续局快照残留）→ 自动跳到下一位；
@@ -1821,7 +1917,7 @@
         else setHint("msg.youTurnCheck", null, { keep:true, kind:"reset" });
       }
     } else {
-      G.timer = setTimeout(function(){ aiAct(G.actor); }, 780 + Math.random()*620);
+      G.timer = setTimeout(function(){ aiAct(G.actor); }, 780 + Math.random()*620);  // 延时抖动，仅影响节奏、不影响牌序
     }
   }
 
@@ -1834,23 +1930,44 @@
       return awards;
     }
     var scoreOf = function(s){ return results[s.idx]; };
+    // 投入层级必须覆盖全部座位：已弃牌玩家投入的筹码是底池死钱，若只按未弃牌者分层，
+    // 这部分钱不会进入任何一层，结算时会随 G.pot=0 凭空消失。超出所有摊牌者投入额的
+    // 层级无人可争夺，统一并入最高的可争夺层分配，确保派彩总和恒等于底池。
     var levels = [];
-    cont.forEach(function(s){ if (levels.indexOf(s.total) < 0) levels.push(s.total); });
+    G.seats.forEach(function(s){ if (s.total > 0 && levels.indexOf(s.total) < 0) levels.push(s.total); });
     levels.sort(function(a,b){ return a-b; });
-    var prev = 0;
+    var layers = [], extra = 0, prev = 0;
     for (var L=0; L<levels.length; L++){
       var lvl = levels[L], layer = lvl - prev;
       if (layer <= 0){ prev = lvl; continue; }
       var contributors = G.seats.filter(function(s){ return s.total >= lvl; });
       var pot = layer * contributors.length;
       var inWin = cont.filter(function(s){ return s.total >= lvl; });
-      if (inWin.length === 0){ prev = lvl; continue; }
-      var best = null;
-      inWin.forEach(function(s){ var r = scoreOf(s); if (best === null || cmpScore(r, best) > 0) best = r; });
-      var winners = inWin.filter(function(s){ return cmpScore(scoreOf(s), best) === 0; });
-      var share = Math.floor(pot / winners.length), rem = pot - share*winners.length;
-      winners.forEach(function(s, wi){ awards[s.idx] += share + (wi < rem ? 1 : 0); });
+      if (inWin.length === 0) extra += pot;
+      else layers.push({ pot:pot, inWin:inWin });
       prev = lvl;
+    }
+    if (extra > 0){
+      if (layers.length) layers[layers.length - 1].pot += extra;
+      else layers.push({ pot:extra, inWin:cont.slice() });   // 所有层都无争夺者：兜底由摊牌者中牌力最强者竞争
+    }
+    layers.forEach(function(ly){
+      var best = null;
+      ly.inWin.forEach(function(s){ var r = scoreOf(s); if (best === null || cmpScore(r, best) > 0) best = r; });
+      var winners = ly.inWin.filter(function(s){ return cmpScore(scoreOf(s), best) === 0; });
+      var share = Math.floor(ly.pot / winners.length), rem = ly.pot - share*winners.length;
+      // 赢家标记与派彩额解耦：份额为 0 的共同赢家也计入赢家名单
+      winners.forEach(function(s, wi){ awards[s.idx] += share + (wi < rem ? 1 : 0); s.won = true; });
+    });
+    // 守恒：派彩总额必须等于底池；异常状态下少派的差额补给牌力最强者，杜绝底池蒸发
+    var paid = 0; G.seats.forEach(function(s){ paid += awards[s.idx]; });
+    if (paid !== G.pot){
+      if (paid < G.pot){
+        var top = null, topSeat = null;
+        cont.forEach(function(s){ var r = scoreOf(s); if (top === null || cmpScore(r, top) > 0){ top = r; topSeat = s; } });
+        if (topSeat){ awards[topSeat.idx] += G.pot - paid; topSeat.won = true; }
+      }
+      logEvent("error", "msg.dataBad", { pot:G.pot, paid:paid });
     }
     return awards;
   }
@@ -1870,20 +1987,39 @@
     renderAll();
   }
   async function settle(){
-    G.phase = "showdown"; G.busy = true; G.showdown = true;
     var cont = G.seats.filter(function(s){ return !s.folded; });
+    // 数据异常自愈：多人摊牌却未发满 5 张公共牌（损坏存档 / 非法推进）不能据此定胜负，取消本手
+    if (cont.length > 1 && G.board.length < 5){ cancelHand("msg.dataBad"); return; }
+    G.phase = "showdown"; G.busy = true; G.showdown = true;
+    var potBefore = G.pot;                           // 守恒断言：派彩总额须等于结算前底池
+    var refunded = false;                            // 异常兜底：零投入座位不得收池，本手投入原额退还
     var cmp = null;                                   // 玩家与最强对手的牌型对比（仅摊牌时记录）
+    var heroHandCat = null, winnerHandCat = null;     // 结算牌型等级（用于弹窗播报）
+    // 结算弹窗展示用的实体牌（最佳五张）：玩家、对比对手、赢家各自一张
+    var heroCards = null, cmpOppCards = null, cmpOppName = null, winnerCards = null, winnerName = null;
     G.seats.forEach(function(s){ s.won = false; });
     var awards = {}; G.seats.forEach(function(s){ awards[s.idx] = 0; });
     if (cont.length <= 1){
       var w = cont[0];
-      if (w){ awards[w.idx] = G.pot; w.stack += G.pot; w.won = true; if (w.hero){ credits += G.pot; saveCredits(); } }
+      // 唯一未弃牌者必须本手真实投入过筹码才可收池；零投入座位（破产未取款等异常）不得白拿
+      if (w && (w.total || 0) > 0){
+        awards[w.idx] = G.pot; w.stack += G.pot; w.won = true; if (w.hero){ credits += G.pot; saveCredits(); }
+        winnerName = w.name; winnerCards = bestCards(w.hole.concat(G.board));
+        if (w.hero) heroCards = winnerCards;
+      } else {
+        G.seats.forEach(function(s){
+          var back = Math.max(0, s.total || 0);
+          if (back > 0){ s.stack += back; if (s.hero){ credits += back; saveCredits(); s.stack = credits; } }
+        });
+        refunded = true;
+        logEvent("error", "msg.dataBad", { pot:potBefore, reason:"zero-invest uncontested" });
+      }
       G.pot = 0;
     } else {
       var results = {};
       cont.forEach(function(s){ results[s.idx] = bestOf(s.hole.concat(G.board)) || [0]; });
       awards = distributePots(cont, results);
-      G.seats.forEach(function(s){ if (awards[s.idx] > 0){ s.stack += awards[s.idx]; if (s.hero){ credits += awards[s.idx]; saveCredits(); } s.won = true; } });
+      G.seats.forEach(function(s){ if (awards[s.idx] > 0){ s.stack += awards[s.idx]; if (s.hero){ credits += awards[s.idx]; saveCredits(); } } });
       G.pot = 0;
       // 记录「玩家最佳牌型 vs 未弃牌对手中最强牌型」，供结算裁决条追加对比文案
       if (cont.some(function(s){ return s.hero; })){
@@ -1892,54 +2028,69 @@
         cont.forEach(function(s){
           if (s.hero) return;
           var sc = results[s.idx];
-          if (sc && (!bestOpp || cmpScore(sc, bestOpp.sc) > 0)) bestOpp = { sc:sc, name:s.name };
+          if (sc && (!bestOpp || cmpScore(sc, bestOpp.sc) > 0)) bestOpp = { sc:sc, name:s.name, seat:s };
         });
-        if (hScore && bestOpp) cmp = { hero:hScore, opp:bestOpp.sc, oppName:bestOpp.name };
+        if (hScore && bestOpp){ cmp = { hero:hScore, opp:bestOpp.sc, oppName:bestOpp.name };
+          cmpOppName = bestOpp.name; cmpOppCards = bestCards(bestOpp.seat.hole.concat(G.board)); }
       }
+      // 记录牌型等级（用于结算弹窗播报）：玩家未弃牌取玩家最佳牌型，否则取赢家最佳牌型
+      var heroInCont = cont.some(function(s){ return s.hero; });
+      if (heroInCont && results[heroIdx()]){ heroHandCat = results[heroIdx()][0];
+        heroCards = bestCards(G.seats[heroIdx()].hole.concat(G.board)); }
+      var bestWinner = null, bestWinnerSeat = null;
+      cont.forEach(function(s){ if (s.won){ var r = results[s.idx]; if (r && (bestWinner===null || cmpScore(r,bestWinner)>0)){ bestWinner = r; bestWinnerSeat = s; } } });
+      if (bestWinner){ winnerHandCat = bestWinner[0];
+        if (bestWinnerSeat){ winnerName = bestWinnerSeat.name; winnerCards = bestCards(bestWinnerSeat.hole.concat(G.board)); } }
     }
+    // 守恒断言：派彩总额必须等于结算前底池（退款兜底除外，其原额退还另行处理）
+    var paid = 0; G.seats.forEach(function(s){ paid += awards[s.idx]; });
+    if (!refunded && paid !== potBefore) logEvent("error", "msg.dataBad", { pot:potBefore, paid:paid });
     updatePeak();
     lsSet(LS.hand, lsNum(LS.hand,0) + 1);
     var hi = heroIdx();
-    if (awards[hi] > 0) lsSet(LS.won, lsNum(LS.won,0) + 1);
-    else lsSet(LS.lost, lsNum(LS.lost,0) + 1);
+    // 战绩按净盈亏区分胜 / 负 / 平：平分底池（净盈亏 0）不再虚记胜场
+    var heroNetNow = (awards[hi] || 0) - (G.seats[hi] ? (G.seats[hi].total || 0) : 0);
+    if (heroNetNow > 0) lsSet(LS.won, lsNum(LS.won,0) + 1);
+    else if (heroNetNow < 0) lsSet(LS.lost, lsNum(LS.lost,0) + 1);
     var wnames = ""; var total = 0; var winnersCount = 0;
     G.seats.forEach(function(s){ if (s.won){ winnersCount++; wnames += (wnames ? "、" : "") + s.name; total += awards[s.idx]; } });
-    if (cont.length <= 1) setHint("msg.uncontested", { w:wnames, v:fmt(total) }, { keep:true, kind:"ok" });
+    if (refunded) setHint("msg.handOver", null, { keep:true, kind:"ok" });
+    else if (cont.length <= 1) setHint("msg.uncontested", { w:wnames, v:fmt(total) }, { keep:true, kind:"ok" });
     else setHint("msg.winHand", { w:wnames, v:fmt(total) }, { keep:true, kind:"ok" });
     // 结算裁决（与百家乐 / 21 点同一套 .verdict 视觉）：赢=绿、输=红、平=金
     var heroSeat = G.seats[hi];
     var heroAward = awards[hi] || 0;
     var heroIn = heroSeat ? (heroSeat.total || 0) : 0;
-    _lastResult = {
+    // 零投入兜底时本手作废、原额退还，没有有效结算结果可展示（与 cancelHand 口径一致）
+    _lastResult = refunded ? null : {
       wnames:wnames, total:total, heroNet:heroAward - heroIn, heroIn:heroIn,
       uncontested:(cont.length <= 1), heroWon:!!(heroSeat && heroSeat.won), winnersCount:winnersCount,
-      cmp:cmp
+      cmp:cmp, heroHandCat:heroHandCat, winnerHandCat:winnerHandCat,
+      heroCards:heroCards, cmpOppCards:cmpOppCards, cmpOppName:cmpOppName,
+      winnerCards:winnerCards, winnerName:winnerName
     };
     renderAll();
+    _verdictAnnounce = true;                      // 仅本次结算允许语音播报与入场动画
     renderVerdict(_lastResult);                   // 弹出结算弹窗；持续显示，直到点击空白处 / 空格关闭
-    if (credits < 1) handleBankrupt();
     G.busy = false;
-    // 不再自动续局：等玩家关闭结算弹窗后再发下一手（见 dismissVerdict）
+    renderAll();                                  // busy 复位后补一次控件重绘：桌面「新的一局」立即可用
+    // 不再自动续局：补币与下一手都延后到玩家主动点「新的一局」（见 startHand），不污染本局裁决
     saveGame();                                  // 结算结果一并存档，刷新后仍能看到本局裁决
   }
-  function scheduleReDeal(){
-    clearTimeout(G.timer);
-    // 结算文字足够停留后再发下一手：入场动画约 1.1s + 静读约 4.9s
-    G.timer = setTimeout(function(){
-      if (G.paused){ return; }            // 暂停时挂起，待恢复后由 startHand 继续
-      startHand();
-    }, VERDICT_HOLD_MS);
-  }
   /* 致命错误（两源皆不可用 / 数据异常）：取消本手，已投入筹码原额退回，绝不使用本地随机兜底
-     （与 21 点同一策略）。随后交给 scheduleReDeal 间隔重试；期间点「新的一局」可立即重试。 */
+     （与 21 点同一策略）。不自动重试：由玩家点「新的一局」显式发起下一手。 */
   function cancelHand(hintKey){
+    clearTimeout(G.timer);                         // 本手作废：清掉可能残留的行动定时器
+    clearDealTimers();                            // 排队中的逐张发牌音效一并取消
+    if (_dealClearTimer) clearTimeout(_dealClearTimer);
+    clearDealDelay();                             // 复位公共牌翻转延迟，避免牌面已清空却仍延迟翻开
     G.seats.forEach(function(s){
       var back = Math.max(0, s.total || 0);
       if (back > 0){
         s.stack += back;
         if (s.hero){ credits += back; saveCredits(); s.stack = credits; }   // 退还全局钱包
       }
-      s.bet = 0; s.total = 0; s.folded = false; s.allIn = false; s.acted = false; s.lastAct = ""; s.won = false; s.hole = [];
+      s.bet = 0; s.total = 0; s.folded = false; s.allIn = false; s.acted = false; s.callOnly = false; s.lastAct = ""; s.won = false; s.hole = [];
     });
     G.board = []; G.pot = 0; G.highBet = 0; G.minRaise = BLINDS.bb;
     G.phase = "showdown"; G.showdown = false; G.busy = false; G.started = false;
@@ -1949,7 +2100,6 @@
     setHint(hintKey || "msg.srcFail", null, { warn:true, keep:true, kind:"cancel" });
     logEvent("cancel", hintKey || "msg.srcFail");
     renderAll();
-    scheduleReDeal();
   }
 
   /* =====================================================================
@@ -1966,7 +2116,7 @@
       board:G.board.slice(), showdown:!!G.showdown, paused:!!G.paused,
       seats:G.seats.map(function(s){ return {
         stack:s.stack, bet:s.bet, total:s.total, folded:!!s.folded, allIn:!!s.allIn,
-        acted:!!s.acted, hole:(s.hole || []).slice(), lastAct:s.lastAct || "", won:!!s.won };
+        acted:!!s.acted, callOnly:!!s.callOnly, hole:(s.hole || []).slice(), lastAct:s.lastAct || "", won:!!s.won };
       }),
       result:_lastResult || null
     };
@@ -1974,6 +2124,37 @@
   function saveGame(){
     var snap = snapshotGame(); if (!snap) return;
     try{ localStorage.setItem(LS.state, JSON.stringify(snap)); }catch(e){}
+  }
+  /* 牌型对比结构校验：score 数组须非空、元素为 0–12 的合法牌力值，首元素（牌型类别）须在 0–8 */
+  function saneCmp(c){
+    if (!c || typeof c !== "object") return false;
+    if (!Array.isArray(c.hero) || !Array.isArray(c.opp) || typeof c.oppName !== "string") return false;
+    var keys = ["hero","opp"];
+    for (var i=0;i<keys.length;i++){
+      var a = c[keys[i]];
+      if (!a.length) return false;
+      for (var j=0;j<a.length;j++) if (!Number.isInteger(a[j]) || a[j] < 0 || a[j] > 12) return false;
+      if (a[0] > 8) return false;
+    }
+    return true;
+  }
+  /* 存档中的结算结果逐字段校验：非法牌码 / 越界牌型等级会让 renderVerdict 抛错并中断启动 */
+  function saneResult(r){
+    if (!r || typeof r !== "object") return false;
+    if (!isFinite(r.total) || !isFinite(r.heroNet) || !isFinite(r.heroIn) || !isFinite(r.winnersCount)) return false;
+    if (typeof r.wnames !== "string") return false;
+    if (r.heroHandCat != null && !(Number.isInteger(r.heroHandCat) && r.heroHandCat >= 0 && r.heroHandCat < 9)) return false;
+    if (r.winnerHandCat != null && !(Number.isInteger(r.winnerHandCat) && r.winnerHandCat >= 0 && r.winnerHandCat < 9)) return false;
+    var keys = ["heroCards","cmpOppCards","winnerCards"];
+    for (var i=0;i<keys.length;i++){
+      var a = r[keys[i]];
+      if (a == null) continue;
+      if (!Array.isArray(a) || a.length !== 5) return false;
+      for (var j=0;j<5;j++) if (typeof a[j] !== "string" || !CARD_RE.test(a[j])) return false;
+    }
+    // 对比结构非法时只丢弃 cmp（保留其余结算信息），避免 HAND_NAMES 越界出现 undefined 文案
+    if (r.cmp != null && !saneCmp(r.cmp)) r.cmp = null;
+    return true;
   }
   function loadSavedGame(){
     var raw = lsRaw(LS.state); if (!raw) return null;
@@ -1991,6 +2172,18 @@
     }
     if (!isFinite(d.pot) || !isFinite(d.highBet) || !isFinite(d.minRaise) ||
         !isFinite(d.actor) || !isFinite(d.button)) return null;
+    // 行动位 / 按钮位须是有效座位索引（-1 表示暂无人可行动），越界存档判废，避免首帧错显
+    if (!Number.isInteger(d.actor) || d.actor < -1 || d.actor > 5) return null;
+    if (!Number.isInteger(d.button) || d.button < 0 || d.button > 5) return null;
+    // phase 与公共牌张数须自洽；showdown 允许 0（提前全弃牌）/ 3 / 4 / 5
+    var boardLens = { preflop:[0], flop:[3], turn:[4], river:[5], showdown:[0,3,4,5] };
+    if (boardLens[d.phase].indexOf(d.board.length) < 0) return null;
+    // 12 张底牌 + 公共牌必须全局唯一：重复牌会让牌堆重建失真、牌型评估出错
+    var seen = {}, all = d.board.slice();
+    for (var u=0;u<6;u++){ all.push(d.seats[u].hole[0], d.seats[u].hole[1]); }
+    for (var c=0;c<all.length;c++){ if (seen[all[c]]) return null; seen[all[c]] = 1; }
+    // 结算结果损坏时只丢弃结果（牌局本身仍可接回），不整份存档判废
+    if (d.result && !saneResult(d.result)) d.result = null;
     return d;
   }
   function restoreGame(){
@@ -1998,12 +2191,12 @@
     if (!isFinite(credits)) { credits = START_CREDITS; saveCredits(); }
     G.handNo = d.handNo | 0; G.phase = d.phase; G.button = d.button | 0; G.actor = d.actor | 0;
     G.highBet = d.highBet | 0; G.minRaise = d.minRaise | 0; G.pot = d.pot | 0;
-    G.board = d.board.slice(); G.showdown = !!d.showdown; G.paused = !!d.paused; G.busy = false;
+    G.board = d.board.slice(); G.showdown = !!d.showdown; G.paused = false; G.busy = false;  // 刷新不继承暂停（页面无恢复控件），避免续局永久停滞
     G.seats.forEach(function(s, i){
       var x = d.seats[i];
       s.stack = s.hero ? (isFinite(credits) ? credits : x.stack) : x.stack;  // HERO 筹码以全局钱包为准
       s.bet = x.bet | 0; s.total = x.total | 0;
-      s.folded = !!x.folded; s.allIn = !!x.allIn; s.acted = !!x.acted; s.won = !!x.won;
+      s.folded = !!x.folded; s.allIn = !!x.allIn; s.acted = !!x.acted; s.callOnly = !!x.callOnly; s.won = !!x.won;
       s.hole = x.hole.slice(); s.lastAct = x.lastAct || "";
     });
     // 按已发牌重建剩余牌堆，避免续局发牌与已发牌重复
@@ -2039,11 +2232,23 @@
     try {
       if (!isFinite(credits)) { credits = START_CREDITS; saveCredits(); }  // 兜底：钱包数值异常时复位
       _lastResult = null; renderVerdict(null);                              // 新一局：收起上局结算裁决
+      var brokeHint = null;
+      if (credits < 1){
+        handleBankrupt();                          // 破产：沿用既有补币 / 卡内取款策略，不额外白送桌币
+        if (credits < 1){
+          // 卡内有余额却未取出：零筹码座位既不能行动也不会弃牌，会在摊牌白拿底池 → 阻止发牌
+          G.phase = "showdown"; G.showdown = true; G.busy = false;
+          setHint("msg.cardOnly", { v:fmt(cardBalance) }, { keep:true, warn:true, kind:"unavailable" });
+          renderAll();
+          return;                                 // 玩家取出卡内余额后点「新的一局」即可正常开局
+        }
+        brokeHint = "msg.topup";                   // 已自动补给：提示延后到新局提示之后，避免被覆盖
+      }
       G.showdown = false;
       G.deck = FULL_DECK.slice();
       G.seats.forEach(function(s){
-        s.hole = []; s.bet = 0; s.total = 0; s.folded = false; s.allIn = false; s.acted = false; s.lastAct = ""; s.won = false;
-        if (s.hero) s.stack = (isFinite(credits) && credits > 0) ? credits : START_CREDITS;
+        s.hole = []; s.bet = 0; s.total = 0; s.folded = false; s.allIn = false; s.acted = false; s.callOnly = false; s.lastAct = ""; s.won = false;
+        if (s.hero) s.stack = credits;
         else if (!isFinite(s.stack) || s.stack <= 0) s.stack = START_NPC;  // NPC 破产/异常则补充桌币，保持满员
       });
       G.board = []; G.pot = 0; G.highBet = 0; G.minRaise = BLINDS.bb; G.dealErr = null;
@@ -2062,6 +2267,7 @@
       renderAll();
       announceDeal(null, 4, DEAL_STEP_HOLE, false, 4);
       setHint("msg.newHand", { d: G.seats[G.button].name }, { keep:true, kind:"reset" });
+      if (brokeHint) setHint(brokeHint, { v:fmt(START_CREDITS) }, { keep:true, kind:"ok" });
       G.busy = false; G.started = true;
       scheduleActor();
       saveGame();                                   // 发牌完成即存档，刷新可接回这一手
@@ -2149,12 +2355,32 @@
     for (var i=0;i<cards.length;i++){
       var code = G.board[i];
       var front = cards[i].querySelector(".bf.front img");
-      if (front && code) front.setAttribute("src", "assets/cards/" + code + ".webp");
+      // 空槽位复位为牌背，清掉上一手残留的正面牌图（与 renderSeats 口径一致）
+      if (front) front.setAttribute("src", code ? ("assets/cards/" + code + ".webp") : "assets/cards/back_red.webp");
       cards[i].setAttribute("aria-label", code || "empty slot");
       cards[i].classList.toggle("up", !!code);
     }
     var tag = document.querySelector(".stage-tag");
     if (tag) tag.textContent = tt("phase." + G.phase);
+  }
+  // 生成一张结算弹窗用的迷你扑克牌（左上角点数 + 中央花色，红桃/方块为红字）
+  function makeVCard(code){
+    var el = document.createElement("div");
+    el.className = "vcard";
+    var suit = (code && code.length >= 2) ? code.slice(-1) : "";
+    var rank = code ? code.slice(0, -1) : "";
+    var sym = { S:"♠", H:"♥", C:"♣", D:"♦" }[suit] || "?";
+    if (suit === "H" || suit === "D") el.className += " red";
+    var r = document.createElement("span"); r.className = "r"; r.textContent = rank;
+    var s = document.createElement("span"); s.className = "s"; s.textContent = sym;
+    el.appendChild(r); el.appendChild(s);
+    el.setAttribute("aria-label", rank + " " + sym);
+    return el;
+  }
+  function sameCards(a, b){
+    if (!a || !b || a.length !== b.length) return false;
+    for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+    return true;
   }
   /* 结算裁决条：res = { wnames, total, heroNet, heroIn, uncontested, heroWon, winnersCount } */
   function renderVerdict(res){
@@ -2162,15 +2388,22 @@
     if (!res){
       // 关闭弹窗：只撤掉 .show 让遮罩与文字一起淡出（不立刻清空文字，避免淡出时变空白）
       _verdictOpen = false;
+      _verdictAnnounce = false;
+      // 取消尚未播完的语音，避免弹窗已关仍在播报
+      try{ if ("speechSynthesis" in window) window.speechSynthesis.cancel(); }catch(e){}
+      if (vcardsEl) vcardsEl.innerHTML = "";
       if (verdictOverlay) verdictOverlay.classList.remove("show");
       return;
     }
     // 弃牌且未投入任何筹码 → 净盈亏 0 且本局未参与：走中性灰，不套用"平局"金色
     var idle = !res.heroWon && res.heroNet === 0 && !(res.heroIn > 0);
     var tone = idle ? " idle" : (res.heroNet > 0 ? " win" : (res.heroNet < 0 ? " lose" : " push"));
-    // 复位 → 强制重排 → 套用完整类名：确保每次结算的入场动画都从头播一遍
-    verdictEl.className = "verdict";
-    void verdictEl.offsetWidth;
+    // 复位 → 强制重排 → 套用完整类名：仅结算产生的那一次从头播入场动画，
+    // 切语言 / 刷新续局重绘时直接沿用已有类名，避免重复入场动画
+    if (_verdictAnnounce){
+      verdictEl.className = "verdict";
+      void verdictEl.offsetWidth;
+    }
     verdictEl.className = "verdict show" + tone;
     var vt;
     if (idle) vt = tt("vd.idle");
@@ -2191,23 +2424,72 @@
       vcmpEl.className = ctxt ? "vcmp show" : "vcmp";
       vcmpEl.textContent = ctxt;
     }
+    // 结算牌型对比实体牌：玩家最佳五张 + 对比对手（或赢家）最佳五张；以独立行插入，不挤压既有元素
+    if (vcardsEl){
+      vcardsEl.innerHTML = "";
+      var rows = [];
+      if (res.heroCards && res.heroCards.length === 5) rows.push({ label: tt("vd.you"), cards: res.heroCards });
+      var opp = null;
+      if (res.cmpOppCards && res.cmpOppCards.length === 5 && res.cmpOppName) opp = { label: res.cmpOppName, cards: res.cmpOppCards };
+      else if (res.winnerCards && res.winnerCards.length === 5 && res.winnerName) opp = { label: res.winnerName, cards: res.winnerCards };
+      // 仅当对手展示的牌与玩家完全相同（如玩家独赢、无对手可比）时才不重复展示；
+      // 注意：hero 获胜时 winnerCards 等于 heroCards，不能用它来判重，否则会把真正的对手（如 Ken）行误删
+      if (opp && !(res.heroCards && sameCards(res.heroCards, opp.cards))) rows.push(opp);
+      // 提前结束（公共牌不足 3 张）时 bestCards 返回 null：补一行空态，避免牌区留白
+      if (rows.length === 0){
+        var er = document.createElement("div"); er.className = "vrow";
+        var el = document.createElement("span"); el.className = "vrow-label"; el.textContent = tt("vd.noCards");
+        er.appendChild(el); vcardsEl.appendChild(er);
+      }
+      rows.forEach(function(rw){
+        var row = document.createElement("div"); row.className = "vrow";
+        var lab = document.createElement("span"); lab.className = "vrow-label"; lab.textContent = rw.label;
+        var cc = document.createElement("div"); cc.className = "vrow-cards";
+        rw.cards.forEach(function(c){ cc.appendChild(makeVCard(c)); });
+        row.appendChild(lab); row.appendChild(cc); vcardsEl.appendChild(row);
+      });
+    }
+    // 结算牌型展示（播报对象）：玩家未弃牌显示玩家牌型，否则显示赢家牌型
+    var handName = "", vhandTxt = "";
+    if (res.heroHandCat != null){ handName = HAND_NAMES[curLang==="zh"?"zh":"en"][res.heroHandCat]; vhandTxt = tt("vd.handHero", { h: handName }); }
+    else if (res.winnerHandCat != null){ handName = HAND_NAMES[curLang==="zh"?"zh":"en"][res.winnerHandCat]; vhandTxt = tt("vd.handWinner", { h: handName }); }
+    if (vhandEl){ vhandEl.textContent = vhandTxt; vhandEl.className = vhandTxt ? "vhand show" : "vhand"; }
+    // 语音播报当前结算牌型（无牌型时仅播报胜负结果）：只在结算产生的那一次播报，
+    // 切语言重绘 / 刷新续局重绘均不重复播报
+    if (_verdictAnnounce){
+      var spoken = "";
+      if (vt) spoken += vt + (curLang==="zh" ? "。" : ". ");
+      if (handName) spoken += (curLang==="zh" ? "牌型：" : "Hand: ") + handName + (curLang==="zh" ? "。" : ".");
+      speak(spoken);
+      _verdictAnnounce = false;
+    }
     _verdictOpen = true;
     if (verdictOverlay) verdictOverlay.classList.add("show");
   }
-  /* 关闭结算弹窗：淡出后，若仍停留在摊牌阶段，则接着发下一手；暂停时不发 */
+  /* 关闭结算弹窗：仅淡出关闭，桌面结算牌保持可见，等玩家主动点「新的一局」 */
   function dismissVerdict(){
     if (!_verdictOpen) return;
-    renderVerdict(null);
-    if (G.phase === "showdown" && !G.paused){
-      setTimeout(function(){ if (G.phase === "showdown" && !G.paused && !_verdictOpen) startHand(); }, 340);
-    }
+    renderVerdict(null);                 // 仅淡出关闭，不自动续局：桌面结算牌保持可见供查看
+    renderControls();                    // 让桌面「新的一局」按钮就位，等待玩家主动开始下一手
   }
   if (verdictOverlay){
     verdictOverlay.addEventListener("click", function(e){ if (e.target === verdictOverlay) dismissVerdict(); });
   }
+  if (verdictStartBtn){
+    verdictStartBtn.addEventListener("click", function(e){
+      e.stopPropagation();
+      if (G.phase === "showdown" && !G.busy){ startHand(); }   // 玩家主动选择开始下一手
+    });
+  }
   document.addEventListener("keydown", function(e){
     if (!_verdictOpen) return;
-    if (e.code === "Space" || e.key === " " || e.key === "Spacebar"){ e.preventDefault(); dismissVerdict(); }
+    if (e.code === "Space" || e.key === " " || e.key === "Spacebar"){
+      // 焦点在按钮 / 输入控件上时把空格交还给控件（空格应激活主按钮，而不是误关弹窗）
+      var t = e.target;
+      if (t && (t.tagName === "BUTTON" || t.tagName === "INPUT" || t.tagName === "TEXTAREA" ||
+                t.tagName === "SELECT" || t.isContentEditable)) return;
+      e.preventDefault(); dismissVerdict();
+    }
   });
   /* 玩家当前牌型：翻牌前给起手牌说明，翻牌后按实际张数（5/6/7）实时评估；
      弃牌后显示"已弃牌"，避免看起来仍在本局争夺。 */
@@ -2254,12 +2536,15 @@
     var hero = G.seats[heroIdx()];
     var need = Math.max(0, G.highBet - hero.bet);
     if (G.phase === "showdown"){
-      document.getElementById("actFold").textContent = tt("act.new");
+      var nf = document.getElementById("actFold");
+      nf.className = "btn deal"; nf.hidden = false;             // 「新的一局」用金底 CTA，明确「玩家主动开始」
+      nf.textContent = tt("act.new");
       actCheck.hidden = true;
       actCall.hidden = true; actCall.disabled = true;
       document.getElementById("actRaise").disabled = true;
-      document.getElementById("actAllin").disabled = true; document.getElementById("actFold").disabled = false;
+      document.getElementById("actAllin").disabled = true; nf.disabled = false;
     } else {
+      document.getElementById("actFold").className = "btn ghost";
       document.getElementById("actFold").textContent = tt("act.fold");
       // 无需跟注（need=0）→ 显示「过牌」并隐藏「跟注」；面对下注则相反。
       // 二者互斥，符合无限德州玩法：有人下注只能跟 / 加 / 弃，无人下注才能过牌。
@@ -2269,11 +2554,13 @@
       actCheck.disabled = !heroToAct;
       actCall.innerHTML = tt("act.call") + " <b>" + fmt(need) + "</b>";
       actCall.disabled = !heroToAct || need > hero.stack;
-      document.getElementById("actRaise").disabled = !heroToAct || hero.stack <= 0;
-      document.getElementById("actAllin").disabled = !heroToAct || hero.stack <= 0;
+      // 不足额全下不重开下注权：已行动过的座位只能补跟 / 弃牌，加注与全下按钮置灰
+      document.getElementById("actRaise").disabled = !heroToAct || hero.stack <= 0 || !!hero.callOnly;
+      document.getElementById("actAllin").disabled = !heroToAct || hero.stack <= 0 || !!hero.callOnly;
       document.getElementById("actFold").disabled = !heroToAct;
     }
-    raiseVal = Math.min(Math.max(raiseVal, G.highBet + G.minRaise), Math.max(G.highBet + G.minRaise, hero.stack));
+    // 「加注至」是目标总注额，上限应为「本轮已投 + 剩余筹码」，而非仅剩余筹码
+    raiseVal = Math.min(Math.max(raiseVal, G.highBet + G.minRaise), Math.max(G.highBet + G.minRaise, hero.bet + hero.stack));
     raiseValEl.innerHTML = fmt(raiseVal);
     btnRaiseValEl.innerHTML = fmtNum(raiseVal);   // 加注按钮只显示数值，不带绿色 $ 符号
   }
@@ -2282,8 +2569,11 @@
     renderCard(); renderSrcSel(); renderBusy(); renderSrc();
   }
   function renderBusy(){
+    // 只追加禁用，绝不反向启用：可用性统一由 renderControls 判定，避免覆盖回合 / 筹码 / 加注权校验
+    if (!G.busy && G.phase !== "showdown") return;
     ["actFold","actCheck","actCall","actRaise","actAllin"].forEach(function(id){
-      var b = document.getElementById(id); if (b) b.disabled = !!G.busy || (G.phase === "showdown" && id !== "actFold");
+      var b = document.getElementById(id); if (!b) return;
+      if (G.busy || (G.phase === "showdown" && id !== "actFold")) b.disabled = true;
     });
   }
 
@@ -2326,14 +2616,14 @@
     if (!(amt > 0)) return;
     credits -= amt; cardBalance += amt; cardLastDir = "in";
     if (cardAmtEl) cardAmtEl.value = String(amt);
-    saveCredits(); lsSet(LS.card, cardBalance); renderAll();
+    saveCredits(); lsSet(LS.card, cardBalance); syncHeroStack(); renderAll();
   }
   function withdrawCard(){
     var amt = _cardAmount(); if (amt < 0) amt = cardBalance; amt = Math.min(amt, Math.floor(cardBalance));
     if (!(amt > 0)) return;
     cardBalance -= amt; credits += amt; cardLastDir = "out";
     if (cardAmtEl) cardAmtEl.value = String(amt);
-    saveCredits(); lsSet(LS.card, cardBalance); renderAll();
+    saveCredits(); lsSet(LS.card, cardBalance); syncHeroStack(); renderAll();
   }
   if (cardDepBtn) cardDepBtn.addEventListener("click", depositCard);
   if (cardWdBtn)  cardWdBtn.addEventListener("click", withdrawCard);
@@ -2369,16 +2659,18 @@
     c.addEventListener("click", function(){
       Array.prototype.forEach.call(document.querySelectorAll("#chipTray .chip"), function(x){ x.classList.remove("sel"); });
       c.classList.add("sel");
-      var base = Math.max(G.highBet + G.minRaise, G.seats[heroIdx()].stack);
-      raiseVal = Math.min(Math.max(G.highBet + G.minRaise, G.seats[heroIdx()].bet + parseInt(c.getAttribute("data-v"), 10)), base);
+      var h = G.seats[heroIdx()];
+      var base = Math.max(G.highBet + G.minRaise, h.bet + h.stack);
+      raiseVal = Math.min(Math.max(G.highBet + G.minRaise, h.bet + parseInt(c.getAttribute("data-v"), 10)), base);
       renderAll();
     });
   });
   Array.prototype.forEach.call(document.querySelectorAll(".quick .btn.feat"), function(q){
     q.addEventListener("click", function(){
       var v = parseInt(q.getAttribute("data-raise"), 10);
-      if (q.getAttribute("data-quick") === "allin") v = G.seats[heroIdx()].stack + G.seats[heroIdx()].bet;
-      raiseVal = Math.min(Math.max(G.highBet + G.minRaise, v), Math.max(G.highBet + G.minRaise, G.seats[heroIdx()].stack));
+      var h = G.seats[heroIdx()];
+      if (q.getAttribute("data-quick") === "allin") v = h.bet + h.stack;
+      raiseVal = Math.min(Math.max(G.highBet + G.minRaise, v), Math.max(G.highBet + G.minRaise, h.bet + h.stack));
       Array.prototype.forEach.call(document.querySelectorAll(".quick .btn.feat"), function(x){ x.classList.remove("on"); });
       q.classList.add("on");
       renderAll();
@@ -2439,7 +2731,8 @@
     setAutoHero: function(v){ G.autoHero = !!v; var b=document.getElementById("autoHero"); if (b) b.classList.toggle("on", G.autoHero); if (G.autoHero && G.actor === heroIdx() && G.phase !== "showdown" && !G.busy) scheduleActor(); return G.autoHero; },
     newHand: function(){ startHand(); return this.state(); },
     act: function(name){ humanAct(name); return this.state(); },
-    pause: function(v){ G.paused = !!v; if (!G.paused && G.phase === "showdown") startHand(); return G.paused; },
+    pause: function(v){ G.paused = !!v; clearTimeout(G.timer);
+      if (!G.paused){ if (G.phase === "showdown") startHand(); else scheduleActor(); } return G.paused; },
     sync: function(){ var r = syncWalletFromStore(); renderAll(); return r; },
     setWallet: function(v){ lsSet(LS.credits, v); var r = syncWalletFromStore(); renderAll(); return r; },
     forceWallet: function(v){ lsSet(LS.credits, v); try{ window.dispatchEvent(new StorageEvent("storage", { key:LS.credits, newValue:String(v) })); }catch(e){} return this.state(); },
@@ -2472,7 +2765,7 @@
   };
 
   /* ---------------- 启动 ---------------- */
-  G.seats = SEAT_DEFS.map(function(d, i){ return { idx:i, name:d.name, hero:d.hero, dom:seatEl(i), stack: d.hero ? credits : START_NPC, hole:[], bet:0, total:0, folded:false, allIn:false, acted:false, lastAct:"", won:false }; });
+  G.seats = SEAT_DEFS.map(function(d, i){ return { idx:i, name:d.name, hero:d.hero, dom:seatEl(i), stack: d.hero ? credits : START_NPC, hole:[], bet:0, total:0, folded:false, allIn:false, acted:false, callOnly:false, lastAct:"", won:false }; });
   readWallet();
   applyLang(curLang);
   renderSound();            // 初始化音量图标（否则按钮为空、图标不显示）
