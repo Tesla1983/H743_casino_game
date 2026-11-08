@@ -1,6 +1,6 @@
 /**
  * @file        rng_service.h
- * @brief       STM32H743 硬件 RNG 经 USART1(串口端口) 对外提供真随机源
+ * @brief       STM32H743 硬件 RNG 经 USART1 对外提供真随机源
  *
  * 设计要点：
  *   - H743 自带真随机源 RNG 外设（模拟噪声 + 健康检测），非 PRNG。

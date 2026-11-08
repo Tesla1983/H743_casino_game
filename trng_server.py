@@ -109,7 +109,7 @@ def _reader_h743(port_arg=None, link_cls=None):
                 if room < 512:
                     _stop.wait(0.05)          # 缓冲满了：等消费者取走，别空转
                     continue
-                # 512 B/次：64 B 请求吞吐约 3.9 KB/s、512 B 约 8 KB/s，
+                # 512 B/次：小包往返开销占比高（64 B 约 3.9 KB/s、512 B 约 8 KB/s），
                 # 小包全是往返开销（每次固定 ~16 ms 起）
                 data = link.read(512)
                 with _lock:

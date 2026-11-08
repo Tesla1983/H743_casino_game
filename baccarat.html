@@ -150,9 +150,8 @@
      改为按内容高度（≈348px）贴底对齐，卡片恢复 21 点那种紧凑成群的样子。
      用 ID 选择器覆盖 .sidecard；断点与下方窄屏规则（≤980px 竖排流式）错开，
      窄屏仍沿用 align-self:center，不受影响。
-     底边再往上收一截、对齐右侧「珠盘路」卡片的下沿（那里原本被银行卡圆钮顶住）：
-     收多少取决于银行卡实测高度 + 珠盘路 1.25 倍缩放的向下溢出，写死会随视口/银行卡
-     缩放跑偏，故由 JS(syncProfileRoad) 实测后写 margin-bottom，这里只留对齐锚点。 */
+     底边再往上收一截、对齐右侧「珠盘路」卡片的下沿：目标高度随视口与卡片
+     缩放变化，故由 JS(syncProfileRoad) 量出后写 margin-bottom，这里只留对齐锚点。 */
   @media (min-width:981px){
     #playerCard{align-self:flex-end;}
   }
@@ -2116,7 +2115,7 @@
       "verdict.win":"+{n}","verdict.lose":"−{n}","verdict.push":"退还 {n}","verdict.hedge":"本手净 0（对冲）",
       "src.btn":{ trng:"随机源：H743 在线", offline:"随机源：H743 离线" },
       // 随机源状态行（#srcMsg）：文案与老虎机 slot_machine.html 逐字一致，端口 {p} 取自探测到的
-      // HTTP 端口，{c} 是 /status.port 里的串口（如 " · 串口端口"），没有就留空
+      // HTTP 端口，{c} 是 /status.port 里的串口名片段，没有就留空
       "src.msg.connecting":"连接中…",
       "src.msg.trngReady":"H743 在线 · 串口直供 · 端口 {p}{c}",
       "src.msg.offlineReady":"离线随机源已就绪 · 端口 {p}",
@@ -2558,17 +2557,15 @@
     _lastSrcMsg = { key:key, vars:vars || null };
     if (srcMsg) srcMsg.textContent = tt(key, vars);
   }
-  /* 临时提示（发牌键下方）：与随机源状态行分开，别互相覆盖。
-     早期实现共用状态行，，结果「端口 … · 串口端口」被「随机源就绪」「请先下注」
-     这类一次性提示顶掉，看起来就是「下拉列表旁边那行小字不显示」。 */
+  /* 临时提示（发牌键下方）：与随机源状态行分开，避免互相覆盖。 */
   function setHint(t){ _lastHint = null; if (hintEl) hintEl.textContent = t || ""; }
   function setHintKey(key, vars){
     _lastHint = { key:key, vars:vars || null };
     if (hintEl) hintEl.textContent = tt(key, vars);
   }
 
-  /* ---------- 随机源状态行：H743 在线 · 串口直供 · 端口 8765 · 串口端口 ---------- */
-  // /status.port 是**串口**（H743:串口端口 / 串口端口），HTTP 端口要从 probe 到的 base 里取
+  /* ---------- 随机源状态行：H743 在线 · 串口直供 · 端口 + 串口名 ---------- */
+  // /status.port 是**串口名**，HTTP 端口要从探测到的 base 里取
   function srcVars(x){
     var st = (x && x.st) || {};
     var p = String((x && x.base) || "").split(":").pop();
@@ -2678,8 +2675,7 @@
       setSrcMode(m);
       srcPop.classList.remove("show");
       srcBtn.setAttribute("aria-expanded", "false");
-      // 选完源必须把结果写进状态行（需要同步更新：只切内部模式，不写文案，
-      // 于是「H743 在线 · 串口直供 · 端口 8765 · 串口端口」这行小字永远不出现）
+      // 切换来源后立即把结果写回状态行，保证提示文案同步更新
       var mode = (m === "trng") ? "online" : "offline";
       setSrcMsgKey("src.msg.connecting");
       probeBridge(mode, true).then(function(x){
@@ -3176,7 +3172,7 @@
     }
   }
 
-  // 播放一手：4 张底牌 → 亮两边点数 → 逐张补牌（时序与旧版逐帧一致）
+  // 播放一手：4 张底牌 → 亮两边点数 → 逐张补牌（逐帧时序）
   async function playHand(h){
     var i = 0, n = h.plays.length;
     for (; i < 4 && i < n; i++) await dealCard(h.plays[i].side, h.plays[i].code);
@@ -3494,11 +3490,11 @@
   /* ---------- 玩家档案卡：底边对齐「珠盘路」卡片底边 ----------
      三卡行是 align-items:flex-end，档案卡原来贴的是整行底（= 银行卡圆钮底部），
      比珠盘路卡片的视觉下沿低出「银行卡高度 + 列间距」约 218px，看着悬在半空。
-     珠盘路卡还带 1.25 倍 transform 缩放（transform 不占布局，视觉下沿比布局盒多出
-     25% 高度），再加上 ≥1910px 时 .page 的 zoom:1.2，所以按实际矩形反推：
+     珠盘路卡带 1.25 倍 transform 缩放（transform 不占布局，视觉下沿比布局盒多出
+     25% 高度），页面在宽屏还有 zoom 缩放；所以按实际矩形反推：
        需要的上移量 = (档案卡 rect 底 − 珠盘路 rect 底) ÷ 祖先缩放比
      rect 已含 transform 与 zoom；换算回布局像素（margin 的单位）要除掉祖先缩放，
-     该缩放当场用「档案卡 rect 高 ÷ offsetHeight」量出来，不写死。
+     该缩放由「档案卡 rect 高 ÷ offsetHeight」得出，不写死。
      银行卡展开/收起、珠盘路多开一列、窗口缩放都会改变这个差值，故用 ResizeObserver 跟随。 */
   var pcEl = $("playerCard"), pcRowEl = document.querySelector(".machrow");
   var pcSideEl = document.querySelector(".sidecol");

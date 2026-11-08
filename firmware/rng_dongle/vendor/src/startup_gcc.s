@@ -40,53 +40,40 @@ __Vectors:
     .word  PendSV_Handler
     .word  SysTick_Handler
     /* ---- 外部中断：STM32H743 有 150 个 IRQ（IRQ0..IRQ149）----
-     * 原来是 `.rept 150 / .word Default_Handler`，所有外设中断都落进死循环。
-     * （L2-4）为 SDMMC1 单独开槽：IDMA 传输完成必须靠中断回调
-     * HAL_SD_IRQHandler，否则 HAL 的状态机不会收尾（hsd->State 永远停在 BUSY）。
-     * 为 USART6 开槽：ESP32 上行链路（NTP/天气）靠 RXNE 中断
-     * 收字节，落 Default_Handler 会直接死循环。USART6_IRQn = 71。
-     * 为 JPEG 开槽：硬件 JPEG 解码的输出 FIFO 必须靠中断搬运，
-     *   HAL_JPEG_Decode(polling) 实测**超时**（诊断值=3）且输出缓冲没拿到数据，
-     *   所以改用 HAL_JPEG_Decode_IT。JPEG_IRQn = 121。
-     * ：上行链路从 USART6(PC6/PC7) 换到 **UART4(PB9/PB8)** ——
-     *   PC6 那根命令线始终不通（双向发波验证过与对端无电气连接），而 USART6 在
-     *   LQFP100 上只有 PC6/PC7 一组，⇒ 换脚只能换外设。UART4_IRQn = 52。
-     *   USART6 槽位保留（已停用，弱别名兜底）。
-     * 为 TIM6_DAC 开槽：音频出声用 TIM6 周期中断在 ISR 里滴灌 I2S TX FIFO
-     *   （主循环一帧 ~16ms 远慢于 FIFO 82µs 预算，必须靠高频中断）。TIM6_DAC_IRQn = 54。
-     *   若落 Default_Handler 会死循环冻结内核。强定义在 src/audio_out.c，弱别名兜底。
-     * 为 EXTI15_10 开槽：触摸 INT=PB13 走 EXTI 边沿中断做"有触摸才读 I2C"
-     *   的门控（见 src/touch_port.c）。EXTI15_10_IRQn = 40。强定义在 src/touch_port.c，弱别名兜底。
-     * 为 DMA1_Stream4 开槽：I2S2 TX 改走 DMA（半/全传中断补数），
-     *   DMA1_Stream4_IRQn = 15。强定义在 src/audio_out.c，弱别名兜底。
-     * 拆成 15 + 1 + 21 + 1 + 2 + 1 + 8 + 1 + 2 + 1 + 1 + 1 + 16 + 1 + 49 + 1 + 28 = 150，顺序不能错：位置由 CMSIS 的 IRQn 决定。
-     * 为 USART1 开槽：RNG 命令接收需要 RX 中断（见 rng_service.c）。
-     *   USART1_IRQn = 37，原先落在 IRQ16..IRQ39 的 Default_Handler 里，一收到字节就死循环冻结内核。
-     *   现拆 IRQ16..IRQ36(21) + IRQ37(USART1) + IRQ38..IRQ39(2)。 */
+     * 默认全是 `.word Default_Handler`；需要独立 ISR 的外设按 IRQn 开槽：
+     *   IRQ15  = DMA1_Stream4（I2S2 TX DMA）
+     *   IRQ37  = USART1（RNG 命令接收）
+     *   IRQ40  = EXTI15_10（触摸中断）
+     *   IRQ54  = TIM6_DAC（音频 FIFO 滴灌）
+     *   IRQ71  = USART6（备用上行链路，已停用）
+     *   IRQ121 = JPEG（解码输出 FIFO 搬运）
+     * 槽位顺序由 CMSIS 的 IRQn 决定，拆分为
+     * 15 + 1 + 21 + 1 + 2 + 1 + 8 + 1 + 2 + 1 + 1 + 1 + 16 + 1 + 49 + 1 + 28 = 150，不能错位。
+     * 其中 IRQ16..IRQ36(21) + IRQ37(USART1) + IRQ38..IRQ39(2) 需单独分段。 */
     .rept  15                           /* IRQ0..IRQ14 */
     .word  Default_Handler
     .endr
-    .word  DMA1_Stream4_IRQHandler      /* IRQ15 = DMA1_Stream4（I2S2 TX DMA，强定义在 src/audio_out.c） */
+    .word  DMA1_Stream4_IRQHandler      /* IRQ15 = DMA1_Stream4（I2S2 TX DMA，由应用层提供强定义） */
     .rept  21                           /* IRQ16..IRQ36 */
     .word  Default_Handler
     .endr
     .word  USART1_IRQHandler            /* IRQ37 = USART1（RNG 命令 $?PING/$?RND 的接收中断，
-                                         *   强定义在 third_party/SYSTEM/usart/usart.c 的 USART_UX_IRQHandler；
+                                         *   USART_UX_IRQHandler 由应用层提供强定义；
                                          *   不在此开槽会落 Default_Handler 死循环，导致一收到字节就冻结内核） */
     .rept  2                            /* IRQ38..IRQ39 */
     .word  Default_Handler
     .endr
-    .word  EXTI15_10_IRQHandler         /* IRQ40 = EXTI15_10（触摸 INT=PB13，强定义在 src/touch_port.c） */
+    .word  EXTI15_10_IRQHandler         /* IRQ40 = EXTI15_10（触摸中断，由应用层提供强定义） */
     .rept  8                            /* IRQ41..IRQ48 */
     .word  Default_Handler
     .endr
-    .word  SDMMC1_IRQHandler            /* IRQ49 = SDMMC1（见 sd_card.c） */
+    .word  SDMMC1_IRQHandler            /* IRQ49 = SDMMC1（SD 卡驱动） */
     .rept  2                            /* IRQ50..IRQ51 */
     .word  Default_Handler
     .endr
-    .word  UART4_IRQHandler             /* IRQ52 = UART4（上行链路，见 uart_link.c） */
+    .word  UART4_IRQHandler             /* IRQ52 = UART4（上行链路） */
     .word  Default_Handler              /* IRQ53 = UART5 */
-    .word  TIM6_DAC_IRQHandler          /* IRQ54 = TIM6/DAC（音频滴灌，强定义在 src/audio_out.c） */
+    .word  TIM6_DAC_IRQHandler          /* IRQ54 = TIM6/DAC（音频滴灌，由应用层提供强定义） */
     .rept  16                           /* IRQ55..IRQ70 */
     .word  Default_Handler
     .endr
@@ -160,30 +147,30 @@ Default_Handler:
 .weak SysTick_Handler
 .thumb_set SysTick_Handler, Default_Handler
 
-/* SDMMC1（IRQ49）：强定义在 src/sd_card.c，这里给弱别名做兜底
- * —— 万一 sd_card.c 没编进来，也不会链接失败，只会落回死循环（行为同其他未用 IRQ）。 */
+/* SDMMC1（IRQ49）：由应用层提供强定义，这里给弱别名做兜底
+ * —— 万一强定义没编进来，也不会链接失败，只会落回死循环（行为同其他未用 IRQ）。 */
 .weak SDMMC1_IRQHandler
 .thumb_set SDMMC1_IRQHandler, Default_Handler
 
-/* UART4（IRQ52）：强定义在 src/uart_link.c，同样给弱别名兜底。 */
+/* UART4（IRQ52）：由应用层提供强定义，同样给弱别名兜底。 */
 .weak UART4_IRQHandler
 .thumb_set UART4_IRQHandler, Default_Handler
 
-/* USART6（IRQ71）：上行链路已改用 UART4，此槽位保留备用（弱别名兜底）。 */
+/* USART6（IRQ71）：备用上行链路槽位（弱别名兜底）。 */
 .weak USART6_IRQHandler
 .thumb_set USART6_IRQHandler, Default_Handler
 
-/* TIM6_DAC（IRQ54）：音频滴灌用的高频定时中断，强定义在 src/audio_out.c。
- * 这里给弱别名兜底 —— 万一 audio_out.c 没编进来，也不会链接失败，只会落回死循环。 */
+/* TIM6_DAC（IRQ54）：音频滴灌用的高频定时中断，由应用层提供强定义。
+ * 这里给弱别名兜底 —— 万一强定义没编进来，也不会链接失败，只会落回死循环。 */
 .weak TIM6_DAC_IRQHandler
 .thumb_set TIM6_DAC_IRQHandler, Default_Handler
 
-/* EXTI15_10（IRQ40）：触摸 INT=PB13 的边沿中断，强定义在 src/touch_port.c。
- * 弱别名兜底 —— 万一 touch_port.c 没编进来，也不会链接失败，只会落回死循环。 */
+/* EXTI15_10（IRQ40）：触摸的边沿中断，由应用层提供强定义。
+ * 弱别名兜底 —— 万一强定义没编进来，也不会链接失败，只会落回死循环。 */
 .weak EXTI15_10_IRQHandler
 .thumb_set EXTI15_10_IRQHandler, Default_Handler
 
-/* DMA1_Stream4（IRQ15）：I2S2 TX 的 DMA 半/全传中断，强定义在 src/audio_out.c。
- * 弱别名兜底 —— 万一 audio_out.c 没编进来，也不会链接失败，只会落回死循环。 */
+/* DMA1_Stream4（IRQ15）：I2S2 TX 的 DMA 半/全传中断，由应用层提供强定义。
+ * 弱别名兜底 —— 万一强定义没编进来，也不会链接失败，只会落回死循环。 */
 .weak DMA1_Stream4_IRQHandler
 .thumb_set DMA1_Stream4_IRQHandler, Default_Handler

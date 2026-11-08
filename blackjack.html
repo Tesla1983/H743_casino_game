@@ -209,9 +209,8 @@
     body.arc .sidecol{order:-1;}
     /* 先顶对齐到柜机顶部，再由 JS(syncProfileBottom) 把底边推到牌桌(.felt)底部边框，
        而不是随 machrow 的 align-items:flex-end 一直垂到柜机底部（会盖过筹码盘/按钮区）。 */
-    /* 首帧门控：JS 把底边对齐到牌桌之前先不显示。
-       否则刷新瞬间档案卡会先按「顶对齐」出现在柜机左上（位置偏移），
-       约 26ms 后才跳到底部（top=325），看起来就像闪了一下别的位置的残影。
+    /* 首帧门控：JS 把底边对齐到牌桌之前先不显示，避免刷新瞬间档案卡先按顶对齐
+       出现在柜机左上、随后跳到底部造成位置闪动。
        末尾 1.5s 的兜底动画保证即使脚本异常也仍然会显示（只是位置回落到顶部）。 */
     #playerCard{
       align-self:flex-start;position:relative;margin-left:36px;order:2;
@@ -1026,8 +1025,7 @@
   body.arc .felt > .shoecard .sc-card:nth-child(2){top:4px;left:8px;}
   body.arc .felt > .shoecard .sc-card:nth-child(3){top:2px;left:12px;}
   body.arc .felt > .shoecard .sc-card:nth-child(4){top:0;left:16px;}
-  /* 进度条右端内缩 6px：避开台呢内圈金线（.felt::before inset:15px）。
-     内缩不足时，视觉上像贴着边框，故再左移 3px。 */
+  /* 进度条右端内缩 6px：避开台呢内圈金线（.felt::before inset:15px）。 */
   body.arc .felt > .shoecard .sc-bar{height:8px;margin-right:6px;}
   body.arc .felt > .shoecard .sc-foot{font-size:var(--fs-xs);}
 
@@ -2474,9 +2472,7 @@
   var verdictEl = $("verdict"), vtEl = $("vt");
   var _vCls = "";          // 裁决行当前状态类（""/dealing/win/lose/push），切语言时原样恢复
   var dealBtn = $("dealBtn");
-  /* 动作键 DOM 引用用 btn* 前缀：与同名动作函数（actHit/actStand）区分开。
-     命名约定：var btnHit = $("btnHit") 会覆盖同名的 function actHit 声明
-     （同一作用域里 var 与函数声明是同一个绑定），click 绑到 DOM 元素上、动作彻底失效。 */
+  /* 动作键 DOM 引用用 btn* 前缀，避免与同名动作函数（actHit/actStand）共享绑定。 */
   var btnHit = $("actHit"), btnStand = $("actStand"), btnDouble = $("actDouble"), btnSplit = $("actSplit");
   var peakEl = $("peakVal"), maxWinEl = $("maxWinVal"), wonEl = $("wonVal"),
       lostEl = $("lostVal"), brokeEl = $("brokeVal"), handsEl = $("handsVal");
@@ -3485,12 +3481,10 @@
     _lastSrcMsg = { key:key, vars:vars || null };
     if (srcMsg) srcMsg.textContent = tt(key, vars);
   }
-  /* 临时提示（发牌键下方）：与随机源状态行分开，别互相覆盖。
-     早期实现共用状态行，，结果「端口 … · 串口端口」被「随机源就绪」「请先下注」
-     这类一次性提示顶掉，看起来就是「下拉列表旁边那行小字不显示」。 */
+  /* 临时提示（发牌键下方）：与随机源状态行分开，避免互相覆盖。 */
 
-  /* ---------- 随机源状态行：H743 在线 · 串口直供 · 端口 8765 · 串口端口 ---------- */
-  // /status.port 是**串口**（H743:串口端口 / 串口端口），HTTP 端口要从 probe 到的 base 里取
+  /* ---------- 随机源状态行：H743 在线 · 串口直供 · 端口 + 串口名 ---------- */
+  // /status.port 是**串口名**，HTTP 端口要从探测到的 base 里取
   function srcVars(x){
     var st = (x && x.st) || {};
     var p = String((x && x.base) || "").split(":").pop();
@@ -3600,8 +3594,7 @@
       setSrcMode(m);
       srcPop.classList.remove("show");
       srcBtn.setAttribute("aria-expanded", "false");
-      // 选完源必须把结果写进状态行（需要同步更新：只切内部模式，不写文案，
-      // 于是「H743 在线 · 串口直供 · 端口 8765 · 串口端口」这行小字永远不出现）
+      // 切换来源后立即把结果写回状态行，保证提示文案同步更新
       var mode = (m === "trng") ? "online" : "offline";
       setSrcMsgKey("src.msg.connecting");
       probeBridge(mode, true).then(function(x){

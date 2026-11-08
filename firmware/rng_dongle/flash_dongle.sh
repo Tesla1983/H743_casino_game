@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# flash_dongle.sh —— 烧录 RNG 最小固件（SWD 调试器 / SWD）
+# flash_dongle.sh —— 烧录 RNG 最小固件（SWD 调试器）
 #
 # 用法（在本仓库根目录）：
 #   bash firmware/rng_dongle/flash_dongle.sh              # 有本地构建产物就烧它，否则烧 prebuilt
@@ -12,7 +12,10 @@
 set -euo pipefail
 
 CHIP="STM32H743VITx"
-PROBE="VID:PID"
+# 不绑定具体调试器型号：默认由 probe-rs 自动选择；多调试器并存时用
+# PROBE_SELECTOR 环境变量指定（格式 VID:PID[:序列号]）。
+PROBE_ARGS=()
+if [[ -n "${PROBE_SELECTOR:-}" ]]; then PROBE_ARGS=(--probe "${PROBE_SELECTOR}"); fi
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"        # 仓库根目录
 BACKUP="${ROOT}/firmware/backup/full-firmware-backup.bin"   # 回刷用的完整 GUI 固件备份（需自行放置）
 PREBUILT="${ROOT}/firmware/prebuilt/rng_dongle-1.0.bin"
@@ -59,9 +62,9 @@ case "${IMG}" in
 esac
 
 echo "[1/2] download ${IMG}"
-probe-rs download --probe "${PROBE}" --chip "${CHIP}" "${DL_ARGS[@]}" "${IMG}"
+probe-rs download "${PROBE_ARGS[@]}" --chip "${CHIP}" "${DL_ARGS[@]}" "${IMG}"
 
 echo "[2/2] reset（不 reset 固件不会开始跑）"
-probe-rs reset --probe "${PROBE}" --chip "${CHIP}"
+probe-rs reset "${PROBE_ARGS[@]}" --chip "${CHIP}"
 
 echo "[OK] 完成。验收：在串口上依次发送 \$?PING / \$?VER / \$?STAT / \$?RND,<n> 检查应答"

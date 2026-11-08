@@ -75,7 +75,7 @@
   /* ---------------- 三颗骰子 ---------------- */
   .dicestage{
     position:relative;z-index:2;display:flex;align-items:flex-end;justify-content:center;
-    /* padding-bottom 要容得下骰子旋转后的溢出（向下约 28px）+ 落影高度，
+    /* padding-bottom 要容得下骰子旋转后的向下溢出（约 28px）+ 落影高度，
        否则骰子下沿会被下面的结果条压住、阴影也没地方露出来 */
     gap:72px;padding:30px 0 40px;
   }
@@ -84,7 +84,7 @@
   /* 桌面落影（贴地投影）。
      两个必须修正的点：
      ① 层序 —— ::after 是「子元素之后」生成的，默认就画在骰子上面；骰子旋转后投影会溢出
-        slot 盒（向下约 28px），于是那条阴影直接压在骰子正面下沿，看着像一块黑斑。
+        slot 盒（向下约 28px），可能压在骰子正面下沿。
         这里给 .die 显式 z-index:1、阴影 z-index:0，阴影被骰子挡住、只露出四周一圈。
      ② 位置与软硬 —— 阴影要落在骰子的「接地线」上（不是 slot 盒底边），并比骰子略宽，
         否则会像一条贴在盒子底部的黑边。骰子投影宽约 1.25 倍盒宽，故取 126%。 */
@@ -797,7 +797,7 @@
   /* 让点数 n 转到正对观察者所需的角度。
      CSS 的 Y 轴朝下（屏幕坐标），rotateX 的正方向与数学右手系相反，所以顶/底面的
      符号按 CSS 坐标系标定：2 → rotateX(-90)，5 → rotateX(+90)。
-     （写反了不会报错，只会让"掷出 2 却显示 5"，必须用 elementFromPoint 校验朝向。） */
+     （写反了不会报错，只会让"掷出 2 却显示 5"，可用 elementFromPoint 校验朝向。） */
   var FACE = { 1:[0,0], 6:[0,180], 3:[0,-90], 4:[0,90], 2:[-90,0], 5:[90,0] };
   var TILT = "rotateX(-20deg) rotateY(-25deg)";   // 静止观察角度，保留立体感
 
@@ -1499,7 +1499,7 @@
   }
 
   /* translateZ 必须等于 slot 半宽：写死会在移动端缩小时让面外凸，
-     三颗骰子视觉上互相压住（会造成重叠） */
+     三颗骰子视觉上互相压住 */
   function syncHalf(){
     var w = document.querySelector(".dice-slot").offsetWidth || 112;
     var half = w / 2;

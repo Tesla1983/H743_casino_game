@@ -1765,7 +1765,7 @@
         var st = x.st || {};
         var L = I18N[curLang] || {};
         if (mode === "online"){
-          // 注意：/status.port 是**串口**（H743:串口端口 / 串口端口），不是 HTTP 端口
+          // 注意：/status.port 是**串口名**，不是 HTTP 端口
           var dev = String(st.port || "").replace(/^H743:/, "");
           if (st.ok === false){
             // 桥活着但熵源没连上：绿点会误导，红灯 + 原因
@@ -3517,13 +3517,13 @@
     var durs = [1700, 1900, 2100, 2300, 2500].map(function(d){ return Math.round(d / spd); });
     restoreExpandedWilds();   // 先把上一局"扩展 WILD"改过的格子还原，避免污染本条动画
     // 预渲染带子只需重设"起点"：起始格 = 停位往前 LAND_N 格，滚完 LAND_N 格正好停在中行。
-    // 起点内容与旧版"重建 46 格窗口"的首帧完全一致 → 观感不变，但这里没有任何 DOM 重建。
+    // 起点内容按停位预置，与逐帧滚动的首帧一致；全程不做 DOM 重建。
     var endTops = [];
     strips.forEach(function(el, i){
       var st = startTopFor(pos[i]);
       endTops.push(st + LAND_N);
       el.style.transition = "none";
-      el.style.transform = "translate3d(0,-"+(st*ROW_H)+"px,0)";   // 起点跳变被开转瞬间掩盖，与旧版一致
+      el.style.transform = "translate3d(0,-"+(st*ROW_H)+"px,0)";   // 起点跳变被开转瞬间掩盖
     });
     void strips[0].offsetHeight;   // 让起点先落地，CSS transition 才会从它开始
 
@@ -3592,7 +3592,7 @@
       pendingGamble = (!isFree && normalWin > 0 && res.scat < 3) ? normalWin : 0;
       gambleRound = 0;
 
-      // === 结算顺序铁律===
+      // === 结算顺序铁律 ===
       // 本局中奖已在上面的 totalWin 分支入账 -> 落盘 -> 关 spinning 并进入 settling ->
       // 刷 HUD（这时积分才是"本局最终值"）-> 展示期结束才解除 settling，允许判破产。
       // 顺序不可再调换：若先刷 HUD 再关 spinning / 不等展示，就会出现
