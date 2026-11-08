@@ -1,28 +1,30 @@
 #!/usr/bin/env bash
 # flash_dongle.sh —— 烧录 RNG 最小固件（SWD 调试器 / SWD）
 #
-# 用法（在老虎机仓库根目录）：
+# 用法（在本仓库根目录）：
 #   bash firmware/rng_dongle/flash_dongle.sh              # 有本地构建产物就烧它，否则烧 prebuilt
 #   bash firmware/rng_dongle/flash_dongle.sh --prebuilt   # 强制烧 firmware/prebuilt/rng_dongle-1.0.bin
 #   bash firmware/rng_dongle/flash_dongle.sh --restore     # 回刷完整 GUI 固件镜像
 #
 # 为什么必须跟一次 reset：
 #   probe-rs download 结束后内核停在 halt 状态，不 reset 的话固件根本不会跑，
-#   现象是"烧录成功但串口无响应"（本项目已经验一次，见 共享源码工程 内部文档）。
+#   表现为"烧录成功但串口无响应"。
 set -euo pipefail
 
 CHIP="STM32H743VITx"
 PROBE="VID:PID"
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"        # 老虎机仓库根
-BACKUP="${ROOT}/firmware/backup/共享源码工程-full-20261101.bin"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"        # 仓库根目录
+BACKUP="${ROOT}/firmware/backup/full-firmware-backup.bin"   # 回刷用的完整 GUI 固件备份（需自行放置）
 PREBUILT="${ROOT}/firmware/prebuilt/rng_dongle-1.0.bin"
 PREBUILT_ELF="${ROOT}/firmware/prebuilt/rng_dongle-1.0.elf"
 LOCAL_ELF="${ROOT}/build-dongle/rng_dongle.elf"
 
-export PATH="<本机路径>"
+# probe-rs 由 cargo 安装：其 bin 目录需已在 PATH 中；若不便修改 PATH，
+# 可用 CARGO_BIN 环境变量指定该目录。
+if [[ -n "${CARGO_BIN:-}" ]]; then export PATH="${CARGO_BIN}:${PATH}"; fi
 
 # 预编译优先用 ELF：probe-rs 默认按 ELF 解析，喂裸 .bin 会报
-#   "Failed to read or decode the ELF file / Unknown file magic"（ 实测经验）。
+#   "Failed to read or decode the ELF file / Unknown file magic"。
 prebuilt_img() {
     if [[ -f "${PREBUILT_ELF}" ]]; then echo "${PREBUILT_ELF}"; else echo "${PREBUILT}"; fi
 }
@@ -62,4 +64,4 @@ probe-rs download --probe "${PROBE}" --chip "${CHIP}" "${DL_ARGS[@]}" "${IMG}"
 echo "[2/2] reset（不 reset 固件不会开始跑）"
 probe-rs reset --probe "${PROBE}" --chip "${CHIP}"
 
-echo "[OK] 完成。验收：py -3.12 firmware/rng_dongle/test_dongle.py"
+echo "[OK] 完成。验收：在串口上依次发送 \$?PING / \$?VER / \$?STAT / \$?RND,<n> 检查应答"

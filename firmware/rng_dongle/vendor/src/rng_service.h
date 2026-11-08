@@ -6,9 +6,9 @@
  *   - H743 自带真随机源 RNG 外设（模拟噪声 + 健康检测），非 PRNG。
  *   - 时钟选 HSI48(48MHz) 作 RNGxCLK（H7 RNG 官方推荐时钟，远高于 CECS 阈值）。
  *   - 命令轮询放在 main 循环（拉取式，无中断竞争），命令分发只认 USART1 行式缓冲。
- *   - 协议见 rng_service.c 顶部注释；主机侧对应 tools/h743_rng.py。
+ *   - 协议见 rng_service.c 顶部注释；主机侧由随机源桥服务实现。
  *
- * 注意：本模块不改动 vendor 的 usart.c / printf 调试通道，
+ * 注意：本模块不改动标准 usart.c / printf 调试通道，
  *       只在 g_usart_rx_sta 标记"收到一行"时处理，处理完立即清零。
  */
 #ifndef __RNG_SERVICE_H

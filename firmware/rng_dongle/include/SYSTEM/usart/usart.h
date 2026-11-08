@@ -20,7 +20,7 @@
 
 #include <stdint.h>
 
-/* USART1：PA9=TX / PA10=RX（与本板 CH340 的接线一致，见 内部文档） */
+/* USART1：PA9=TX / PA10=RX（与本板 CH340 的接线一致） */
 #define USART_UX                USART1
 #define USART_UX_IRQn           USART1_IRQn
 #define USART_UX_IRQHandler     USART1_IRQHandler

@@ -7,7 +7,7 @@
     offline os    宿主 OS CSPRNG → ChaCha20 DRBG（无板子、无文件）
     offline off   种子池历史表 → ChaCha20 DRBG（可复算，适合回归）
 
-协议（固件实现见 <本机路径>
+协议（固件实现见 firmware/rng_dongle/vendor/src/rng_service.c）：
     主机 → 板子： $?PING
                      探测
                  $?RND,<n>

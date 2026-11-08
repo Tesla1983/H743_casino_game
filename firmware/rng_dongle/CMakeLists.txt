@@ -5,12 +5,12 @@
 #   src/main_dongle.c、include/SYSTEM/usart/usart.h、stm32h743_dongle.ld、本文件
 #     = dongle 专属源码（从本仓库 2336f56^ 恢复的原件）
 #   vendor/ = 构建所需的共享源码（rng_service.c/.h、startup_gcc.s、
-#     stm32h7xx_hal_conf.h）与 CMSIS/HAL 头，按 Ninja 依赖清单从 共享源码工程
+#     stm32h7xx_hal_conf.h）与 CMSIS/HAL 头，按 Ninja 依赖清单从共享源码树
 #     精确归档 99 个文件（约 6.5 MB），另含 cmake/arm-none-eabi.cmake。
 #     克隆本仓库即可重建，不再依赖任何外部工程目录。
 #
-# 默认 YMGUI_ROOT 指向本目录 vendor/；若要改用 共享源码工程 的实时源码，
-# 显式传 -DYMGUI_ROOT=<该工程根> 覆盖即可。
+# 默认 YMGUI_ROOT 指向本目录 vendor/；若要改用外部的共享源码树，
+# 显式传 -DYMGUI_ROOT=<该源码树根> 覆盖即可。
 #
 # 构建（在本仓库根目录，零额外参数）：
 #   cmake -S firmware/rng_dongle -B build-dongle -G Ninja
@@ -33,7 +33,7 @@ endif()
 
 project(rng_dongle C ASM)
 
-# 共享源码根：默认本仓库 vendor/，可用 -DYMGUI_ROOT=<共享源码工程 根> 覆盖
+# 共享源码根：默认本仓库 vendor/，可用 -DYMGUI_ROOT=<共享源码树根> 覆盖
 set(YMGUI_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor" CACHE PATH "共享源码根（默认本仓库 vendor/）")
 
 foreach(need
@@ -45,7 +45,7 @@ foreach(need
         message(FATAL_ERROR
             "找不到共享源码：${need}\n"
             "请确认 firmware/rng_dongle/vendor/ 已随本仓库完整检出；\n"
-            "或用 -DYMGUI_ROOT=<路径> 指向 共享源码工程 工程根；\n"
+            "或用 -DYMGUI_ROOT=<路径> 指向外部的共享源码树根；\n"
             "或跳过构建，直接烧 firmware/prebuilt/rng_dongle-1.0.bin。")
     endif()
 endforeach()
@@ -82,7 +82,7 @@ target_link_options(rng_dongle.elf PRIVATE
 	--specs=nosys.specs
 )
 
-# 改链接脚本必须触发重链（与主工程同一个坑，见 共享源码工程 根 CMakeLists 注释）
+# 链接脚本不参与依赖推导，改动后必须显式触发重链
 set_target_properties(rng_dongle.elf PROPERTIES LINK_DEPENDS ${DONGLE_LD})
 
 add_custom_command(TARGET rng_dongle.elf POST_BUILD

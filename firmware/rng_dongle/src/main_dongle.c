@@ -1,13 +1,13 @@
 /**
  * @file        main_dongle.c
- * @brief       STM32H743 RNG 最小固件（供老虎机随机源使用，替代整套 GUI 固件）
+ * @brief       STM32H743 RNG 最小固件（为游戏随机源提供独立的轻量实现）
  *
  * 目标：上电后**立刻**能在 USART1(串口端口) 上应答 `$?PING` / `$?RND,<n>`，
  *       不初始化屏、音频、TF 卡、QSPI 字库、ESP32 链路。
- *       完整 GUI 固件要达到同样状态需要等 QSPI 字库启动（实测 ~25 s，见
- *       内部文档），这对"随机源"是不可接受的启动延迟。
+ *       完整 GUI 固件要达到同样状态需要等 QSPI 字库启动（约 25 s），
+ *       这对"随机源"是不可接受的启动延迟。
  *
- * 复用了主工程已验证的 `src/rng_service.c`（协议、SECS/CECS 恢复、HDR XOR 全不动），
+ * 复用了已验证的共享源码 `vendor/src/rng_service.c`（协议、SECS/CECS 恢复、HDR XOR 全不动），
  * 只替换"谁提供那一行命令"：
  *   GUI 固件：vendor 的 SYSTEM/usart/usart.c（HAL + printf 重定向 + 200 B 缓冲）
  *   本固件  ：本文件里的裸寄存器 USART1 驱动（无 HAL、无 printf、无 malloc）
@@ -44,7 +44,7 @@ static uint8_t g_boot_ok = 0;
 
 /* ------------------------------------------------------------------------- */
 /* 启动：startup_gcc.s 里 `bl board_init_memory` —— 把 .data 从 flash 搬到 DTCM、清 .bss。
- * 主工程的那份（src/board_startup.c）还引用了 IME/DMA/SD 专用段符号，本固件不需要。 */
+ * 完整 GUI 固件的 board_startup.c 还引用了 IME/DMA/SD 专用段符号，本固件不需要。 */
 extern uint32_t _sidata, _sdata, _edata, _sbss, _ebss;
 
 void board_init_memory(void)

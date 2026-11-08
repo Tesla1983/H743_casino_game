@@ -1,23 +1,23 @@
 # ===========================================================================
-# arm-none-eabi 交叉编译工具链文件（YMGUI → STM32H743）
+# arm-none-eabi 交叉编译工具链文件（STM32H743 裸机）
 #
 # 用法：cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=cmake/arm-none-eabi.cmake -G Ninja
 #
 # 为什么用 arm-none-eabi-gcc 而不是 Keil：
-#   YMGUI 是 C99 + **GNU 扩展**（语句表达式、typeof、__attribute__ 等），
-#   Keil AC5/AC6 对 GNU 扩展不友好。设计说明 §3.3。
+#   固件源码使用 C99 + **GNU 扩展**（语句表达式、typeof、__attribute__ 等），
+#   Keil AC5/AC6 对 GNU 扩展支持不完整。
 #
-# 为什么用 Ninja 而不是 Make：
-#   本机没有 `make`，但 IDE 自带的 Ninja 在 PATH 里。
+# 生成器以 Ninja 为例，也可换成其它 CMake 生成器。
 # ===========================================================================
 
 set(CMAKE_SYSTEM_NAME      Generic)
 set(CMAKE_SYSTEM_PROCESSOR arm)
 
-# 本机 ARM GNU Toolchain 装在含空格路径下，补进搜索路径；换机器时只需把
-# arm-none-eabi-* 加入 PATH，下面两条找不到也不会阻塞 find_program。
-list(APPEND CMAKE_PROGRAM_PATH "<本机路径> rel1/bin")
-list(APPEND CMAKE_PROGRAM_PATH "<本机路径> rel1/bin")
+# 工具链由构建环境提供：把 arm-none-eabi-* 所在 bin 目录加入 PATH 即可。
+# 若不便修改 PATH，可用 ARM_GNU_TOOLCHAIN_BIN 环境变量指定该 bin 目录。
+if(DEFINED ENV{ARM_GNU_TOOLCHAIN_BIN})
+    list(APPEND CMAKE_PROGRAM_PATH "$ENV{ARM_GNU_TOOLCHAIN_BIN}")
+endif()
 
 set(TOOLCHAIN_PREFIX arm-none-eabi-)
 

@@ -1,11 +1,11 @@
 /* ===========================================================================
  * STM32H743VIT6 链接脚本 —— RNG 最小固件专用（rng_dongle）
  *
- * 为什么不用主工程的 linker/stm32h743vit6.ld：
- *   · 主脚本里有一串 `EXTERN(...)` 专门给 GUI 固件的自定义 ISR 保活
+ * 为什么不复用完整 GUI 固件的链接脚本：
+ *   · GUI 脚本里有一串 `EXTERN(...)` 专门给自定义 ISR 保活
  *     （TIM6_DAC / EXTI15_10 / DMA1_Stream4），本固件不定义它们 ⇒ 链接直接失败；
- *   · 主脚本还划了 QSPI/heap1/多块 SRAM 段与 IME/DMA/SD 专用 .bss 段，
- *     那套是给 YMGUI 用的，最小固件只需要 FLASH + DTCM。
+ *   · GUI 脚本还划了 QSPI/heap1/多块 SRAM 段与 IME/DMA/SD 专用 .bss 段，
+ *     那套是给带屏界面的固件用的，最小固件只需要 FLASH + DTCM。
  *
  * 本脚本刻意**只保留两段**：
  *   FLASH 2 MB（.isr_vector/.text/.rodata + .data 的加载镜像）
@@ -29,7 +29,7 @@ _estack = ORIGIN(DTCM) + LENGTH(DTCM);
 
 /* ⚠ 唯一需要保活的 ISR。startup_gcc.s 里 USART1_IRQHandler 是**强引用**（无 .weak），
  *   但函数本身在 -ffunction-sections 下仍可能被 --gc-sections 回收 ——
- *   显式 EXTERN 一次，行为与主工程那份脚本里的教训一致。 */
+ *   显式 EXTERN 一次即可保活。 */
 EXTERN(USART1_IRQHandler)
 
 SECTIONS

@@ -109,7 +109,7 @@ Reset_Handler:
 
     /* 2) 使能 FPU：CPACR 的 CP10/CP11 全访问。
      *    Cortex-M7 复位后 FPU 关闭，此时任何浮点指令都会触发 UsageFault。
-     *    应用层要用 float（设计说明允许），所以必须在这里打开。 */
+     *    应用层使用硬件浮点，所以必须在这里打开。 */
     ldr   r0, =0xE000ED88           /* SCB->CPACR */
     ldr   r1, [r0]
     orr   r1, r1, #(0xF << 20)      /* CP10=11, CP11=11 */
