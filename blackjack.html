@@ -2209,7 +2209,12 @@
   function isCardCode(c){
     if (!c || typeof c !== "object") return false;
     if (SUITS.indexOf(c.suit) < 0 || RANKS.indexOf(c.rank) < 0) return false;
-    return c.code === c.rank + c.suit;
+    if (c.code !== c.rank + c.suit) return false;
+    // value 必须与 rank 的点数一致：BJ.isPair 直接比较 value，缺字段时
+    // undefined === undefined 会把任意两张牌判成对子、错误开放分牌。
+    var v = (c.rank === "A") ? 11
+          : ((c.rank === "10" || c.rank === "J" || c.rank === "Q" || c.rank === "K") ? 10 : parseInt(c.rank, 10));
+    return c.value === v;
   }
   function loadShoe(){
     var raw;
@@ -2659,11 +2664,11 @@
     if (phase === "player" || phase === "dealer"){ setHintKey("msg.inplay"); return; }
     if (bet.main <= 0){ setHintKey("msg.nobet"); return; }
 
-    // 牌靴余量：一手最多 11 张（4手分牌上限），不足 12 张就整靴重洗
-    if (shoe.length < 12){
-      setHintKey("msg.shuffle");
-      await reshuffle();
-    }
+    // 切牌点 75%（规则卡 rules.shoe.1 / 引擎 CFG.PENETRATION）：牌靴用到约 234 张后，
+    // 下一局开始前整靴重洗；12 张下限保证一手（最多 11 张）不会中途见底。
+    var CUT_AT = Math.floor(SHOE_SIZE * (1 - BJ.CFG.PENETRATION));   // 312 × 25% = 78
+    var needShuffle = (shoe.length <= CUT_AT || shoe.length < 12);
+    if (needShuffle) setHintKey("msg.shuffle");
 
     // 开始新一局：只在这里清掉上一局保留在球内的点数 / 结果，并完成空桌初始化。
     // 放在所有守卫之后，确保「没有真正开局」时不会误清保留内容；与局结束的清牌互不干扰。
@@ -2673,7 +2678,13 @@
     setWin(0);
     setVerdict(tt("verdict.dealing"), "dealing");
 
+    // 注已在 placeBet() 扣走：先落一份「本手已开始、牌未成型」的快照，
+    // 发牌动画期间刷新才能凭它全额退款，不会出现钱已扣却无存档可恢复。
+    saveHand();
+
     try{
+      // 洗牌同样依赖随机源：放进 try 才能与发牌异常走同一条「全额退款、恢复下注态」路径
+      if (needShuffle) await reshuffle();
       // 取 4 张：玩家、庄明、玩家、庄暗
       var c1 = drawCard(), c2 = drawCard(), c3 = drawCard(), c4 = drawCard();
       if (!c1 || !c2 || !c3 || !c4) throw new Error("shoe");
@@ -2724,10 +2735,11 @@
       refreshActionBtns();
 
     }catch(e){
-      // 随机源不可用等异常：退款、恢复原状
-      credits += bet.main;
+      // 随机源不可用等异常：主注与保险注一并原额退回，清掉本手快照后恢复下注态
+      credits += bet.main + insBet;
       lsSave(LS.credits, credits);
-      bet.main = 0;
+      bet.main = 0; insBet = 0;
+      try{ localStorage.removeItem(LS.hand); }catch(e2){}
       updateHUD();
       setHintKey("msg.norand");
       dealing = false; dealBtn.disabled = false;
@@ -3000,6 +3012,7 @@
     var h = playerHands[activeHand];
     if (!h || h.done) return;
     h.done = true;
+    saveHand();          // 停牌同样改变手状态：落盘后刷新不会退回旧快照
     await nextHandOrDealer();
   }
   /* 加倍：再扣一份注 → h.bet 翻倍 → 发一张 → 强制停牌（无论点数）。
@@ -3009,6 +3022,9 @@
     var h = playerHands[activeHand];
     if (!h || h.done || h.cards.length !== 2 || h.doubled || h.splitAce) return;
     if (credits < h.bet){ showNotEnough(); return; }
+    // 先取牌再动资金/手状态：牌靴见底时零副作用，玩家仍可要牌或停牌
+    var c = drawCard();
+    if (!c){ setHintKey("msg.norand"); return; }
     credits -= h.bet;
     lsSave(LS.credits, credits);
     h.bet *= 2;
@@ -3016,8 +3032,6 @@
     playSfx("chip");
     updateHUD();
     setVerdict(tt("verdict.doubling"));
-    var c = drawCard();
-    if (!c){ setHintKey("msg.norand"); return; }
     h.cards.push(c);
     await dealCard(sideP, c, playerHands.length > 1 ? { beforeEl: insertBeforeForCurrentHand() } : null);
     renderTotals(); saveHand(); refreshHandMarks();
@@ -3032,6 +3046,10 @@
     if (!h || h.done || h.cards.length !== 2 || !BJ.isPair(h.cards)) return;
     if (playerHands.length >= 4) return;
     if (credits < h.bet){ showNotEnough(); return; }
+    // 先把两张补牌取到手，再扣款/拆牌：牌靴不足 2 张时零副作用，不留畸形手牌
+    if (shoe.length < 2){ setHintKey("msg.norand"); return; }
+    var cA = drawCard(), cB = drawCard();
+    if (!cA || !cB){ setHintKey("msg.norand"); return; }
     credits -= h.bet;
     lsSave(LS.credits, credits);
     playSfx("chip");
@@ -3052,8 +3070,6 @@
     var allBc = pCards.querySelectorAll(".bcard");
     var moved = allBc.length ? allBc[allBc.length - 1] : null;
     if (moved) pCards.insertBefore(moved, gapEl.nextSibling);
-    var cA = drawCard(), cB = drawCard();
-    if (!cA || !cB){ setHintKey("msg.norand"); return; }
     h.cards.push(cA);
     nh.cards.push(cB);
     await dealCard(sideP, cA, { beforeEl: insertBeforeForCurrentHand() });
@@ -3149,13 +3165,15 @@
       else if (pv.total < dv.total) res = -1;
       else res = 0;
       h.res = res;
-      net += res * h.bet;
+      // 积分以整数为准：3:2 在注额为奇数倍最小注时会产生半分，统一按最小单位向下取整，
+      // 且净额与回款用同一口径，避免账本出现 0.5 而显示被 fmtAmt 截成整数。
+      net += Math.floor(res * h.bet);
     });
     // 逐手回款（分牌后每手注额独立——bet.main 只是首注，不能当总本金用）：
     // 赢 → 本金+赢利全回；平 → 退本金；输 → 不回（下注时已扣走）
     var ret = 0;
     playerHands.forEach(function(h){
-      if (h.res > 0) ret += h.bet * (1 + h.res);
+      if (h.res > 0) ret += h.bet + Math.floor(h.res * h.bet);
       else if (h.res === 0) ret += h.bet;
     });
     // 保险独立结算（与主注无关；insBet 在押入时已扣）：庄 BJ 赔 2:1 → 回 3 倍
@@ -3254,6 +3272,23 @@
       return raw;
     }catch(e){ return null; }
   }
+  /* 玩家阶段续局：天然 BJ / 庄 BJ 的快照不允许继续行动，直接结算；
+     其余恢复牌面与行动权。bet 阶段「牌已成型」的快照也复用这里。 */
+  function resumePlayer(){
+    if (BJ.isBlackjack(dealerCards) ||
+        (playerHands.length === 1 && BJ.isBlackjack(playerHands[0].cards))){
+      holeHidden = false; renderCards(); renderTotals();
+      settleRound(); return;
+    }
+    // 防御：所有手都已完成（异常快照）→ 直接进庄家结算，避免按钮全禁用卡死
+    var anyOpen = false;
+    playerHands.forEach(function(h){ if (!h.done) anyOpen = true; });
+    if (!anyOpen){ settleRound(); return; }
+    renderCards(); renderTotals(); refreshActionBtns();
+    updateHUD();
+    setVerdict(tt("verdict.you"));
+    setHintKey("msg.resume");
+  }
   function resumeHand(){
     var raw = loadHand();
     if (!raw){ try{ localStorage.removeItem(LS.hand); }catch(e){} return; }
@@ -3266,16 +3301,20 @@
     bet.main = Math.max(0, Math.floor(raw.bet || 0));
     insBet = Math.max(0, Math.floor(raw.insBet || 0));
     if (phase === "player"){
-      // 防御：所有手都已完成（异常快照）→ 直接进庄家结算，避免按钮全禁用卡死
-      var anyOpen = false;
-      playerHands.forEach(function(h){ if (!h.done) anyOpen = true; });
-      if (!anyOpen){ settleRound(); return; }
-      renderCards(); renderTotals(); refreshActionBtns();
-      updateHUD();
-      setVerdict(tt("verdict.you"));
-      setHintKey("msg.resume");
+      resumePlayer();
     } else if (phase === "bet"){
-      // 发牌动画/保险窗中刷新：注已扣但本手未成型 → 全额退款重来
+      // 存档 phase 停在 bet 有两种情况，按牌是否已成型区分：
+      //   ① 发牌动画/保险窗中刷新：注已扣但牌未成型 → 全额退款重来；
+      //   ② 4 张牌已发完、phase 尚未推进到 player（原实现此后才赋值）→ 必须恢复牌面
+      //      继续本手，不能退款，否则等于看牌后无成本撤销。
+      var formed = playerHands.length > 0 && dealerCards.length >= 2 &&
+        playerHands.every(function(h){ return h.cards && h.cards.length >= 2; });
+      if (formed){
+        phase = "player";
+        saveHand();
+        resumePlayer();
+        return;
+      }
       var back = bet.main + insBet;
       if (back > 0){ credits += back; lsSave(LS.credits, credits); }
       bet.main = 0; insBet = 0; updateHUD();

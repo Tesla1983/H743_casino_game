@@ -2041,11 +2041,20 @@
     if (!raw || raw.v !== 1 || !Array.isArray(raw.cards)) return null;
     var a = raw.cards;
     if (!a.length || a.length > SHOE_SIZE) return null;
+    // 每手固定消耗 4 或 6 张（偶数）：满靴 416 张逐手递减，差值必为偶数。
+    // 奇数差值说明存档被截断或篡改、构成不明，宁可丢弃重洗。
+    if ((SHOE_SIZE - a.length) % 2 !== 0) return null;
     var cnt = {};
     for (var i = 0; i < a.length; i++){
       if (!isCardCode(a[i])) return null;
       cnt[a[i]] = (cnt[a[i]] || 0) + 1;
       if (cnt[a[i]] > DECKS) return null;      // 8 副牌里同一张最多 8 张
+    }
+    // 满靴时「总数 416 + 每种 ≤8」数学上已等价于每种恰好 8 张，这里显式复核整靴构成
+    if (a.length === SHOE_SIZE){
+      for (var ri = 0; ri < RANKS.length; ri++)
+        for (var si = 0; si < SUITS.length; si++)
+          if ((cnt[RANKS[ri] + SUITS[si]] || 0) !== DECKS) return null;
     }
     return a;
   }
@@ -3007,9 +3016,13 @@
      "先取完再播动画"是为了给刷新留一个确定的中间态：取完立刻 saveShoe() + saveHand()，
      此后刷新只是"把这一手接着播完并结算"，既不换牌靴，也不会把注额吞掉。 */
   function drawHand(){
+    // 一手最多 6 张：牌靴不足时整手作废（由 doDeal 取消、不扣注），
+    // 绝不把 undefined 当牌发出去导致 handTotal 抛错、发牌流程卡死。
+    if (shoe.length < 6) throw new Error("shoe");
     var plays = [], p = [], b = [];
     function to(side){
       var c = shoe.pop();
+      if (!c) throw new Error("shoe");
       plays.push({ side:side, code:c });
       (side === "p" ? p : b).push(c);
       return c;
@@ -3038,7 +3051,7 @@
     var total = bs.p + bs.b + bs.t + pp + bp + l6;
     // 注额在发牌前已整笔扣掉，所以 credit = 「本金退还 + 净赢」：
     //   闲赢 → 注 ×2（1:1 派彩 + 退回本金）
-    //   庄赢 → 注 + 利润；有佣台利润 = ⌊注×95%⌋，免佣台满赔、但庄以 6 点赢只有 ⌊注×50%⌋
+    //   庄赢 → 注 + 利润；有佣台利润 = 注×95%（取最近整数），免佣台满赔、但庄以 6 点赢只有 注×50%（取最近整数）
     //   和局 → 闲/庄注原额退回 + 和注 ×9（8:1 派彩 + 退回本金）
     var res = (h.pt > h.bt) ? "p" : (h.bt > h.pt) ? "b" : "t";
     var cf = (h.cf === 1) ? 1 : 0;
@@ -3046,8 +3059,10 @@
     if (res === "p"){
       credit = bs.p * 2;
     } else if (res === "b"){
-      bProfit = cf ? (h.bt === 6 ? Math.floor(bs.b * PAY_CF_B6 / 100) : bs.b)
-                   : Math.floor(bs.b * PAY_B / 100);
+      // 积分只能为整数：按比例派彩取最近整数。原来一律向下取整会让 5/25 这类小额注
+      // 被系统性少赔（注 5 的 5% 佣金变成 20%、0.5:1 变成 0.4:1）；100 及以上注额结果不变。
+      bProfit = cf ? (h.bt === 6 ? Math.round(bs.b * PAY_CF_B6 / 100) : bs.b)
+                   : Math.round(bs.b * PAY_B / 100);
       credit = bs.b + bProfit;
     } else {
       credit = bs.p + bs.b + bs.t * (PAY_T + 1);
@@ -3108,7 +3123,7 @@
 
   /* 结算拆解：把「返 600 − 押 400 = 净 200」摊到每个注位上，一眼能对账。
        res=p → 闲 +注、庄 −注、和 −注
-       res=b → 庄 +利润（有佣 ⌊注×95%⌋ / 免佣满赔、庄 6 点则半赔）、闲 −注、和 −注
+       res=b → 庄 +利润（有佣 ≈注×95% / 免佣满赔、庄 6 点则半赔）、闲 −注、和 −注
        res=t → 闲/庄「退回」、和 +注×8
        附加注：闲对/庄对中则 +注×11，幸运六中则 +注×12 或 ×20，否则 −注
      只列真正下了注的注位；金额用 fmtAmt 精确整数（战绩才缩写）。 */
@@ -3314,7 +3329,16 @@
     }
 
     // 牌与注额先落盘：从这一刻起，刷新只会「接着把这一手播完」，不会吞注额、也不会换牌靴
-    var h = drawHand();
+    var h;
+    try {
+      h = drawHand();
+    } catch(e){
+      // 牌靴构成异常 / 见底：本手作废。此时尚未扣注，恢复下注态即可。
+      setHintKey("msg.norand");
+      dealing = false; dealBtn.disabled = false;
+      updateHUD();
+      return;
+    }
     h.bet = { p:bet.p, b:bet.b, t:bet.t, pp:bet.pp, bp:bet.bp, l6:bet.l6 };
     // 台面模式在这里定格：这一手之后无论怎么切台型，结算口径都按发牌时的 cf 走
     h.cf = commFree ? 1 : 0;
